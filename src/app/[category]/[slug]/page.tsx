@@ -69,6 +69,8 @@ export default async function ToolPage({
   // 'custom' tools are served by their own dedicated route (e.g.
   // src/app/cat/connect/page.tsx), which Next.js matches ahead of this
   // catch-all — reaching here for a 'custom' row means no such route has
-  // been built yet.
+  // been built yet. A dedicated route is NOT gated for free the way this
+  // catch-all is — it must call requireLiveTool() (src/lib/requireLiveTool.ts)
+  // itself as its first line, or a 'draft' row is reachable anyway.
   notFound();
 }
