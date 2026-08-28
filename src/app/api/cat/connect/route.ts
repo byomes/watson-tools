@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isToolLive } from '@/lib/requireLiveTool'
 
 const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email'
 const SENDER_EMAIL = 'watson@williamckyomes.com'
@@ -88,6 +89,14 @@ function buildHtmlBody(data: ConnectCardPayload): string {
 }
 
 export async function POST(req: NextRequest) {
+  // This route is directly POST-able by anyone who knows the URL — the
+  // page's requireLiveTool() check does NOT protect it. Gate it here too,
+  // before touching the payload or Brevo, or a 'draft' tool's endpoint
+  // stays live and abusable regardless of what the page shows.
+  if (!(await isToolLive('cat', 'connect'))) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
   const data = await req.json().catch(() => null)
   if (!data) return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
 
