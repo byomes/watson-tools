@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { watsonFetch } from '@/lib/watson';
 
 interface Tool {
+  category: string;
   slug: string;
   title: string;
   tool_type: 'redirect' | 'page' | 'custom';
@@ -11,12 +12,14 @@ interface Tool {
 }
 
 // Only ever returns a tool whose status is 'live' — jobs/tools/api.py's
-// /api/tools/resolve/<slug> hides draft rows entirely, so a tool mid-build
-// is invisible here even if its slug is already known. Going live is a
-// separate, explicit step (see jobs/tools/registry.py's first-deploy
-// Telegram confirm gate).
-async function getTool(slug: string): Promise<Tool | null> {
-  const res = await watsonFetch(`/api/tools/resolve/${encodeURIComponent(slug)}`);
+// /api/tools/resolve/<category>/<slug> hides draft rows entirely, so a
+// tool mid-build is invisible here even if its path is already known.
+// Going live is a separate, explicit step (see jobs/tools/registry.py's
+// first-deploy Telegram confirm gate).
+async function getTool(category: string, slug: string): Promise<Tool | null> {
+  const res = await watsonFetch(
+    `/api/tools/resolve/${encodeURIComponent(category)}/${encodeURIComponent(slug)}`,
+  );
   if (!res.ok) return null;
   return res.json();
 }
@@ -24,10 +27,10 @@ async function getTool(slug: string): Promise<Tool | null> {
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ category: string; slug: string }>;
 }): Promise<Metadata> {
-  const { slug } = await params;
-  const tool = await getTool(slug);
+  const { category, slug } = await params;
+  const tool = await getTool(category, slug);
   if (!tool) return { title: 'Not Found' };
   return { title: tool.title };
 }
@@ -35,10 +38,10 @@ export async function generateMetadata({
 export default async function ToolPage({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ category: string; slug: string }>;
 }) {
-  const { slug } = await params;
-  const tool = await getTool(slug);
+  const { category, slug } = await params;
+  const tool = await getTool(category, slug);
 
   if (!tool) notFound();
 
@@ -63,8 +66,9 @@ export default async function ToolPage({
     );
   }
 
-  // 'custom' tools are served by their own dedicated route, which Next.js
-  // matches ahead of this catch-all — reaching here for a 'custom' row
-  // means no such route has been built yet.
+  // 'custom' tools are served by their own dedicated route (e.g.
+  // src/app/cat/connect/page.tsx), which Next.js matches ahead of this
+  // catch-all — reaching here for a 'custom' row means no such route has
+  // been built yet.
   notFound();
 }
