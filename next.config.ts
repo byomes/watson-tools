@@ -7,8 +7,15 @@ const nextConfig: NextConfig = {
   // carry this prefix — the destination just needs to match.
   async rewrites() {
     return [
+      // Exact-match /ham separately: "/ham/:path*" alone rewrites a bare
+      // /ham request to ".../ham/" (trailing slash), which hamprep then
+      // 308s back to "/ham" — a redirect loop on the primary entry URL.
       {
-        source: "/ham/:path*",
+        source: "/ham",
+        destination: "https://hamprep-phi.vercel.app/ham",
+      },
+      {
+        source: "/ham/:path+",
         destination: "https://hamprep-phi.vercel.app/ham/:path*",
       },
     ];
