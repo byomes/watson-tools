@@ -2,10 +2,15 @@
 
 import { useEffect, useMemo, useState } from 'react'
 
+type CampusPreference = 'Wilmington' | 'Online' | 'Hybrid' | 'Inactive'
+
+const CAMPUS_OPTIONS: CampusPreference[] = ['Wilmington', 'Online', 'Hybrid', 'Inactive']
+
 interface Member {
   id: number
   name: string
   present: boolean
+  campus_preference: CampusPreference
 }
 
 interface StateResponse {
@@ -13,6 +18,7 @@ interface StateResponse {
   recent_sundays: string[]
   wilmington: Member[]
   online: Member[]
+  inactive: Member[]
 }
 
 function formatSunday(iso: string): string {
@@ -48,20 +54,79 @@ function Toggle({ on, onClick, disabled }: { on: boolean; onClick: () => void; d
   )
 }
 
+function CampusRadios({
+  member,
+  disabled,
+  onChange,
+}: {
+  member: Member
+  disabled: boolean
+  onChange: (member: Member, value: CampusPreference) => void
+}) {
+  return (
+    <div role="radiogroup" aria-label={`Campus for ${member.name}`} className="shrink-0 flex gap-2.5">
+      {CAMPUS_OPTIONS.map((option) => (
+        <label key={option} className="flex flex-col items-center gap-0.5 text-[11px] text-gray-600">
+          <input
+            type="radio"
+            name={`campus-${member.id}`}
+            checked={member.campus_preference === option}
+            disabled={disabled}
+            onChange={() => onChange(member, option)}
+            className="w-4 h-4"
+          />
+          {option}
+        </label>
+      ))}
+    </div>
+  )
+}
+
+function MemberRow({
+  member,
+  editMode,
+  pending,
+  attendanceCampus,
+  onToggle,
+  onCampusChange,
+}: {
+  member: Member
+  editMode: boolean
+  pending: boolean
+  attendanceCampus: 'Wilmington' | 'Online'
+  onToggle: (member: Member, campus: 'Wilmington' | 'Online') => void
+  onCampusChange: (member: Member, value: CampusPreference) => void
+}) {
+  return (
+    <li className="flex items-center justify-between py-2.5 gap-3">
+      <span className="text-black text-[15px]">{member.name}</span>
+      {editMode ? (
+        <CampusRadios member={member} disabled={pending} onChange={onCampusChange} />
+      ) : (
+        <Toggle on={member.present} disabled={pending} onClick={() => onToggle(member, attendanceCampus)} />
+      )}
+    </li>
+  )
+}
+
 function CampusSection({
   title,
   campus,
   members,
   filter,
   pending,
+  editMode,
   onToggle,
+  onCampusChange,
 }: {
   title: string
   campus: 'Wilmington' | 'Online'
   members: Member[]
   filter: string
   pending: Set<number>
+  editMode: boolean
   onToggle: (member: Member, campus: 'Wilmington' | 'Online') => void
+  onCampusChange: (member: Member, value: CampusPreference) => void
 }) {
   const visible = members.filter((m) => m.name.toLowerCase().includes(filter.toLowerCase()))
   const presentCount = members.filter((m) => m.present).length
@@ -76,19 +141,67 @@ function CampusSection({
       </h2>
       <ul className="divide-y divide-gray-200 border-y border-gray-200">
         {visible.map((m) => (
-          <li key={m.id} className="flex items-center justify-between py-2.5">
-            <span className="text-black text-[15px]">{m.name}</span>
-            <Toggle
-              on={m.present}
-              disabled={pending.has(m.id)}
-              onClick={() => onToggle(m, campus)}
-            />
-          </li>
+          <MemberRow
+            key={m.id}
+            member={m}
+            editMode={editMode}
+            pending={pending.has(m.id)}
+            attendanceCampus={campus}
+            onToggle={onToggle}
+            onCampusChange={onCampusChange}
+          />
         ))}
         {visible.length === 0 && (
           <li className="py-3 text-sm text-gray-400">No matching names.</li>
         )}
       </ul>
+    </section>
+  )
+}
+
+function InactiveSection({
+  members,
+  filter,
+  pending,
+  editMode,
+  onToggle,
+  onCampusChange,
+}: {
+  members: Member[]
+  filter: string
+  pending: Set<number>
+  editMode: boolean
+  onToggle: (member: Member, campus: 'Wilmington' | 'Online') => void
+  onCampusChange: (member: Member, value: CampusPreference) => void
+}) {
+  const visible = members.filter((m) => m.name.toLowerCase().includes(filter.toLowerCase()))
+
+  return (
+    <section className="mb-8">
+      {/* Collapsed by default (no `open` attr) — kept below Wilmington/Online
+          and out of the way so it isn't scrolled past during weekly
+          attendance-taking. */}
+      <details>
+        <summary className="text-lg font-semibold text-black mb-2 cursor-pointer select-none">
+          Inactive <span className="text-sm font-normal text-gray-500">({members.length})</span>
+        </summary>
+        <ul className="divide-y divide-gray-200 border-y border-gray-200 mt-2">
+          {visible.map((m) => (
+            <MemberRow
+              key={m.id}
+              member={m}
+              editMode={editMode}
+              pending={pending.has(m.id)}
+              attendanceCampus={m.campus_preference === 'Online' ? 'Online' : 'Wilmington'}
+              onToggle={onToggle}
+              onCampusChange={onCampusChange}
+            />
+          ))}
+          {visible.length === 0 && (
+            <li className="py-3 text-sm text-gray-400">No matching names.</li>
+          )}
+        </ul>
+      </details>
     </section>
   )
 }
@@ -99,6 +212,7 @@ export default function AttendanceBoard() {
   const [filter, setFilter] = useState('')
   const [pending, setPending] = useState<Set<number>>(new Set())
   const [error, setError] = useState<string | null>(null)
+  const [editMode, setEditMode] = useState(false)
 
   const fetchState = async (date: string) => {
     setError(null)
@@ -153,12 +267,50 @@ export default function AttendanceBoard() {
     await fetchState(data.service_date)
   }
 
+  const handleCampusChange = async (member: Member, value: CampusPreference) => {
+    if (!data || value === member.campus_preference) return
+
+    setPending((prev) => new Set(prev).add(member.id))
+    setError(null)
+
+    const res = await fetch('/api/cat/attendance/campus', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ member_id: member.id, campus_preference: value }),
+    })
+
+    setPending((prev) => {
+      const next = new Set(prev)
+      next.delete(member.id)
+      return next
+    })
+
+    if (!res.ok) {
+      setError(`Could not update ${member.name}'s campus. Try again.`)
+      return
+    }
+
+    // Refetch — a campus change can move a member between the Wilmington,
+    // Online, and Inactive lists.
+    await fetchState(data.service_date)
+  }
+
   if (!data) {
     return <p className="text-gray-500">{error ?? 'Loading…'}</p>
   }
 
   return (
     <div>
+      <button
+        type="button"
+        onClick={() => setEditMode((v) => !v)}
+        className={`mb-4 rounded-lg px-3 py-2 text-sm font-medium border ${
+          editMode ? 'bg-black text-white border-black' : 'bg-white text-black border-gray-300'
+        }`}
+      >
+        {editMode ? 'Done Editing Campus' : 'Edit Campus'}
+      </button>
+
       <label className="block text-sm font-medium text-gray-700 mb-1">Service date</label>
       <select
         value={data.service_date}
@@ -188,7 +340,9 @@ export default function AttendanceBoard() {
         members={data.wilmington}
         filter={filter}
         pending={pending}
+        editMode={editMode}
         onToggle={handleToggle}
+        onCampusChange={handleCampusChange}
       />
       <CampusSection
         title="Online"
@@ -196,7 +350,17 @@ export default function AttendanceBoard() {
         members={data.online}
         filter={filter}
         pending={pending}
+        editMode={editMode}
         onToggle={handleToggle}
+        onCampusChange={handleCampusChange}
+      />
+      <InactiveSection
+        members={data.inactive}
+        filter={filter}
+        pending={pending}
+        editMode={editMode}
+        onToggle={handleToggle}
+        onCampusChange={handleCampusChange}
       />
     </div>
   )
