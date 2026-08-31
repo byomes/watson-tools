@@ -16,11 +16,9 @@ export default async function DeaconsPage() {
   return (
     <div className="min-h-screen bg-white py-10 px-4">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-2xl font-bold text-black mb-1">Deacons</h1>
+        <h1 className="text-2xl font-bold text-black mb-1">Catalyst Deacons</h1>
         <p className="text-sm text-gray-500 mb-6">
-          One shared roster — every deacon sees everyone, so covering for someone who&apos;s
-          out is just picking up their people below. Leadership-only prayer requests aren&apos;t
-          shown here; those stay in the Master Shepherding Report.
+          Shepherding tool for the deacons of Catalyst Community Church.
         </p>
         <DeaconBoard />
       </div>
