@@ -194,6 +194,12 @@ export default function DeaconBoard() {
     load()
   }, [])
 
+  // "Inactive" is a deliberate bucket, not a real deacon — the backend
+  // excludes it from the fetched deacon list (list_deacons()) so it never
+  // gets its own Master Report section, but it must still be selectable
+  // right here, on a person's own card.
+  const deaconOptions = useMemo(() => [...deacons, 'Inactive'], [deacons])
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     const rows = people
@@ -302,6 +308,7 @@ export default function DeaconBoard() {
             <option key={d} value={d}>{d}</option>
           ))}
           <option value={UNASSIGNED}>Unassigned</option>
+          <option value="Inactive">Inactive</option>
         </select>
         <select
           value={sortMode}
@@ -366,7 +373,7 @@ export default function DeaconBoard() {
                       <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Deacon</label>
                       <EditableSelect
                         value={p.deacon ?? ''}
-                        options={deacons}
+                        options={deaconOptions}
                         placeholder="Unassigned"
                         onChange={(v) => updateField(p.id, 'deacon', v)}
                         onAddOption={addDeaconOption}
