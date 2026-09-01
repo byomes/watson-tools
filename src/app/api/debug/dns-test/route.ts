@@ -104,6 +104,47 @@ async function testNodeHttpsLookup() {
   }
 }
 
+const FUNNEL_FALLBACK_IPS = ['209.177.145.192', '209.177.145.97'];
+
+function nodeHttpsRequestWithFallback(url: string): Promise<{ status: number; body: string }> {
+  return new Promise((resolve, reject) => {
+    const u = new URL(url);
+    const req = https.request(
+      {
+        hostname: u.hostname,
+        port: 443,
+        path: u.pathname + u.search,
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        // Deliberately broken lookup to prove the fallback path itself
+        // works cleanly in this runtime, not just the happy path.
+        lookup: (_hostname, options, callback) => {
+          if (options.all) callback(null, FUNNEL_FALLBACK_IPS.map((address) => ({ address, family: 4 })));
+          else callback(null, FUNNEL_FALLBACK_IPS[0], 4);
+        },
+        timeout: 8000,
+      },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (c) => chunks.push(c));
+        res.on('end', () => resolve({ status: res.statusCode ?? 0, body: Buffer.concat(chunks).toString('utf8') }));
+      },
+    );
+    req.on('error', reject);
+    req.on('timeout', () => req.destroy(new Error('request timed out')));
+    req.end();
+  });
+}
+
+async function testNodeHttpsFallbackIp() {
+  try {
+    const { status, body } = await nodeHttpsRequestWithFallback(TARGET);
+    return { ok: true, status, body: body.slice(0, 200) };
+  } catch (err) {
+    return { ok: false, error: serializeError(err) };
+  }
+}
+
 export async function GET() {
   const results: Record<string, unknown> = {};
 
@@ -111,6 +152,7 @@ export async function GET() {
   results.defaultAgentDispatcher = await testDefaultAgentDispatcher();
   results.customLookupDispatcher = await testCustomLookupDispatcher();
   results.nodeHttpsLookup = await testNodeHttpsLookup();
+  results.nodeHttpsFallbackIp = await testNodeHttpsFallbackIp();
 
   return NextResponse.json(results);
 }
