@@ -19,6 +19,7 @@ interface Person {
   email: string | null
   phone: string | null
   address: string | null
+  birthdate: string | null
   household_id: string | null
   deacon: string | null
   deacon_status: string | null
@@ -82,12 +83,22 @@ function mapsHref(address: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
 }
 
-function Field({ label, value, onCommit }: { label: string; value: string; onCommit: (value: string) => void }) {
+function Field({
+  label,
+  value,
+  onCommit,
+  type = 'text',
+}: {
+  label: string
+  value: string
+  onCommit: (value: string) => void
+  type?: 'text' | 'date'
+}) {
   return (
     <div>
       <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">{label}</label>
       <input
-        type="text"
+        type={type}
         defaultValue={value}
         onBlur={(e) => onCommit(e.target.value)}
         className="w-full bg-white border-2 border-gray-300 rounded-md px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:border-blue-700"
@@ -411,6 +422,12 @@ export default function DeaconBoard() {
                   <Field label="Email" value={p.email ?? ''} onCommit={(v) => updateField(p.id, 'email', v)} />
                   <Field label="Phone" value={p.phone ?? ''} onCommit={(v) => updateField(p.id, 'phone', v)} />
                   <Field label="Address" value={p.address ?? ''} onCommit={(v) => updateField(p.id, 'address', v)} />
+                  <Field
+                    label="Birthdate"
+                    type="date"
+                    value={p.birthdate ?? ''}
+                    onCommit={(v) => updateField(p.id, 'birthdate', v)}
+                  />
 
                   {(() => {
                     const statusLabel = p.member_status ? MEMBER_STATUS_LABELS[p.member_status] : null
