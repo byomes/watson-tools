@@ -4,7 +4,7 @@ import { watsonFetch } from '@/lib/watson'
 import GroupList from './GroupList'
 
 export const metadata: Metadata = {
-  title: 'Catalyst Attendance Overview',
+  title: 'Catalyst Shepherding Report',
   robots: { index: false, follow: false },
 }
 
@@ -58,7 +58,7 @@ export default async function ShepherdingReportPage() {
   return (
     <div className="min-h-screen bg-white py-8 px-4">
       <div className="max-w-md mx-auto">
-        <h1 className="text-2xl font-bold text-black mb-1">Catalyst Attendance Overview</h1>
+        <h1 className="text-2xl font-bold text-black mb-1">Catalyst Shepherding Report</h1>
         <p className="text-sm text-gray-500 mb-4">
           {data ? `Generated ${data.generated_date}` : 'Report unavailable'} — grouped by deacon,
           most at-risk first in each group.
