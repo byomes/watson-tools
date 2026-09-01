@@ -10,7 +10,7 @@ import { watsonFetch } from '@/lib/watson';
 // posts to — a page-only check (requireLiveTool) does not protect its own
 // API route, which remains directly POST-able by anyone who knows the URL
 // regardless of draft status unless it checks isToolLive() itself too.
-export async function isToolLive(category: string, slug: string): Promise<boolean> {
+async function _resolveOnce(category: string, slug: string): Promise<boolean> {
   try {
     const res = await watsonFetch(
       `/api/tools/resolve/${encodeURIComponent(category)}/${encodeURIComponent(slug)}`,
@@ -22,6 +22,20 @@ export async function isToolLive(category: string, slug: string): Promise<boolea
     // silently letting it through.
     return false;
   }
+}
+
+export async function isToolLive(category: string, slug: string): Promise<boolean> {
+  if (await _resolveOnce(category, slug)) return true;
+  // One retry after a short delay. The resolve call goes over Tailscale
+  // Funnel to a single Werkzeug dev-server process, and a page that fires
+  // several parallel API routes (each independently resolving the same
+  // tool, e.g. DeaconBoard.tsx's roster+list) has been observed to make
+  // one of those concurrent resolves fail even though the backend answers
+  // fine a moment later (reproduced repeatedly on /cat/deacons, 2026-09-01).
+  // A blind retry costs ~250ms extra for a genuinely draft tool, but turns
+  // that kind of transient hiccup into a non-event for a live one.
+  await new Promise((r) => setTimeout(r, 250));
+  return _resolveOnce(category, slug);
 }
 
 // Page usage: calls notFound() itself if the tool isn't 'live'; a caller
