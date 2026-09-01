@@ -13,6 +13,12 @@ interface NextStep {
   date: string
 }
 
+interface FollowUp {
+  note: string
+  status: string
+  created_at: string
+}
+
 interface Person {
   id: number
   name: string
@@ -27,6 +33,7 @@ interface Person {
   last_seen: string
   prayer_requests: PrayerRequest[]
   next_steps: NextStep[]
+  follow_ups: FollowUp[]
 }
 
 const DEFAULT_STATUS_OPTIONS = ['Partner', 'Remote Partner', 'Unassigned Partner', 'Inactive Partner']
@@ -61,6 +68,22 @@ function formatLastSeen(lastSeen: string): string {
     })
   } catch {
     return lastSeen
+  }
+}
+
+// created_at is stored as sqlite's datetime('now') -- UTC, no offset -- so
+// treat it as such (append Z) rather than letting the browser assume local.
+function formatFollowUpDate(createdAt: string): string {
+  try {
+    return new Date(`${createdAt.replace(' ', 'T')}Z`).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    })
+  } catch {
+    return createdAt
   }
 }
 
@@ -318,6 +341,25 @@ function PersonCard({
             )
           })()}
 
+          {p.follow_ups.length > 0 && (
+            <details className="pt-3 border-t border-gray-200">
+              <summary className="cursor-pointer select-none text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                Follow-Up History ({p.follow_ups.length})
+              </summary>
+              <ul className="text-sm text-gray-800 space-y-1 list-disc list-inside mt-2">
+                {p.follow_ups.map((fu, i) => (
+                  <li key={i}>
+                    {fu.note}{' '}
+                    <span className="text-gray-400 text-xs">
+                      ({formatFollowUpDate(fu.created_at)}
+                      {fu.status !== 'open' ? ` · ${fu.status}` : ''})
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+
           <FollowUpForm personId={p.id} onSubmit={onSubmitFollowUp} />
         </div>
       )}
@@ -476,7 +518,12 @@ export default function DeaconBoard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ note }),
       })
-      return res.ok
+      if (!res.ok) return false
+      const created: FollowUp = await res.json()
+      setPeople((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, follow_ups: [created, ...p.follow_ups] } : p))
+      )
+      return true
     } catch {
       return false
     }
