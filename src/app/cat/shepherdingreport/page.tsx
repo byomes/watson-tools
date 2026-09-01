@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { requireLiveTool } from '@/lib/requireLiveTool'
 import { watsonFetch } from '@/lib/watson'
+import GroupList from './GroupList'
 
 export const metadata: Metadata = {
   title: 'Elder Shepherding Report',
@@ -26,18 +27,6 @@ interface Group {
 interface ReportState {
   generated_date: string
   groups: Group[]
-}
-
-// Mirrors jobs/congregation/elder_shepherding_report.py's bucket labels.
-const BUCKET_META: Record<string, { label: string; className: string }> = {
-  '6wk': { label: '6+ wks', className: 'text-red-700 bg-red-50 border-red-300' },
-  '3-5wk': { label: '3-5 wks', className: 'text-amber-700 bg-amber-50 border-amber-300' },
-  '2wk': { label: '2 wks', className: 'text-blue-700 bg-blue-50 border-blue-300' },
-  current: { label: 'Current', className: 'text-gray-500 bg-gray-50 border-gray-200' },
-}
-
-function bucketKey(bucket: Bucket): string {
-  return bucket ?? 'current'
 }
 
 async function getReport(): Promise<ReportState | null> {
@@ -72,7 +61,7 @@ export default async function ShepherdingReportPage() {
         <h1 className="text-2xl font-bold text-black mb-1">Elder Shepherding Report</h1>
         <p className="text-sm text-gray-500 mb-4">
           {data ? `Generated ${data.generated_date}` : 'Report unavailable'} — grouped by deacon,
-          most at-risk first in each group. Tap a group to expand.
+          most at-risk first in each group.
         </p>
 
         {!data && (
@@ -95,43 +84,7 @@ export default async function ShepherdingReportPage() {
           </div>
         )}
 
-        {data &&
-          data.groups.map((group) => {
-            const flagged = group.members.filter((m) => m.bucket !== null).length
-            return (
-              <details
-                key={group.name}
-                className="mb-3 border border-gray-200 rounded-lg overflow-hidden"
-                open={flagged > 0}
-              >
-                <summary className="cursor-pointer select-none list-none px-4 py-3 bg-gray-50 flex items-center justify-between text-sm font-semibold text-gray-900">
-                  <span>{group.name}</span>
-                  <span className="text-xs font-normal text-gray-500">
-                    {group.members.length}
-                    {flagged > 0 ? ` · ${flagged} flagged` : ''}
-                  </span>
-                </summary>
-                <ul className="divide-y divide-gray-100">
-                  {group.members.map((m, i) => {
-                    const meta = BUCKET_META[bucketKey(m.bucket)]
-                    return (
-                      <li
-                        key={`${m.name}-${i}`}
-                        className="px-4 py-2.5 flex items-center justify-between gap-3 text-sm"
-                      >
-                        <span className="text-gray-900">{m.name}</span>
-                        <span
-                          className={`shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${meta.className}`}
-                        >
-                          {meta.label}
-                        </span>
-                      </li>
-                    )
-                  })}
-                </ul>
-              </details>
-            )
-          })}
+        {data && <GroupList groups={data.groups} />}
       </div>
     </div>
   )
