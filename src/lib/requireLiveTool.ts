@@ -16,10 +16,13 @@ async function _resolveOnce(category: string, slug: string): Promise<boolean> {
       `/api/tools/resolve/${encodeURIComponent(category)}/${encodeURIComponent(slug)}`,
     );
     return res.ok;
-  } catch {
+  } catch (err) {
     // Fail closed — if the resolve check itself can't be made (e.g.
     // WATSON_API_URL missing), treat the tool as not live rather than
-    // silently letting it through.
+    // silently letting it through. Logged (rather than swallowed) so a
+    // real outage shows up in `vercel logs` as more than a bare 404 —
+    // this exact failure was invisible for ~10 minutes on 2026-09-01.
+    console.error(`isToolLive(${category}/${slug}) resolve failed:`, err);
     return false;
   }
 }
