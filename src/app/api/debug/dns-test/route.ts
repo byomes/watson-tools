@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import dns from 'node:dns';
+import https from 'node:https';
 import { Agent } from 'undici';
 
 // Temporary diagnostic route -- isolates exactly which layer of the
@@ -69,12 +70,47 @@ async function testCustomLookupDispatcher() {
   }
 }
 
+function nodeHttpsRequest(url: string): Promise<{ status: number; body: string }> {
+  return new Promise((resolve, reject) => {
+    const u = new URL(url);
+    const req = https.request(
+      {
+        hostname: u.hostname,
+        port: 443,
+        path: u.pathname + u.search,
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        lookup: (hostname, options, callback) => dns.lookup(hostname, options, callback),
+        timeout: 8000,
+      },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (c) => chunks.push(c));
+        res.on('end', () => resolve({ status: res.statusCode ?? 0, body: Buffer.concat(chunks).toString('utf8') }));
+      },
+    );
+    req.on('error', reject);
+    req.on('timeout', () => req.destroy(new Error('request timed out')));
+    req.end();
+  });
+}
+
+async function testNodeHttpsLookup() {
+  try {
+    const { status, body } = await nodeHttpsRequest(TARGET);
+    return { ok: true, status, body: body.slice(0, 200) };
+  } catch (err) {
+    return { ok: false, error: serializeError(err) };
+  }
+}
+
 export async function GET() {
   const results: Record<string, unknown> = {};
 
   results.plainFetch = await testPlainFetch();
   results.defaultAgentDispatcher = await testDefaultAgentDispatcher();
   results.customLookupDispatcher = await testCustomLookupDispatcher();
+  results.nodeHttpsLookup = await testNodeHttpsLookup();
 
   return NextResponse.json(results);
 }
