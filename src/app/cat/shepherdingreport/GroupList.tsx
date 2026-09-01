@@ -25,13 +25,18 @@ function bucketKey(bucket: Bucket): string {
   return bucket ?? 'current'
 }
 
+// Bulk expand/collapse remounts each <details> with a fresh defaultOpen via
+// a changed key, instead of trying to drive the native `open` attribute as
+// a controlled prop -- that pattern fights the browser's own `toggle` event
+// (which fires even on a programmatic open change) and crashes once the two
+// updates race. Remounting sidesteps the race entirely, and a plain
+// uncontrolled <details> still lets a tap on any one summary work natively
+// in between bulk actions.
 export default function GroupList({ groups }: { groups: Group[] }) {
-  const [openMap, setOpenMap] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(groups.map((g) => [g.name, g.members.some((m) => m.bucket !== null)])),
-  )
+  const [bulk, setBulk] = useState<{ open: boolean; gen: number } | null>(null)
 
   const setAll = (open: boolean) => {
-    setOpenMap(Object.fromEntries(groups.map((g) => [g.name, open])))
+    setBulk((prev) => ({ open, gen: (prev?.gen ?? 0) + 1 }))
   }
 
   return (
@@ -55,14 +60,12 @@ export default function GroupList({ groups }: { groups: Group[] }) {
 
       {groups.map((group) => {
         const flagged = group.members.filter((m) => m.bucket !== null).length
+        const initialOpen = bulk ? bulk.open : flagged > 0
         return (
           <details
-            key={group.name}
+            key={bulk ? `${group.name}-${bulk.gen}` : group.name}
             className="mb-3 border border-gray-200 rounded-lg overflow-hidden"
-            open={openMap[group.name]}
-            onToggle={(e) =>
-              setOpenMap((prev) => ({ ...prev, [group.name]: e.currentTarget.open }))
-            }
+            open={initialOpen}
           >
             <summary className="cursor-pointer select-none list-none px-4 py-3 bg-gray-50 flex items-center justify-between text-sm font-semibold text-gray-900">
               <span>{group.name}</span>
