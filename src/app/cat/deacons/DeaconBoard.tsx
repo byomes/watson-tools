@@ -75,6 +75,13 @@ function telHref(phone: string): string {
   return `tel:${phone.replace(/[^\d+]/g, '')}`
 }
 
+// Google Maps' universal search link -- opens the native Maps/navigation app
+// on iOS and Android when one is installed, falls back to Google Maps in the
+// browser otherwise. No platform sniffing needed.
+function mapsHref(address: string): string {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
+}
+
 function Field({ label, value, onCommit }: { label: string; value: string; onCommit: (value: string) => void }) {
   return (
     <div>
@@ -335,7 +342,7 @@ export default function DeaconBoard() {
                   <div className="text-xs text-gray-500 mt-0.5">
                     {p.deacon || 'Unassigned'} · Last seen: {formatLastSeen(p.last_seen)}
                   </div>
-                  {(p.phone || p.email) && (
+                  {(p.phone || p.email || p.address) && (
                     <div className="flex flex-col gap-0.5 mt-1.5 text-xs">
                       {p.phone && (
                         <a href={telHref(p.phone)} className="text-blue-700 hover:text-blue-900 font-medium">
@@ -345,6 +352,16 @@ export default function DeaconBoard() {
                       {p.email && (
                         <a href={`mailto:${p.email}`} className="text-blue-700 hover:text-blue-900 font-medium break-all">
                           {p.email}
+                        </a>
+                      )}
+                      {p.address && (
+                        <a
+                          href={mapsHref(p.address)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-700 hover:text-blue-900 font-medium"
+                        >
+                          {p.address}
                         </a>
                       )}
                     </div>
