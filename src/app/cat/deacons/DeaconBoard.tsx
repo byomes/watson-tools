@@ -249,7 +249,7 @@ function PersonCard({
           <button
             type="button"
             onClick={onToggle}
-            className="text-xs font-semibold text-blue-700 hover:text-blue-900 border border-blue-700 rounded-lg px-3 py-1.5 whitespace-nowrap"
+            className="text-xs font-semibold text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg px-3 py-1.5 whitespace-nowrap"
           >
             {isOpen ? 'Done' : 'Open'}
           </button>
