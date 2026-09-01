@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
     method: 'POST',
     headers: { 'X-Watson-Key': process.env.PAPERCARDS_API_KEY ?? '' },
     body: JSON.stringify({
+      service_date: data.service_date,
       campus: data.campus,
       first_name: data.first_name,
       last_name: data.last_name,

@@ -43,7 +43,19 @@ function CharCounter({ value }: { value: string }) {
   )
 }
 
+// Local date, not UTC -- toISOString() would roll back a day for anyone
+// west of UTC in the evening. Only used as a same-day starting point;
+// Donna picks the real date the card was filled out.
+function todayIso(): string {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
 export default function PaperCardForm() {
+  const [serviceDate, setServiceDate] = useState(todayIso())
   const [campus, setCampus] = useState<Campus | null>(null)
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -69,6 +81,10 @@ export default function PaperCardForm() {
     e.preventDefault()
     setError('')
 
+    if (!serviceDate) {
+      setError('Please choose the date this card was filled out.')
+      return
+    }
     if (!campus) {
       setError('Please select a campus.')
       return
@@ -84,6 +100,7 @@ export default function PaperCardForm() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          service_date: serviceDate,
           campus,
           first_name: firstName.trim(),
           last_name: lastName.trim(),
@@ -128,6 +145,17 @@ export default function PaperCardForm() {
       {error && (
         <p className="text-red-700 text-sm bg-red-50 border border-red-200 rounded-lg px-4 py-3">{error}</p>
       )}
+
+      <div>
+        <label className={labelClass} htmlFor="serviceDate">Date this card was filled out *</label>
+        <input
+          id="serviceDate"
+          type="date"
+          value={serviceDate}
+          onChange={(e) => setServiceDate(e.target.value)}
+          className={inputClass}
+        />
+      </div>
 
       <fieldset>
         <legend className={labelClass}>Where did they attend? *</legend>
