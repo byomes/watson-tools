@@ -20,14 +20,15 @@ const nextConfig: NextConfig = {
       },
       // micah-tasks (shared task manager for Micah and Bill) — same
       // pattern as hamprep above: own Vercel project/Neon DB, basePath
-      // "/task", exact-match entry to avoid the trailing-slash 308 loop.
+      // "/m/task" (Micah's own /m directory), exact-match entry to avoid
+      // the trailing-slash 308 loop.
       {
-        source: "/task",
-        destination: "https://micah-tasks.vercel.app/task",
+        source: "/m/task",
+        destination: "https://micah-tasks.vercel.app/m/task",
       },
       {
-        source: "/task/:path+",
-        destination: "https://micah-tasks.vercel.app/task/:path*",
+        source: "/m/task/:path+",
+        destination: "https://micah-tasks.vercel.app/m/task/:path*",
       },
     ];
   },
