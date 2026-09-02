@@ -20,15 +20,13 @@ function UsersIcon() {
   )
 }
 
-function SheepIcon() {
+function LambIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
-      <circle cx="8" cy="11" r="3" />
-      <circle cx="12" cy="9.5" r="3.3" />
-      <circle cx="15.5" cy="11.5" r="2.6" />
-      <circle cx="6" cy="13.5" r="2.3" />
-      <circle cx="18.5" cy="14" r="1.8" />
-      <path d="M8 16v2.5M12.5 16.5v2.5M16 16v2.5" />
+      <rect x="8" y="6" width="12" height="9" rx="4.5" />
+      <circle cx="6.5" cy="11" r="3" />
+      <path d="M4.8 9c-.8-1.1-2.2-1-2.2.3M7.3 8.3c.3-1.3-.9-2.1-1.8-1.3" />
+      <path d="M10 15v3M14 15v3M18 15v3" />
     </svg>
   )
 }
@@ -55,8 +53,8 @@ function CalendarCheckIcon() {
 }
 
 const TABS: { id: Tab; label: string; icon: () => ReactNode }[] = [
-  { id: 'deacons', label: 'Deacons', icon: UsersIcon },
-  { id: 'shepherding', label: 'Shepherding', icon: SheepIcon },
+  { id: 'deacons', label: 'List', icon: UsersIcon },
+  { id: 'shepherding', label: 'Report', icon: LambIcon },
   { id: 'attendance', label: 'Attendance', icon: CalendarCheckIcon },
   { id: 'notes', label: 'Notes', icon: NotesIcon },
 ]
@@ -138,7 +136,7 @@ export default function DeaconAppTabs({
               key={t.id}
               type="button"
               onClick={() => setTab(t.id)}
-              className={`flex-1 flex flex-col items-center justify-center gap-1 py-2.5 transition ${
+              className={`flex-1 flex flex-col items-center justify-center gap-1 py-[18px] transition ${
                 active ? 'text-black' : 'text-gray-400'
               }`}
             >
