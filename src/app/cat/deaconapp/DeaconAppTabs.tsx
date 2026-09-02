@@ -73,7 +73,11 @@ export default function DeaconAppTabs({
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3">
-        <h1 className="text-center font-bold text-black">Catalyst Shepherding App</h1>
+        <h1 className="flex items-center justify-center gap-2 font-bold text-black">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/catalyst-c-logo.jpg" alt="" className="h-6 w-6 rounded-md" />
+          Catalyst Shepherding App
+        </h1>
       </div>
 
       <div className="flex-1 px-4 py-6 pb-24">

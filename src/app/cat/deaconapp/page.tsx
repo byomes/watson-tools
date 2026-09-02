@@ -7,6 +7,7 @@ import DeaconAppTabs from './DeaconAppTabs'
 
 export const metadata: Metadata = {
   title: 'Catalyst Shepherding App',
+  appleWebApp: { title: 'Deacon' },
   robots: { index: false, follow: false },
 }
 
