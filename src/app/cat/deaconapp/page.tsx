@@ -6,7 +6,7 @@ import { getShepherdingReport, computeShepherdingTotals } from '@/lib/shepherdin
 import DeaconAppTabs from './DeaconAppTabs'
 
 export const metadata: Metadata = {
-  title: 'Deacon App',
+  title: 'Catalyst Shepherding App',
   robots: { index: false, follow: false },
 }
 

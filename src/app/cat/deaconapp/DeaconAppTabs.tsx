@@ -71,12 +71,11 @@ export default function DeaconAppTabs({
   shepherdingDate: string | null
 }) {
   const [tab, setTab] = useState<Tab>('deacons')
-  const activeLabel = TABS.find((t) => t.id === tab)?.label
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3">
-        <h1 className="text-center font-bold text-black">{activeLabel}</h1>
+        <h1 className="text-center font-bold text-black">Catalyst Shepherding App</h1>
       </div>
 
       <div className="flex-1 px-4 py-6 pb-24">
