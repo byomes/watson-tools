@@ -93,6 +93,15 @@ function lastNameKey(name: string): string {
   return parts.length ? parts[parts.length - 1].toLowerCase() : ''
 }
 
+// Same "last name = final token" convention as lastNameKey above, so a
+// name like "Dan Jr Barry" splits as first="Dan Jr" / last="Barry" -- the
+// same person lastNameKey already sorts under "Barry" today.
+function splitName(name: string): { first: string; last: string } {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length <= 1) return { first: parts[0] ?? '', last: '' }
+  return { first: parts.slice(0, -1).join(' '), last: parts[parts.length - 1] }
+}
+
 function byLastName(a: Person, b: Person): number {
   const byLast = lastNameKey(a.name).localeCompare(lastNameKey(b.name))
   return byLast !== 0 ? byLast : a.name.localeCompare(b.name)
@@ -258,6 +267,24 @@ function PersonCard({
 
       {isOpen && (
         <div className="space-y-3 mt-3 pt-3 border-t border-gray-200">
+          {(() => {
+            const { first, last } = splitName(p.name)
+            return (
+              <div className="grid grid-cols-2 gap-2">
+                <Field
+                  label="First Name"
+                  value={first}
+                  onCommit={(v) => onUpdateField('name', `${v.trim()} ${last}`.trim())}
+                />
+                <Field
+                  label="Last Name"
+                  value={last}
+                  onCommit={(v) => onUpdateField('name', `${first} ${v.trim()}`.trim())}
+                />
+              </div>
+            )
+          })()}
+
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Deacon</label>
