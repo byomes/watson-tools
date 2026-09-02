@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react'
 import { EditableSelect } from './EditableSelect'
+import { formatDeaconNoteDate } from '@/lib/deaconNotes'
 
 interface PrayerRequest {
   request_text: string
@@ -68,22 +69,6 @@ function formatLastSeen(lastSeen: string): string {
     })
   } catch {
     return lastSeen
-  }
-}
-
-// created_at is stored as sqlite's datetime('now') -- UTC, no offset -- so
-// treat it as such (append Z) rather than letting the browser assume local.
-function formatDeaconNoteDate(createdAt: string): string {
-  try {
-    return new Date(`${createdAt.replace(' ', 'T')}Z`).toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    })
-  } catch {
-    return createdAt
   }
 }
 

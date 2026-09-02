@@ -4,9 +4,10 @@ import { useState, type ReactNode } from 'react'
 import DeaconBoard from '../deacons/DeaconBoard'
 import AttendanceBoard from '../attendance/AttendanceBoard'
 import GroupList from '../shepherdingreport/GroupList'
+import NotesFeed from './NotesFeed'
 import type { Group, Totals } from '@/lib/shepherdingReport'
 
-type Tab = 'deacons' | 'shepherding' | 'attendance'
+type Tab = 'deacons' | 'shepherding' | 'attendance' | 'notes'
 
 function UsersIcon() {
   return (
@@ -19,10 +20,25 @@ function UsersIcon() {
   )
 }
 
-function HeartIcon() {
+function SheepIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
-      <path d="M12 20.5s-7.5-4.6-9.3-9.2C1.6 8 3.3 5 6.6 5c2 0 3.4 1.2 4 2.3.6-1.1 2-2.3 4-2.3 3.3 0 5 3 4.9 6.3-1.8 4.6-9.3 9.2-9.3 9.2z" />
+      <circle cx="8" cy="11" r="3" />
+      <circle cx="12" cy="9.5" r="3.3" />
+      <circle cx="15.5" cy="11.5" r="2.6" />
+      <circle cx="6" cy="13.5" r="2.3" />
+      <circle cx="18.5" cy="14" r="1.8" />
+      <path d="M8 16v2.5M12.5 16.5v2.5M16 16v2.5" />
+    </svg>
+  )
+}
+
+function NotesIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
+      <path d="M6 3.5h9l4 4V20a1 1 0 01-1 1H6a1 1 0 01-1-1V4.5a1 1 0 011-1z" />
+      <path d="M15 3.5V7a1 1 0 001 1h4" />
+      <path d="M8 12h8M8 15.5h8M8 9h4" />
     </svg>
   )
 }
@@ -40,8 +56,9 @@ function CalendarCheckIcon() {
 
 const TABS: { id: Tab; label: string; icon: () => ReactNode }[] = [
   { id: 'deacons', label: 'Deacons', icon: UsersIcon },
-  { id: 'shepherding', label: 'Shepherding', icon: HeartIcon },
+  { id: 'shepherding', label: 'Shepherding', icon: SheepIcon },
   { id: 'attendance', label: 'Attendance', icon: CalendarCheckIcon },
+  { id: 'notes', label: 'Notes', icon: NotesIcon },
 ]
 
 export default function DeaconAppTabs({
@@ -103,6 +120,12 @@ export default function DeaconAppTabs({
         <div className={tab === 'attendance' ? '' : 'hidden'}>
           <div className="max-w-md mx-auto">
             <AttendanceBoard />
+          </div>
+        </div>
+
+        <div className={tab === 'notes' ? '' : 'hidden'}>
+          <div className="max-w-md mx-auto">
+            <NotesFeed />
           </div>
         </div>
       </div>
