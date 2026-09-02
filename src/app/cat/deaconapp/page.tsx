@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { requireLiveTool } from '@/lib/requireLiveTool'
 import { getSession } from '@/lib/deaconAuth'
+import { getShepherdingReport, computeShepherdingTotals } from '@/lib/shepherdingReport'
+import DeaconAppTabs from './DeaconAppTabs'
 
 export const metadata: Metadata = {
   title: 'Deacon App',
@@ -14,47 +15,21 @@ export const metadata: Metadata = {
 // request-specific anyway).
 export const dynamic = 'force-dynamic'
 
-const TILES = [
-  {
-    href: '/cat/deacons',
-    title: 'Deacons',
-    description: 'View or edit an individual profile.',
-  },
-  {
-    href: '/cat/shepherdingreport',
-    title: 'Shepherding Report',
-    description: 'Members grouped by deacon, most at-risk first.',
-  },
-  {
-    href: '/cat/attendance',
-    title: 'Sunday Attendance',
-    description: 'Mark who was present or absent.',
-  },
-]
-
 export default async function DeaconAppPage() {
   await requireLiveTool('cat', 'deaconapp')
   if (!(await getSession())) redirect('/cat/deaconapp/login')
 
-  return (
-    <div className="min-h-screen bg-white py-10 px-4">
-      <div className="max-w-md mx-auto">
-        <h1 className="text-2xl font-bold text-black mb-1">Deacon App</h1>
-        <p className="text-sm text-gray-500 mb-6">Catalyst Community Church</p>
+  // Fetched here (server-side, same call the standalone shepherdingreport
+  // page makes) because it needs SHEPHERDING_REPORT_API_KEY, a server-only
+  // secret — the Deacons and Attendance tabs fetch their own data
+  // client-side against public /api/cat/* routes instead.
+  const report = await getShepherdingReport()
 
-        <div className="flex flex-col gap-3">
-          {TILES.map((tile) => (
-            <Link
-              key={tile.href}
-              href={tile.href}
-              className="block rounded-xl border border-gray-200 px-4 py-4 hover:border-gray-400 transition"
-            >
-              <div className="text-lg font-semibold text-black">{tile.title}</div>
-              <div className="text-sm text-gray-500">{tile.description}</div>
-            </Link>
-          ))}
-        </div>
-      </div>
-    </div>
+  return (
+    <DeaconAppTabs
+      shepherdingGroups={report?.groups ?? null}
+      shepherdingTotals={report ? computeShepherdingTotals(report.groups) : null}
+      shepherdingDate={report?.generated_date ?? null}
+    />
   )
 }

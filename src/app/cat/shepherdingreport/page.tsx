@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { requireLiveTool } from '@/lib/requireLiveTool'
-import { watsonFetch } from '@/lib/watson'
+import { getShepherdingReport, computeShepherdingTotals } from '@/lib/shepherdingReport'
 import GroupList from './GroupList'
 
 export const metadata: Metadata = {
@@ -12,48 +12,10 @@ export const metadata: Metadata = {
 // go-live gate is live DB state, and this page's own data changes weekly).
 export const dynamic = 'force-dynamic'
 
-type Bucket = '6wk' | '3-5wk' | '2wk' | null
-
-interface Member {
-  name: string
-  bucket: Bucket
-}
-
-interface Group {
-  name: string
-  members: Member[]
-}
-
-interface ReportState {
-  generated_date: string
-  groups: Group[]
-}
-
-async function getReport(): Promise<ReportState | null> {
-  const res = await watsonFetch('/api/cat/shepherdingreport/state', {
-    headers: { 'X-Watson-Key': process.env.SHEPHERDING_REPORT_API_KEY ?? '' },
-  })
-  if (!res.ok) return null
-  return res.json()
-}
-
 export default async function ShepherdingReportPage() {
   await requireLiveTool('cat', 'shepherdingreport')
-  const data = await getReport()
-
-  const totals = data
-    ? data.groups.reduce(
-        (acc, g) => {
-          for (const m of g.members) {
-            if (m.bucket === '6wk') acc.wk6 += 1
-            else if (m.bucket === '3-5wk') acc.wk35 += 1
-            else if (m.bucket === '2wk') acc.wk2 += 1
-          }
-          return acc
-        },
-        { wk2: 0, wk35: 0, wk6: 0 },
-      )
-    : null
+  const data = await getShepherdingReport()
+  const totals = data ? computeShepherdingTotals(data.groups) : null
 
   return (
     <div className="min-h-screen bg-white py-8 px-4">
