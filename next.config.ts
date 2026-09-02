@@ -18,6 +18,17 @@ const nextConfig: NextConfig = {
         source: "/ham/:path+",
         destination: "https://hamprep-phi.vercel.app/ham/:path*",
       },
+      // micah-tasks (shared task manager for Micah and Bill) — same
+      // pattern as hamprep above: own Vercel project/Neon DB, basePath
+      // "/task", exact-match entry to avoid the trailing-slash 308 loop.
+      {
+        source: "/task",
+        destination: "https://micah-tasks.vercel.app/task",
+      },
+      {
+        source: "/task/:path+",
+        destination: "https://micah-tasks.vercel.app/task/:path*",
+      },
     ];
   },
 };
