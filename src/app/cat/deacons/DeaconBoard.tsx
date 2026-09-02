@@ -13,7 +13,7 @@ interface NextStep {
   date: string
 }
 
-interface FollowUp {
+interface DeaconNote {
   note: string
   status: string
   created_at: string
@@ -33,7 +33,7 @@ interface Person {
   last_seen: string
   prayer_requests: PrayerRequest[]
   next_steps: NextStep[]
-  follow_ups: FollowUp[]
+  deacon_notes: DeaconNote[]
 }
 
 const DEFAULT_STATUS_OPTIONS = ['Partner', 'Remote Partner', 'Unassigned Partner', 'Inactive Partner']
@@ -56,7 +56,7 @@ function attendanceRisk(lastSeen: string): { label: string; className: string } 
 }
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
-type FollowUpState = 'idle' | 'saving' | 'saved' | 'error'
+type DeaconNoteState = 'idle' | 'saving' | 'saved' | 'error'
 
 function formatLastSeen(lastSeen: string): string {
   if (!lastSeen || lastSeen === '1900-01-01') return 'Never'
@@ -73,7 +73,7 @@ function formatLastSeen(lastSeen: string): string {
 
 // created_at is stored as sqlite's datetime('now') -- UTC, no offset -- so
 // treat it as such (append Z) rather than letting the browser assume local.
-function formatFollowUpDate(createdAt: string): string {
+function formatDeaconNoteDate(createdAt: string): string {
   try {
     return new Date(`${createdAt.replace(' ', 'T')}Z`).toLocaleString('en-US', {
       month: 'short',
@@ -143,9 +143,9 @@ function Field({
   )
 }
 
-function FollowUpForm({ personId, onSubmit }: { personId: number; onSubmit: (note: string) => Promise<boolean> }) {
+function DeaconNoteForm({ personId, onSubmit }: { personId: number; onSubmit: (note: string) => Promise<boolean> }) {
   const [note, setNote] = useState('')
-  const [state, setState] = useState<FollowUpState>('idle')
+  const [state, setState] = useState<DeaconNoteState>('idle')
 
   async function submit() {
     const trimmed = note.trim()
@@ -164,13 +164,13 @@ function FollowUpForm({ personId, onSubmit }: { personId: number; onSubmit: (not
   return (
     <div className="pt-3 border-t border-gray-200">
       <label
-        htmlFor={`followup-${personId}`}
+        htmlFor={`deacon-note-${personId}`}
         className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1"
       >
-        Log a follow-up
+        Log a deacon note
       </label>
       <textarea
-        id={`followup-${personId}`}
+        id={`deacon-note-${personId}`}
         value={note}
         onChange={(e) => setNote(e.target.value)}
         rows={2}
@@ -184,7 +184,7 @@ function FollowUpForm({ personId, onSubmit }: { personId: number; onSubmit: (not
           disabled={!note.trim() || state === 'saving'}
           className="text-xs font-semibold text-blue-700 hover:text-blue-900 border border-blue-700 rounded-lg px-3 py-1.5 disabled:opacity-40"
         >
-          {state === 'saving' ? 'Saving…' : 'Log Follow-Up'}
+          {state === 'saving' ? 'Saving…' : 'Log Note'}
         </button>
         {state === 'saved' && <span className="text-xs text-green-700 font-semibold">Saved ✓</span>}
         {state === 'error' && <span className="text-xs text-red-700 font-semibold">Failed — try again</span>}
@@ -203,7 +203,7 @@ function PersonCard({
   onUpdateField,
   onAddDeaconOption,
   onAddStatusOption,
-  onSubmitFollowUp,
+  onSubmitDeaconNote,
 }: {
   person: Person
   isOpen: boolean
@@ -214,7 +214,7 @@ function PersonCard({
   onUpdateField: (field: keyof Person, value: string) => void
   onAddDeaconOption: (name: string) => void
   onAddStatusOption: (status: string) => void
-  onSubmitFollowUp: (note: string) => Promise<boolean>
+  onSubmitDeaconNote: (note: string) => Promise<boolean>
 }) {
   return (
     <div className="border-2 border-gray-200 rounded-xl p-4 bg-white">
@@ -368,18 +368,18 @@ function PersonCard({
             )
           })()}
 
-          {p.follow_ups.length > 0 && (
+          {p.deacon_notes.length > 0 && (
             <details className="pt-3 border-t border-gray-200">
               <summary className="cursor-pointer select-none text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
-                Follow-Up History ({p.follow_ups.length})
+                Deacon Notes ({p.deacon_notes.length})
               </summary>
               <ul className="text-sm text-gray-800 space-y-1 list-disc list-inside mt-2">
-                {p.follow_ups.map((fu, i) => (
+                {p.deacon_notes.map((dn, i) => (
                   <li key={i}>
-                    {fu.note}{' '}
+                    {dn.note}{' '}
                     <span className="text-gray-400 text-xs">
-                      ({formatFollowUpDate(fu.created_at)}
-                      {fu.status !== 'open' ? ` · ${fu.status}` : ''})
+                      ({formatDeaconNoteDate(dn.created_at)}
+                      {dn.status !== 'open' ? ` · ${dn.status}` : ''})
                     </span>
                   </li>
                 ))}
@@ -387,7 +387,7 @@ function PersonCard({
             </details>
           )}
 
-          <FollowUpForm personId={p.id} onSubmit={onSubmitFollowUp} />
+          <DeaconNoteForm personId={p.id} onSubmit={onSubmitDeaconNote} />
         </div>
       )}
     </div>
@@ -538,17 +538,17 @@ export default function DeaconBoard() {
     }
   }
 
-  async function submitFollowUp(id: number, note: string): Promise<boolean> {
+  async function submitDeaconNote(id: number, note: string): Promise<boolean> {
     try {
-      const res = await fetch(`/api/cat/deacons/member/${id}/follow-up`, {
+      const res = await fetch(`/api/cat/deacons/member/${id}/note`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ note }),
       })
       if (!res.ok) return false
-      const created: FollowUp = await res.json()
+      const created: DeaconNote = await res.json()
       setPeople((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, follow_ups: [created, ...p.follow_ups] } : p))
+        prev.map((p) => (p.id === id ? { ...p, deacon_notes: [created, ...p.deacon_notes] } : p))
       )
       return true
     } catch {
@@ -575,7 +575,7 @@ export default function DeaconBoard() {
       onUpdateField: (field, value) => updateField(p.id, field, value),
       onAddDeaconOption: addDeaconOption,
       onAddStatusOption: addStatusOption,
-      onSubmitFollowUp: (note) => submitFollowUp(p.id, note),
+      onSubmitDeaconNote: (note) => submitDeaconNote(p.id, note),
     }
   }
 

@@ -14,7 +14,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'note is required' }, { status: 400 })
   }
 
-  const res = await watsonFetch(`/api/cat/deacons/member/${encodeURIComponent(id)}/follow-up`, {
+  const res = await watsonFetch(`/api/cat/deacons/member/${encodeURIComponent(id)}/note`, {
     method: 'POST',
     headers: { 'X-Watson-Key': process.env.DEACONS_API_KEY ?? '' },
     body: JSON.stringify({ note }),
