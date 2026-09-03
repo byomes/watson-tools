@@ -73,10 +73,17 @@ export default function DeaconAppTabs({
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3">
-        <h1 className="flex items-center justify-center gap-2 font-bold text-black">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/catalyst-c-logo.jpg" alt="" className="h-6 w-6 rounded-md" />
-          Catalyst Shepherding App
+        <h1 className="flex items-center justify-center">
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            aria-label="Refresh app"
+            className="flex items-center gap-2 font-bold text-black active:opacity-60"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/catalyst-c-logo.jpg" alt="" className="h-6 w-6 rounded-md" />
+            Catalyst Shepherding App
+          </button>
         </h1>
       </div>
 
