@@ -15,10 +15,10 @@ interface Group {
 
 // Mirrors jobs/congregation/elder_shepherding_report.py's bucket labels.
 const BUCKET_META: Record<string, { label: string; className: string }> = {
-  '6wk': { label: '6+ wks', className: 'text-red-700 bg-red-50 border-red-300' },
-  '3-5wk': { label: '3-5 wks', className: 'text-amber-700 bg-amber-50 border-amber-300' },
-  '2wk': { label: '2 wks', className: 'text-blue-700 bg-blue-50 border-blue-300' },
-  current: { label: 'Current', className: 'text-gray-500 bg-gray-50 border-gray-200' },
+  '6wk': { label: '6+ wks', className: 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800' },
+  '3-5wk': { label: '3-5 wks', className: 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800' },
+  '2wk': { label: '2 wks', className: 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-800' },
+  current: { label: 'Current', className: 'text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700' },
 }
 
 function bucketKey(bucket: Bucket): string {
@@ -45,14 +45,14 @@ export default function GroupList({ groups }: { groups: Group[] }) {
         <button
           type="button"
           onClick={() => setAll(true)}
-          className="flex-1 rounded-md border border-gray-300 text-gray-700 py-2 active:bg-gray-100"
+          className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 py-2 active:bg-gray-100 dark:active:bg-gray-800"
         >
           Expand all
         </button>
         <button
           type="button"
           onClick={() => setAll(false)}
-          className="flex-1 rounded-md border border-gray-300 text-gray-700 py-2 active:bg-gray-100"
+          className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 py-2 active:bg-gray-100 dark:active:bg-gray-800"
         >
           Collapse all
         </button>
@@ -64,17 +64,17 @@ export default function GroupList({ groups }: { groups: Group[] }) {
         return (
           <details
             key={bulk ? `${group.name}-${bulk.gen}` : group.name}
-            className="mb-3 border border-gray-200 rounded-lg overflow-hidden"
+            className="mb-3 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
             open={initialOpen}
           >
-            <summary className="cursor-pointer select-none list-none px-4 py-3 bg-gray-50 flex items-center justify-between text-sm font-semibold text-gray-900">
+            <summary className="cursor-pointer select-none list-none px-4 py-3 bg-gray-50 dark:bg-gray-800 flex items-center justify-between text-sm font-semibold text-gray-900 dark:text-gray-100">
               <span>{group.name}</span>
-              <span className="text-xs font-normal text-gray-500">
+              <span className="text-xs font-normal text-gray-500 dark:text-gray-400">
                 {group.members.length}
                 {flagged > 0 ? ` · ${flagged} flagged` : ''}
               </span>
             </summary>
-            <ul className="divide-y divide-gray-100">
+            <ul className="divide-y divide-gray-100 dark:divide-gray-800">
               {group.members.map((m, i) => {
                 const meta = BUCKET_META[bucketKey(m.bucket)]
                 return (
@@ -82,7 +82,7 @@ export default function GroupList({ groups }: { groups: Group[] }) {
                     key={`${m.name}-${i}`}
                     className="px-4 py-2.5 flex items-center justify-between gap-3 text-sm"
                   >
-                    <span className="text-gray-900">{m.name}</span>
+                    <span className="text-gray-900 dark:text-gray-100">{m.name}</span>
                     <span
                       className={`shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${meta.className}`}
                     >

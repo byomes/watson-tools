@@ -41,13 +41,13 @@ export default function PinPad() {
           <div
             key={i}
             className={`h-4 w-4 rounded-full border-2 ${
-              i < pin.length ? 'bg-black border-black' : 'border-gray-300'
+              i < pin.length ? 'bg-black border-black dark:bg-white dark:border-white' : 'border-gray-300 dark:border-gray-600'
             }`}
           />
         ))}
       </div>
       {state?.error && (
-        <p className="text-center text-sm text-red-700 mb-4">{state.error}</p>
+        <p className="text-center text-sm text-red-700 dark:text-red-300 mb-4">{state.error}</p>
       )}
       <div className="grid grid-cols-3 gap-3">
         {KEYS.map((key, i) =>
@@ -59,7 +59,7 @@ export default function PinPad() {
               type="button"
               onClick={() => press(key)}
               disabled={pending}
-              className="h-16 rounded-xl bg-gray-100 text-xl font-medium active:scale-95 transition disabled:opacity-50 flex items-center justify-center"
+              className="h-16 rounded-xl bg-gray-100 dark:bg-gray-800 text-black dark:text-white text-xl font-medium active:scale-95 transition disabled:opacity-50 flex items-center justify-center"
             >
               {key === 'back' ? '⌫' : key}
             </button>

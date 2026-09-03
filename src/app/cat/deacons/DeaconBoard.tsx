@@ -51,8 +51,8 @@ const MEMBER_STATUS_LABELS: Record<string, string> = {
 function attendanceRisk(lastSeen: string): { label: string; className: string } | null {
   if (!lastSeen || lastSeen === '1900-01-01') return null
   const weeks = Math.floor((Date.now() - new Date(`${lastSeen}T00:00:00`).getTime()) / (7 * 24 * 60 * 60 * 1000))
-  if (weeks >= 6) return { label: 'Critical', className: 'text-red-700 bg-red-50 border-red-300' }
-  if (weeks >= 3) return { label: 'At Risk', className: 'text-amber-700 bg-amber-50 border-amber-300' }
+  if (weeks >= 6) return { label: 'Critical', className: 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800' }
+  if (weeks >= 3) return { label: 'At Risk', className: 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800' }
   return null
 }
 
@@ -117,12 +117,12 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">{label}</label>
+      <label className="block text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">{label}</label>
       <input
         type={type}
         defaultValue={value}
         onBlur={(e) => onCommit(e.target.value)}
-        className="w-full bg-white border-2 border-gray-300 rounded-md px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:border-blue-700"
+        className="w-full bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-700 dark:focus:border-blue-500"
       />
     </div>
   )
@@ -150,7 +150,7 @@ function DeaconNoteForm({ personId, onSubmit }: { personId: number; onSubmit: (n
     <div className="pt-3 border-t border-gray-200">
       <label
         htmlFor={`deacon-note-${personId}`}
-        className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1"
+        className="block text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1"
       >
         Log a deacon note
       </label>
@@ -160,19 +160,19 @@ function DeaconNoteForm({ personId, onSubmit }: { personId: number; onSubmit: (n
         onChange={(e) => setNote(e.target.value)}
         rows={2}
         placeholder="Called, texted, visited…"
-        className="w-full bg-white border-2 border-gray-300 rounded-md px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:border-blue-700"
+        className="w-full bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-700 dark:focus:border-blue-500"
       />
       <div className="flex items-center gap-2 mt-1.5">
         <button
           type="button"
           onClick={submit}
           disabled={!note.trim() || state === 'saving'}
-          className="text-xs font-semibold text-blue-700 hover:text-blue-900 border border-blue-700 rounded-lg px-3 py-1.5 disabled:opacity-40"
+          className="text-xs font-semibold text-blue-700 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 border border-blue-700 dark:border-blue-500 rounded-lg px-3 py-1.5 disabled:opacity-40"
         >
           {state === 'saving' ? 'Saving…' : 'Log Note'}
         </button>
-        {state === 'saved' && <span className="text-xs text-green-700 font-semibold">Saved ✓</span>}
-        {state === 'error' && <span className="text-xs text-red-700 font-semibold">Failed — try again</span>}
+        {state === 'saved' && <span className="text-xs text-green-700 dark:text-green-400 font-semibold">Saved ✓</span>}
+        {state === 'error' && <span className="text-xs text-red-700 dark:text-red-400 font-semibold">Failed — try again</span>}
       </div>
     </div>
   )
@@ -202,22 +202,22 @@ function PersonCard({
   onSubmitDeaconNote: (note: string) => Promise<boolean>
 }) {
   return (
-    <div className="border-2 border-gray-200 rounded-xl p-4 bg-white">
+    <div className="border-2 border-gray-200 dark:border-gray-700 rounded-xl p-4 bg-white dark:bg-gray-900">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <div className="font-bold text-gray-900 text-base leading-tight">{p.name}</div>
-          <div className="text-xs text-gray-500 mt-0.5">
+          <div className="font-bold text-gray-900 dark:text-gray-100 text-base leading-tight">{p.name}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
             {p.deacon || 'Unassigned'} · Last seen: {formatLastSeen(p.last_seen)}
           </div>
           {(p.phone || p.email || p.address) && (
             <div className="flex flex-col gap-0.5 mt-1.5 text-xs">
               {p.phone && (
-                <a href={telHref(p.phone)} className="text-blue-700 hover:text-blue-900 font-medium">
+                <a href={telHref(p.phone)} className="text-blue-700 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 font-medium">
                   {p.phone}
                 </a>
               )}
               {p.email && (
-                <a href={`mailto:${p.email}`} className="text-blue-700 hover:text-blue-900 font-medium break-all">
+                <a href={`mailto:${p.email}`} className="text-blue-700 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 font-medium break-all">
                   {p.email}
                 </a>
               )}
@@ -226,7 +226,7 @@ function PersonCard({
                   href={mapsHref(p.address)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-700 hover:text-blue-900 font-medium"
+                  className="text-blue-700 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 font-medium"
                 >
                   {p.address}
                 </a>
@@ -236,14 +236,14 @@ function PersonCard({
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <div className="text-xs whitespace-nowrap">
-            {saveState === 'saving' && <span className="text-gray-500">Saving…</span>}
-            {saveState === 'saved' && <span className="text-green-700 font-semibold">Saved ✓</span>}
-            {saveState === 'error' && <span className="text-red-700 font-semibold">Failed</span>}
+            {saveState === 'saving' && <span className="text-gray-500 dark:text-gray-400">Saving…</span>}
+            {saveState === 'saved' && <span className="text-green-700 dark:text-green-400 font-semibold">Saved ✓</span>}
+            {saveState === 'error' && <span className="text-red-700 dark:text-red-400 font-semibold">Failed</span>}
           </div>
           <button
             type="button"
             onClick={onToggle}
-            className="text-xs font-semibold text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg px-3 py-1.5 whitespace-nowrap"
+            className="text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 whitespace-nowrap"
           >
             {isOpen ? 'Done' : 'Open'}
           </button>
@@ -251,7 +251,7 @@ function PersonCard({
       </div>
 
       {isOpen && (
-        <div className="space-y-3 mt-3 pt-3 border-t border-gray-200">
+        <div className="space-y-3 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
           {(() => {
             const { first, last } = splitName(p.name)
             return (
@@ -272,7 +272,7 @@ function PersonCard({
 
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Deacon</label>
+              <label className="block text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Deacon</label>
               <EditableSelect
                 value={p.deacon ?? ''}
                 options={deaconOptions}
@@ -282,7 +282,7 @@ function PersonCard({
               />
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Status</label>
+              <label className="block text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Status</label>
               <EditableSelect
                 value={p.deacon_status ?? ''}
                 options={statusOptions}
@@ -310,11 +310,11 @@ function PersonCard({
             const hasSteps = p.next_steps.length > 0
             if (!statusLabel && !risk && !hasPrayers && !hasSteps) return null
             return (
-              <div className="pt-3 border-t border-gray-200 space-y-2">
+              <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
                 {(statusLabel || risk) && (
                   <div className="flex items-center gap-2 flex-wrap">
                     {statusLabel && (
-                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full border bg-gray-50 text-gray-700 border-gray-300">
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full border bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600">
                         {statusLabel}
                       </span>
                     )}
@@ -327,11 +327,11 @@ function PersonCard({
                 )}
                 {hasPrayers && (
                   <div>
-                    <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Prayer Requests</div>
-                    <ul className="text-sm text-gray-800 space-y-1 list-disc list-inside">
+                    <div className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Prayer Requests</div>
+                    <ul className="text-sm text-gray-800 dark:text-gray-200 space-y-1 list-disc list-inside">
                       {p.prayer_requests.map((pr, i) => (
                         <li key={i}>
-                          {pr.request_text} <span className="text-gray-400 text-xs">({formatLastSeen(pr.date)})</span>
+                          {pr.request_text} <span className="text-gray-400 dark:text-gray-500 text-xs">({formatLastSeen(pr.date)})</span>
                         </li>
                       ))}
                     </ul>
@@ -339,11 +339,11 @@ function PersonCard({
                 )}
                 {hasSteps && (
                   <div>
-                    <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Next Steps</div>
-                    <ul className="text-sm text-gray-800 space-y-1 list-disc list-inside">
+                    <div className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Next Steps</div>
+                    <ul className="text-sm text-gray-800 dark:text-gray-200 space-y-1 list-disc list-inside">
                       {p.next_steps.map((ns, i) => (
                         <li key={i}>
-                          {ns.label} <span className="text-gray-400 text-xs">({formatLastSeen(ns.date)})</span>
+                          {ns.label} <span className="text-gray-400 dark:text-gray-500 text-xs">({formatLastSeen(ns.date)})</span>
                         </li>
                       ))}
                     </ul>
@@ -354,15 +354,15 @@ function PersonCard({
           })()}
 
           {p.deacon_notes.length > 0 && (
-            <details className="pt-3 border-t border-gray-200">
-              <summary className="cursor-pointer select-none text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+            <details className="pt-3 border-t border-gray-200 dark:border-gray-700">
+              <summary className="cursor-pointer select-none text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Deacon Notes ({p.deacon_notes.length})
               </summary>
-              <ul className="text-sm text-gray-800 space-y-1 list-disc list-inside mt-2">
+              <ul className="text-sm text-gray-800 dark:text-gray-200 space-y-1 list-disc list-inside mt-2">
                 {p.deacon_notes.map((dn, i) => (
                   <li key={i}>
                     {dn.note}{' '}
-                    <span className="text-gray-400 text-xs">
+                    <span className="text-gray-400 dark:text-gray-500 text-xs">
                       ({formatDeaconNoteDate(dn.created_at)}
                       {dn.status !== 'open' ? ` · ${dn.status}` : ''})
                     </span>
@@ -400,8 +400,8 @@ function CollapsedSection({
 }) {
   if (people.length === 0) return null
   return (
-    <details className="mt-4 border-2 border-gray-200 rounded-xl">
-      <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-gray-700">
+    <details className="mt-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl">
+      <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
         {title} ({people.length})
       </summary>
       <div className="px-4 pb-4">
@@ -565,18 +565,18 @@ export default function DeaconBoard() {
   }
 
   if (loading) {
-    return <p className="text-gray-500 text-sm px-4 py-8">Loading…</p>
+    return <p className="text-gray-500 dark:text-gray-400 text-sm px-4 py-8">Loading…</p>
   }
 
   if (loadError) {
     return (
       <div className="px-4 py-8 max-w-md">
-        <p className="text-red-700 text-sm font-medium mb-1">Could not load the roster from Watson.</p>
-        <p className="text-gray-500 text-xs mb-4">{loadError}</p>
+        <p className="text-red-700 dark:text-red-300 text-sm font-medium mb-1">Could not load the roster from Watson.</p>
+        <p className="text-gray-500 dark:text-gray-400 text-xs mb-4">{loadError}</p>
         <button
           type="button"
           onClick={load}
-          className="text-sm font-semibold text-blue-700 hover:text-blue-900 border border-blue-700 rounded-lg px-4 py-2"
+          className="text-sm font-semibold text-blue-700 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 border border-blue-700 dark:border-blue-500 rounded-lg px-4 py-2"
         >
           Retry
         </button>
@@ -592,12 +592,12 @@ export default function DeaconBoard() {
           placeholder="Search by name…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 bg-white border-2 border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-blue-700"
+          className="flex-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-700 dark:focus:border-blue-500"
         />
         <select
           value={deaconFilter}
           onChange={(e) => setDeaconFilter(e.target.value)}
-          className="bg-white border-2 border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-blue-700"
+          className="bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-700 dark:focus:border-blue-500"
         >
           <option value="">All deacons</option>
           {deacons.map((d) => (
@@ -606,7 +606,7 @@ export default function DeaconBoard() {
           <option value={UNASSIGNED}>Unassigned</option>
           <option value="Inactive">Inactive</option>
         </select>
-        <span className="text-xs text-gray-600 self-center whitespace-nowrap font-medium">
+        <span className="text-xs text-gray-600 dark:text-gray-400 self-center whitespace-nowrap font-medium">
           {filtered.length} of {people.length}
         </span>
       </div>

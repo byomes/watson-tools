@@ -78,8 +78,8 @@ function LogFollowUpForm({
   }
 
   return (
-    <div className="border-2 border-gray-200 rounded-xl p-4 bg-white mb-4">
-      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+    <div className="border-2 border-gray-200 dark:border-gray-700 rounded-xl p-4 bg-white dark:bg-gray-900 mb-4">
+      <label className="block text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
         Log a follow-up
       </label>
 
@@ -92,25 +92,25 @@ function LogFollowUpForm({
             setQuery(e.target.value)
           }}
           placeholder="Search person by name…"
-          className="w-full bg-white border-2 border-gray-300 rounded-md px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:border-blue-700"
+          className="w-full bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-700 dark:focus:border-blue-500"
         />
         {selectedId && (
           <button
             type="button"
             onClick={clearPerson}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-600"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
           >
             Change
           </button>
         )}
         {matches.length > 0 && (
-          <div className="absolute z-10 mt-1 w-full bg-white border-2 border-gray-200 rounded-md shadow-sm max-h-48 overflow-y-auto">
+          <div className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 rounded-md shadow-sm max-h-48 overflow-y-auto">
             {matches.map((p) => (
               <button
                 key={p.id}
                 type="button"
                 onClick={() => pickPerson(p)}
-                className="block w-full text-left px-3 py-2 text-sm text-gray-800 hover:bg-gray-50"
+                className="block w-full text-left px-3 py-2 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 {p.name}
               </button>
@@ -124,7 +124,7 @@ function LogFollowUpForm({
         onChange={(e) => setNote(e.target.value)}
         rows={2}
         placeholder="Called, texted, visited…"
-        className="w-full mt-2 bg-white border-2 border-gray-300 rounded-md px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:border-blue-700"
+        className="w-full mt-2 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-700 dark:focus:border-blue-500"
       />
 
       <div className="flex items-center gap-2 mt-1.5">
@@ -132,12 +132,12 @@ function LogFollowUpForm({
           type="button"
           onClick={submit}
           disabled={!selectedId || !note.trim() || state === 'saving'}
-          className="text-xs font-semibold text-blue-700 hover:text-blue-900 border border-blue-700 rounded-lg px-3 py-1.5 disabled:opacity-40"
+          className="text-xs font-semibold text-blue-700 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 border border-blue-700 dark:border-blue-500 rounded-lg px-3 py-1.5 disabled:opacity-40"
         >
           {state === 'saving' ? 'Saving…' : 'Log Note'}
         </button>
-        {state === 'saved' && <span className="text-xs text-green-700 font-semibold">Saved ✓</span>}
-        {state === 'error' && <span className="text-xs text-red-700 font-semibold">Failed — try again</span>}
+        {state === 'saved' && <span className="text-xs text-green-700 dark:text-green-400 font-semibold">Saved ✓</span>}
+        {state === 'error' && <span className="text-xs text-red-700 dark:text-red-400 font-semibold">Failed — try again</span>}
       </div>
     </div>
   )
@@ -202,14 +202,14 @@ export default function NotesFeed() {
 
   if (loadError) {
     return (
-      <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+      <p className="text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-md px-3 py-2">
         Could not load notes right now. Try again shortly.
       </p>
     )
   }
 
   if (!entries || !people) {
-    return <p className="text-gray-500 text-sm px-4 py-8">Loading…</p>
+    return <p className="text-gray-500 dark:text-gray-400 text-sm px-4 py-8">Loading…</p>
   }
 
   return (
@@ -217,19 +217,19 @@ export default function NotesFeed() {
       <LogFollowUpForm people={people} onSubmit={submitFollowUp} />
 
       {entries.length === 0 ? (
-        <p className="text-gray-500 text-sm px-4 py-8">No deacon notes logged yet.</p>
+        <p className="text-gray-500 dark:text-gray-400 text-sm px-4 py-8">No deacon notes logged yet.</p>
       ) : (
         entries.map((e, i) => (
-          <div key={i} className="border-2 border-gray-200 rounded-xl p-4 bg-white">
+          <div key={i} className="border-2 border-gray-200 dark:border-gray-700 rounded-xl p-4 bg-white dark:bg-gray-900">
             <div className="flex items-baseline justify-between gap-2">
-              <span className="font-bold text-gray-900">{e.personName}</span>
-              <span className="text-xs text-gray-400 whitespace-nowrap">
+              <span className="font-bold text-gray-900 dark:text-gray-100">{e.personName}</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
                 {formatDeaconNoteDate(e.created_at)}
               </span>
             </div>
-            <p className="text-sm text-gray-800 mt-1">
+            <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">
               {e.note}
-              {e.status !== 'open' && <span className="text-gray-400"> · {e.status}</span>}
+              {e.status !== 'open' && <span className="text-gray-400 dark:text-gray-500"> · {e.status}</span>}
             </p>
           </div>
         ))
