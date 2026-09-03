@@ -91,8 +91,12 @@ export default function DeaconAppTabs({
 
   return (
     <div className={theme === 'dark' ? 'dark' : ''}>
-      <div className="min-h-screen bg-white dark:bg-gray-950 flex flex-col">
-        <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3 relative">
+      {/* h-dvh + overflow-hidden on the shell, with only the middle section
+          scrolling, keeps header/footer from ever moving -- position:fixed
+          for the footer used to visibly jump on iOS Safari as its address
+          bar hid/showed mid-scroll. */}
+      <div className="h-dvh bg-white dark:bg-gray-950 flex flex-col overflow-hidden">
+        <div className="shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3 relative">
           <h1 className="flex items-center justify-center">
             <button
               type="button"
@@ -115,7 +119,7 @@ export default function DeaconAppTabs({
           </button>
         </div>
 
-        <div className="flex-1 px-4 py-6 pb-24">
+        <div className="flex-1 overflow-y-auto px-4 py-6">
           <div className={tab === 'deacons' ? '' : 'hidden'}>
             <div className="max-w-6xl mx-auto">
               <DeaconBoard />
@@ -166,7 +170,7 @@ export default function DeaconAppTabs({
           </div>
         </div>
 
-        <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 flex pb-[env(safe-area-inset-bottom)]">
+        <div className="shrink-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 flex pb-[env(safe-area-inset-bottom)]">
           {TABS.map((t) => {
             const Icon = t.icon
             const active = tab === t.id
