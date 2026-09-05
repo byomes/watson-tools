@@ -19,6 +19,16 @@ interface ConnectCardPayload {
   prayerRequest: string | null
 }
 
+// Numbers used by a spam bot that repeatedly resubmitted the same fake
+// visitor (e.g. "Alluverr Alluvert" / ziecr@aol.com) — compared as digits
+// only so formatting differences don't matter. Ported from the retired
+// wcky /tools/connect-card route when this became the live form.
+const BLOCKED_PHONE_DIGITS = new Set(['8006696607'])
+
+function normalizePhoneDigits(value: string): string {
+  return value.replace(/\D/g, '')
+}
+
 function campusLabel(campus: string): string {
   return campus === 'online' ? 'Online' : 'Wilmington'
 }
@@ -112,6 +122,12 @@ export async function POST(req: NextRequest) {
   if (!lastName) return NextResponse.json({ error: 'Last name is required.' }, { status: 400 })
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: 'A valid email is required.' }, { status: 400 })
+  }
+
+  const phoneDigits = normalizePhoneDigits((data.phone ?? '').trim())
+  if (phoneDigits && BLOCKED_PHONE_DIGITS.has(phoneDigits)) {
+    console.warn(`[cat/connect] Blocked submission from known spam phone number: ${phoneDigits}`)
+    return NextResponse.json({ ok: true })
   }
 
   const payload: ConnectCardPayload = {

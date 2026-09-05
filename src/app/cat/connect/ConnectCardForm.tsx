@@ -203,7 +203,9 @@ export default function ConnectCardForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      <h1 className={`text-[28px] font-extrabold tracking-[-0.7px] text-[#222222] ${HEADING_FONT}`}>
+      <h1 className={`flex items-center gap-2 text-[28px] font-extrabold tracking-[-0.7px] text-[#222222] ${HEADING_FONT}`}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/catalyst-c-logo.jpg" alt="" className="h-7 w-7 rounded-md shrink-0" />
         Catalyst Connect Card
       </h1>
 
