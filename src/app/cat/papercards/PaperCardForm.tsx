@@ -8,7 +8,7 @@ const CHAR_LIMIT = 3000
 
 // Canonical step keys -- match jobs/connect_cards/shepherding_report.py's
 // _STEP_NAMES and the next_steps.step column values used everywhere else in
-// Watson. Labels match the wording on the live wcky /tools/connect-card form.
+// Watson. Labels match the wording on the live wtsn.me/cat/connect form.
 const NEXT_STEP_OPTIONS: { key: string; label: string }[] = [
   { key: 'follow_jesus', label: 'I want to start following Jesus' },
   { key: 'baptism', label: 'I want to get baptized' },
