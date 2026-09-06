@@ -4,9 +4,18 @@ import { getShepherdingReport, computeShepherdingTotals } from '@/lib/shepherdin
 import { AutoThemeShell } from './AutoThemeShell'
 import GroupList from './GroupList'
 
+// statusBarStyle is fixed at 'default' (light/opaque, dark icons) -- iOS
+// reads this once at launch for an installed (Add to Home Screen) icon and
+// has no live-updating variant, so an installed icon's status bar cannot
+// track prefers-color-scheme the way AutoThemeShell does for a plain Safari
+// tab's own toolbar. Bill chose fixed-light over fixed-dark 2026-09-06.
+// icon.jpg/apple-icon.jpg alongside this file are Next's file-convention
+// icons (same source image as cat/deaconapp's) -- auto-linked, no manifest
+// needed, matching that route's pattern.
 export const metadata: Metadata = {
   title: 'Catalyst Shepherding Report',
   robots: { index: false, follow: false },
+  appleWebApp: { title: 'Shepherding', statusBarStyle: 'default' },
 }
 
 // Never statically prerendered — see cat/attendance/page.tsx for why (the
