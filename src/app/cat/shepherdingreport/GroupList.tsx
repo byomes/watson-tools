@@ -36,7 +36,7 @@ function telHref(scheme: 'tel' | 'sms', phone: string): string {
   return `${scheme}:${number}`
 }
 
-const iconClass = 'w-4 h-4'
+const iconClass = 'w-5 h-5'
 
 function MailIcon() {
   return (
@@ -66,20 +66,20 @@ function TextIcon() {
 function ContactIcons({ member }: { member: Member }) {
   if (!member.phone && !member.email) return null
   return (
-    <span className="flex items-center gap-2 shrink-0 text-gray-400 dark:text-gray-500">
+    <span className="flex items-center gap-4 shrink-0 text-gray-400 dark:text-gray-500">
       {member.phone && (
         <>
           <a
             href={telHref('tel', member.phone)}
             aria-label={`Call ${member.name}`}
-            className="p-1 -m-1 active:text-blue-600 dark:active:text-blue-400"
+            className="p-1.5 -m-1.5 active:text-blue-600 dark:active:text-blue-400"
           >
             <PhoneIcon />
           </a>
           <a
             href={telHref('sms', member.phone)}
             aria-label={`Text ${member.name}`}
-            className="p-1 -m-1 active:text-blue-600 dark:active:text-blue-400"
+            className="p-1.5 -m-1.5 active:text-blue-600 dark:active:text-blue-400"
           >
             <TextIcon />
           </a>
@@ -89,7 +89,7 @@ function ContactIcons({ member }: { member: Member }) {
         <a
           href={`mailto:${member.email}`}
           aria-label={`Email ${member.name}`}
-          className="p-1 -m-1 active:text-blue-600 dark:active:text-blue-400"
+          className="p-1.5 -m-1.5 active:text-blue-600 dark:active:text-blue-400"
         >
           <MailIcon />
         </a>
@@ -153,7 +153,7 @@ export default function GroupList({ groups }: { groups: Group[] }) {
                 return (
                   <li
                     key={`${m.name}-${i}`}
-                    className="px-4 py-2.5 flex items-center gap-3 text-sm"
+                    className="px-4 py-4 flex items-center gap-3 text-sm"
                   >
                     <span className="flex-1 min-w-0 truncate text-gray-900 dark:text-gray-100">{m.name}</span>
                     <ContactIcons member={m} />
