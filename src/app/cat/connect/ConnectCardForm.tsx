@@ -217,9 +217,17 @@ export default function ConnectCardForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      <h1 className={`flex items-center gap-2 text-[28px] font-extrabold tracking-[-0.7px] text-[#222222] ${HEADING_FONT}`}>
+      {/* Font size scales down on narrow viewports (clamp, keyed to vw not
+          container width, so it tracks the phone's actual screen size) so
+          "Catalyst Connect Card" plus the logo never wraps to two lines --
+          verified down to a 320px-wide screen against this page's px-8
+          layout padding. whitespace-nowrap is a hard backstop: if some
+          other font ever measures wider than assumed here, the header
+          overflows horizontally instead of silently wrapping. Logo and gap
+          are sized in em so they shrink/grow in lockstep with the text. */}
+      <h1 className={`flex items-center gap-[0.3em] whitespace-nowrap text-[clamp(1.05rem,5vw,1.75rem)] font-extrabold tracking-[-0.7px] text-[#222222] ${HEADING_FONT}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/catalyst-c-logo.jpg" alt="" className="h-7 w-7 rounded-md shrink-0" />
+        <img src="/catalyst-c-logo.jpg" alt="" className="h-[1em] w-[1em] rounded-md shrink-0" />
         Catalyst Connect Card
       </h1>
 
