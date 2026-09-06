@@ -230,6 +230,24 @@ export default function ConnectCardForm() {
     }
   }
 
+  // Success replaces the whole form with just the confirmation -- no
+  // fields, no submit button, nothing left to (re)submit while the
+  // redirect timer above is running.
+  if (success) {
+    return (
+      <div className="space-y-8">
+        <h1 className={`flex items-center gap-[0.3em] whitespace-nowrap text-[clamp(1.05rem,5vw,1.75rem)] font-extrabold tracking-[-0.7px] text-[#222222] ${HEADING_FONT}`}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/catalyst-c-logo.jpg" alt="" className="h-[1em] w-[1em] rounded-md shrink-0" />
+          Catalyst Connect Card
+        </h1>
+        <p className={`text-green-700 text-sm bg-green-50 border border-green-200 rounded-lg px-4 py-3 ${INPUT_FONT}`}>
+          Thanks! Your connect card was submitted. Redirecting you to our giving page…
+        </p>
+      </div>
+    )
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
       {/* Font size scales down on narrow viewports (clamp, keyed to vw not
@@ -249,11 +267,6 @@ export default function ConnectCardForm() {
       {error && (
         <p className={`text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg px-4 py-3 ${INPUT_FONT}`}>
           {error}
-        </p>
-      )}
-      {success && (
-        <p className={`text-green-700 text-sm bg-green-50 border border-green-200 rounded-lg px-4 py-3 ${INPUT_FONT}`}>
-          Thanks! Your connect card was submitted. Redirecting you to our giving page…
         </p>
       )}
 
