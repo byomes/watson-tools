@@ -1,11 +1,16 @@
 @import "tailwindcss";
 
-/* Class-based dark mode (scoped): only the Deacon App wraps its own tree in
-   a `.dark` class, so this variant has no effect on any other tool page. */
+/* Class-based dark mode: only the Deacon App ever puts `.dark` on <html>
+   (via useDeaconTheme, and removed again on unmount), so this variant has
+   no live effect on any other tool page. */
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
   color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
 }
 
 body {

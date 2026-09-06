@@ -90,11 +90,14 @@ export default function DeaconAppTabs({
   const [theme, toggleTheme] = useDeaconTheme()
 
   return (
-    <div className={theme === 'dark' ? 'dark' : ''}>
+    <>
       {/* h-dvh + overflow-hidden on the shell, with only the middle section
           scrolling, keeps header/footer from ever moving -- position:fixed
           for the footer used to visibly jump on iOS Safari as its address
-          bar hid/showed mid-scroll. */}
+          bar hid/showed mid-scroll. The `.dark` class itself lives on
+          <html> (applied by useDeaconTheme), not here, so the phone's
+          status bar / browser chrome -- which samples the real page
+          background, not this div -- follows the toggle too. */}
       <div className="h-dvh bg-white dark:bg-gray-950 flex flex-col overflow-hidden">
         <div className="shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3 relative">
           <h1 className="flex items-center justify-center">
@@ -190,6 +193,6 @@ export default function DeaconAppTabs({
           })}
         </div>
       </div>
-    </div>
+    </>
   )
 }
