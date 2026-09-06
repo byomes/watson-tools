@@ -112,6 +112,18 @@ export default function ConnectCardForm() {
   const [success, setSuccess] = useState(false)
   const successTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Honeypot: a text field no sighted human ever sees or tabs into, but a
+  // bot that blindly fills every <input> it finds in the scraped HTML will
+  // populate. Any non-empty value here means the submission is a bot
+  // (route.ts silently accepts-and-drops it, same as the phone blocklist,
+  // so the bot gets no signal to adapt).
+  const [website, setWebsite] = useState('')
+  // Captured once at mount, not on every render — the true "how long has a
+  // human had this form open" clock. Sent to the server so a bot POSTing
+  // straight to the API (skipping the page entirely) either omits it or
+  // sends a value the server can prove is too recent (see route.ts).
+  const renderedAtRef = useRef(Date.now())
+
   useEffect(() => {
     const profile = readStoredProfile()
     if (profile) {
@@ -164,6 +176,8 @@ export default function ConnectCardForm() {
           howHeard: howHeard || null,
           restrictToLeadership,
           prayerRequest: prayerRequest || null,
+          website,
+          renderedAt: renderedAtRef.current,
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -219,6 +233,22 @@ export default function ConnectCardForm() {
           Thanks! Your connect card was submitted.
         </p>
       )}
+
+      {/* Honeypot -- visually hidden and unreachable by Tab, so no sighted
+          or keyboard-only human ever touches it, but a bot that scrapes the
+          raw HTML and fills every <input> it finds will. */}
+      <div className="absolute left-[-9999px] top-auto w-px h-px overflow-hidden" aria-hidden="true">
+        <label htmlFor="website">Website</label>
+        <input
+          id="website"
+          name="website"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          value={website}
+          onChange={e => setWebsite(e.target.value)}
+        />
+      </div>
 
       {hasStoredProfile && (
         <button

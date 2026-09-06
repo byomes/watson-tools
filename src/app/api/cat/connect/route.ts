@@ -25,6 +25,13 @@ interface ConnectCardPayload {
 // wcky /tools/connect-card route when this became the live form.
 const BLOCKED_PHONE_DIGITS = new Set(['8006696607'])
 
+// A human needs at least this long between the form rendering and hitting
+// Submit -- a bot that skips loading the page and POSTs straight to this
+// route either omits renderedAt entirely or sends a value that fails this
+// check. Set well under real fill time (which is many seconds) so no
+// genuine visitor is ever caught by it.
+const MIN_FILL_TIME_MS = 1500
+
 function normalizePhoneDigits(value: string): string {
   return value.replace(/\D/g, '')
 }
@@ -109,6 +116,20 @@ export async function POST(req: NextRequest) {
 
   const data = await req.json().catch(() => null)
   if (!data) return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
+
+  // Bot checks first, before any validation error can teach a bot which
+  // field it got wrong. Both fail the same way (200 ok, nothing sent) as
+  // the phone blocklist below, so a bot sees a "successful" submission and
+  // has no signal to adapt its script.
+  if (typeof data.website === 'string' && data.website.trim() !== '') {
+    console.warn('[cat/connect] Blocked submission: honeypot field filled')
+    return NextResponse.json({ ok: true })
+  }
+  const renderedAt = typeof data.renderedAt === 'number' ? data.renderedAt : null
+  if (renderedAt === null || Date.now() - renderedAt < MIN_FILL_TIME_MS) {
+    console.warn('[cat/connect] Blocked submission: missing or too-fast renderedAt')
+    return NextResponse.json({ ok: true })
+  }
 
   const campus = (data.campus ?? '').trim()
   const firstName = (data.firstName ?? '').trim()
