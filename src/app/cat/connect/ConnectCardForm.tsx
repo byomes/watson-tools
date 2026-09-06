@@ -15,6 +15,15 @@ interface StoredProfile {
 const STORAGE_KEY = 'catalyst_connect_card_profile'
 const CHAR_LIMIT = 3000
 
+// A prior version (85b5fe0) redirected here immediately on success with no
+// confirmation shown first -- people landed straight on the giving page with
+// no indication their card had gone through, so many assumed it failed and
+// resubmitted (reverted 9c2bb98). This version shows the same "Thanks!"
+// banner as before, holds it long enough to actually read, THEN redirects --
+// confirmation and forward both happen, in order.
+const GIVING_URL = 'https://secure.subsplash.com/ui/access/7BVGB9'
+const REDIRECT_DELAY_MS = 2500
+
 const NEXT_STEP_OPTIONS = [
   'I want to start following Jesus',
   'I want to get baptized',
@@ -207,7 +216,13 @@ export default function ConnectCardForm() {
 
       setSuccess(true)
       if (successTimeout.current) clearTimeout(successTimeout.current)
-      successTimeout.current = setTimeout(() => setSuccess(false), 6000)
+      // Cross-origin destination, so window.location.href, not the Next.js
+      // router (which only handles internal routes). Not cleared on unmount
+      // -- the whole point is to navigate away even if the component is
+      // about to go with it.
+      successTimeout.current = setTimeout(() => {
+        window.location.href = GIVING_URL
+      }, REDIRECT_DELAY_MS)
     } catch {
       setError('Something went wrong. Please try again.')
     } finally {
@@ -238,7 +253,7 @@ export default function ConnectCardForm() {
       )}
       {success && (
         <p className={`text-green-700 text-sm bg-green-50 border border-green-200 rounded-lg px-4 py-3 ${INPUT_FONT}`}>
-          Thanks! Your connect card was submitted.
+          Thanks! Your connect card was submitted. Redirecting you to our giving page…
         </p>
       )}
 
