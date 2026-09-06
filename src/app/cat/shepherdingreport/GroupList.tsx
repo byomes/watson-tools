@@ -6,6 +6,8 @@ type Bucket = '6wk' | '3-5wk' | '2wk' | null
 interface Member {
   name: string
   bucket: Bucket
+  email: string | null
+  phone: string | null
 }
 
 interface Group {
@@ -23,6 +25,77 @@ const BUCKET_META: Record<string, { label: string; className: string }> = {
 
 function bucketKey(bucket: Bucket): string {
   return bucket ?? 'current'
+}
+
+// members.phone is stored formatted, e.g. "(302) 559-3728" -- tel:/sms:
+// links need bare digits. Assume 10-digit US numbers (the only kind on
+// file) and prefix +1 so it dials correctly regardless of device locale.
+function telHref(scheme: 'tel' | 'sms', phone: string): string {
+  const digits = phone.replace(/\D/g, '')
+  const number = digits.length === 10 ? `+1${digits}` : digits
+  return `${scheme}:${number}`
+}
+
+const iconClass = 'w-4 h-4'
+
+function MailIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={iconClass} aria-hidden="true">
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <path d="m22 6-10 7L2 6" />
+    </svg>
+  )
+}
+
+function PhoneIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={iconClass} aria-hidden="true">
+      <path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465a1 1 0 0 1 1.51-.058l1.412 1.412a1 1 0 0 1 0 1.415l-1.5 1.5a2 2 0 0 1-1.995.483C10.752 19.183 4.817 13.248 3.448 8.973a2 2 0 0 1 .483-1.995l1.5-1.5a1 1 0 0 1 1.415 0l1.412 1.412a1 1 0 0 1-.058 1.51l-.465.355a1 1 0 0 0-.303 1.213 12.02 12.02 0 0 0 6.4 6.4Z" />
+    </svg>
+  )
+}
+
+function TextIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={iconClass} aria-hidden="true">
+      <path d="M4 19v-2H2V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8Z" />
+    </svg>
+  )
+}
+
+function ContactIcons({ member }: { member: Member }) {
+  if (!member.phone && !member.email) return null
+  return (
+    <span className="flex items-center gap-2 shrink-0 text-gray-400 dark:text-gray-500">
+      {member.phone && (
+        <>
+          <a
+            href={telHref('tel', member.phone)}
+            aria-label={`Call ${member.name}`}
+            className="p-1 -m-1 active:text-blue-600 dark:active:text-blue-400"
+          >
+            <PhoneIcon />
+          </a>
+          <a
+            href={telHref('sms', member.phone)}
+            aria-label={`Text ${member.name}`}
+            className="p-1 -m-1 active:text-blue-600 dark:active:text-blue-400"
+          >
+            <TextIcon />
+          </a>
+        </>
+      )}
+      {member.email && (
+        <a
+          href={`mailto:${member.email}`}
+          aria-label={`Email ${member.name}`}
+          className="p-1 -m-1 active:text-blue-600 dark:active:text-blue-400"
+        >
+          <MailIcon />
+        </a>
+      )}
+    </span>
+  )
 }
 
 // Bulk expand/collapse remounts each <details> with a fresh defaultOpen via
@@ -80,9 +153,10 @@ export default function GroupList({ groups }: { groups: Group[] }) {
                 return (
                   <li
                     key={`${m.name}-${i}`}
-                    className="px-4 py-2.5 flex items-center justify-between gap-3 text-sm"
+                    className="px-4 py-2.5 flex items-center gap-3 text-sm"
                   >
-                    <span className="text-gray-900 dark:text-gray-100">{m.name}</span>
+                    <span className="flex-1 min-w-0 truncate text-gray-900 dark:text-gray-100">{m.name}</span>
+                    <ContactIcons member={m} />
                     <span
                       className={`shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${meta.className}`}
                     >

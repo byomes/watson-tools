@@ -5,6 +5,8 @@ export type Bucket = '6wk' | '3-5wk' | '2wk' | null
 export interface Member {
   name: string
   bucket: Bucket
+  email: string | null
+  phone: string | null
 }
 
 export interface Group {
