@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { requireLiveTool } from '@/lib/requireLiveTool'
 import { getShepherdingReport, computeShepherdingTotals } from '@/lib/shepherdingReport'
+import { AutoThemeShell } from './AutoThemeShell'
 import GroupList from './GroupList'
 
 export const metadata: Metadata = {
@@ -18,36 +19,38 @@ export default async function ShepherdingReportPage() {
   const totals = data ? computeShepherdingTotals(data.groups) : null
 
   return (
-    <div className="min-h-screen bg-white py-8 px-4">
-      <div className="max-w-md mx-auto">
-        <h1 className="text-2xl font-bold text-black mb-1">Catalyst Shepherding Report</h1>
-        <p className="text-sm text-gray-500 mb-4">
-          {data ? `Generated ${data.generated_date}` : 'Report unavailable'} — grouped by deacon,
-          most at-risk first in each group.
-        </p>
-
-        {!data && (
-          <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
-            Could not load the report right now. Try again shortly.
+    <AutoThemeShell>
+      <div className="min-h-screen bg-white dark:bg-gray-950 py-8 px-4">
+        <div className="max-w-md mx-auto">
+          <h1 className="text-2xl font-bold text-black dark:text-white mb-1">Catalyst Shepherding Report</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            {data ? `Generated ${data.generated_date}` : 'Report unavailable'} — grouped by deacon,
+            most at-risk first in each group.
           </p>
-        )}
 
-        {totals && (
-          <div className="flex gap-2 mb-6 text-xs font-semibold">
-            <span className="flex-1 text-center rounded-md border border-blue-200 bg-blue-50 text-blue-700 py-2">
-              2 wks {totals.wk2}
-            </span>
-            <span className="flex-1 text-center rounded-md border border-amber-300 bg-amber-50 text-amber-700 py-2">
-              3-5 wks {totals.wk35}
-            </span>
-            <span className="flex-1 text-center rounded-md border border-red-300 bg-red-50 text-red-700 py-2">
-              6+ wks {totals.wk6}
-            </span>
-          </div>
-        )}
+          {!data && (
+            <p className="text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-md px-3 py-2">
+              Could not load the report right now. Try again shortly.
+            </p>
+          )}
 
-        {data && <GroupList groups={data.groups} />}
+          {totals && (
+            <div className="flex gap-2 mb-6 text-xs font-semibold">
+              <span className="flex-1 text-center rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 py-2">
+                2 wks {totals.wk2}
+              </span>
+              <span className="flex-1 text-center rounded-md border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 py-2">
+                3-5 wks {totals.wk35}
+              </span>
+              <span className="flex-1 text-center rounded-md border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 py-2">
+                6+ wks {totals.wk6}
+              </span>
+            </div>
+          )}
+
+          {data && <GroupList groups={data.groups} />}
+        </div>
       </div>
-    </div>
+    </AutoThemeShell>
   )
 }
