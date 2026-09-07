@@ -5,6 +5,7 @@ import DeaconBoard from '../deacons/DeaconBoard'
 import AttendanceBoard from '../attendance/AttendanceBoard'
 import GroupList from '../shepherdingreport/GroupList'
 import NotesFeed from './NotesFeed'
+import { logoutAction } from './actions'
 import { useDeaconTheme } from '@/lib/deaconTheme'
 import type { Group, Totals } from '@/lib/shepherdingReport'
 
@@ -78,10 +79,12 @@ const TABS: { id: Tab; label: string; icon: () => ReactNode }[] = [
 ]
 
 export default function DeaconAppTabs({
+  deaconName,
   shepherdingGroups,
   shepherdingTotals,
   shepherdingDate,
 }: {
+  deaconName: string
   shepherdingGroups: Group[] | null
   shepherdingTotals: Totals | null
   shepherdingDate: string | null
@@ -112,6 +115,13 @@ export default function DeaconAppTabs({
               Catalyst Shepherding App
             </button>
           </h1>
+          <button
+            type="button"
+            onClick={() => logoutAction()}
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400 active:opacity-60 max-w-[35%] truncate"
+          >
+            {deaconName} · Log out
+          </button>
           <button
             type="button"
             onClick={toggleTheme}
@@ -186,7 +196,7 @@ export default function DeaconAppTabs({
 
           <div className={tab === 'notes' ? '' : 'hidden'}>
             <div className="max-w-md mx-auto">
-              <NotesFeed />
+              <NotesFeed deaconName={deaconName} />
             </div>
           </div>
         </div>

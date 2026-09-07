@@ -7,6 +7,7 @@ interface DeaconNote {
   note: string
   status: string
   created_at: string
+  author_deacon: string | null
 }
 
 interface Person {
@@ -21,6 +22,7 @@ interface FeedEntry {
   note: string
   status: string
   created_at: string
+  authorDeacon: string | null
 }
 
 type FormState = 'idle' | 'saving' | 'saved' | 'error'
@@ -31,9 +33,11 @@ function sortNewestFirst(entries: FeedEntry[]): FeedEntry[] {
 
 function LogFollowUpForm({
   people,
+  deaconName,
   onSubmit,
 }: {
   people: Person[]
+  deaconName: string
   onSubmit: (personId: number, note: string) => Promise<boolean>
 }) {
   const [query, setQuery] = useState('')
@@ -82,6 +86,7 @@ function LogFollowUpForm({
       <label className="block text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
         Log a follow-up
       </label>
+      <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-1.5">Logging as {deaconName}</p>
 
       <div className="relative">
         <input
@@ -143,7 +148,7 @@ function LogFollowUpForm({
   )
 }
 
-export default function NotesFeed() {
+export default function NotesFeed({ deaconName }: { deaconName: string }) {
   const [people, setPeople] = useState<Person[] | null>(null)
   const [entries, setEntries] = useState<FeedEntry[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -162,6 +167,7 @@ export default function NotesFeed() {
             note: dn.note,
             status: dn.status,
             created_at: dn.created_at,
+            authorDeacon: dn.author_deacon,
           })),
         )
         if (!cancelled) {
@@ -190,7 +196,14 @@ export default function NotesFeed() {
       const personName = people?.find((p) => p.id === personId)?.name ?? ''
       setEntries((prev) =>
         sortNewestFirst([
-          { personId, personName, note: created.note, status: created.status, created_at: created.created_at },
+          {
+            personId,
+            personName,
+            note: created.note,
+            status: created.status,
+            created_at: created.created_at,
+            authorDeacon: created.author_deacon,
+          },
           ...(prev ?? []),
         ]),
       )
@@ -214,7 +227,7 @@ export default function NotesFeed() {
 
   return (
     <div className="flex flex-col gap-3">
-      <LogFollowUpForm people={people} onSubmit={submitFollowUp} />
+      <LogFollowUpForm people={people} deaconName={deaconName} onSubmit={submitFollowUp} />
 
       {entries.length === 0 ? (
         <p className="text-gray-500 dark:text-gray-400 text-sm px-4 py-8">No deacon notes logged yet.</p>
@@ -231,6 +244,9 @@ export default function NotesFeed() {
               {e.note}
               {e.status !== 'open' && <span className="text-gray-400 dark:text-gray-500"> · {e.status}</span>}
             </p>
+            {e.authorDeacon && (
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">— {e.authorDeacon}</p>
+            )}
           </div>
         ))
       )}

@@ -18,7 +18,8 @@ export const dynamic = 'force-dynamic'
 
 export default async function DeaconAppPage() {
   await requireLiveTool('cat', 'deaconapp')
-  if (!(await getSession())) redirect('/cat/deaconapp/login')
+  const deaconName = await getSession()
+  if (!deaconName) redirect('/cat/deaconapp/login')
 
   // Fetched here (server-side, same call the standalone shepherdingreport
   // page makes) because it needs SHEPHERDING_REPORT_API_KEY, a server-only
@@ -28,6 +29,7 @@ export default async function DeaconAppPage() {
 
   return (
     <DeaconAppTabs
+      deaconName={deaconName}
       shepherdingGroups={report?.groups ?? null}
       shepherdingTotals={report ? computeShepherdingTotals(report.groups) : null}
       shepherdingDate={report?.generated_date ?? null}

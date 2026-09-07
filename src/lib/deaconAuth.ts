@@ -1,14 +1,24 @@
 import { cookies } from 'next/headers'
-import { createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto'
+import { createHmac, timingSafeEqual } from 'node:crypto'
+import { watsonFetch } from '@/lib/watson'
 
-// PIN gate for /cat/deaconapp — one shared PIN handed out to all deacons
-// by Bill directly (no per-deacon accounts), so the session just records
-// "PIN was entered", not who entered it. Pattern mirrors
-// ~/micah-tasks/lib/auth.ts (scrypt hash, HMAC-signed cookie,
-// timing-safe compares) minus the per-user id.
+// Per-deacon PIN gate for /cat/deaconapp (2026-09-07). PINs themselves
+// live in deacon_pins on the Watson side (deacons_web.py verify_pin) --
+// this file only turns a verified deacon name into a signed session
+// cookie recording WHICH deacon is in, mirroring the previous
+// shared-PIN version's HMAC-signed-cookie pattern (~/micah-tasks/lib/auth.ts)
+// but now carrying an identity instead of just "a PIN was entered".
+//
+// Multiple deacons can share one PIN during the interim rollout (everyone
+// seeded with 1303 until Bill hands out individual PINs), so verifyPin
+// below returns every matching name and the login flow may need the user
+// to pick which of them they are -- see PENDING_COOKIE.
 
 const COOKIE_NAME = 'deacon_app_session'
-const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000 // 30 days — shared PIN, not a bank
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000 // 30 days — shared/simple PIN, not a bank
+
+const PENDING_COOKIE = 'deacon_app_pending'
+const PENDING_TTL_MS = 3 * 60 * 1000 // 3 minutes — just long enough to tap a name
 
 function authSecret(): string {
   const secret = process.env.AUTH_SECRET
@@ -16,57 +26,55 @@ function authSecret(): string {
   return secret
 }
 
-function pinHash(): string {
-  const hash = process.env.DEACON_APP_PIN_HASH
-  if (!hash) throw new Error('DEACON_APP_PIN_HASH is not set')
-  return hash
-}
-
-export function hashPin(pin: string): string {
-  const salt = randomBytes(16).toString('hex')
-  const hash = scryptSync(pin, salt, 32).toString('hex')
-  return `${salt}:${hash}`
-}
-
-export function verifyPin(pin: string): boolean {
-  const [salt, hash] = pinHash().split(':')
-  if (!salt || !hash) return false
-  const candidate = scryptSync(pin, salt, 32)
-  const expected = Buffer.from(hash, 'hex')
-  if (candidate.length !== expected.length) return false
-  return timingSafeEqual(candidate, expected)
-}
-
 function sign(payload: string): string {
   return createHmac('sha256', authSecret()).update(payload).digest('hex')
 }
 
-function makeToken(): string {
-  const expires = Date.now() + SESSION_TTL_MS
-  const payload = `deacon.${expires}`
-  return `${payload}.${sign(payload)}`
-}
-
-function tokenValid(token: string): boolean {
-  const parts = token.split('.')
-  if (parts.length !== 3) return false
-  const [subject, expiresStr, sig] = parts
-  if (subject !== 'deacon') return false
-  const payload = `${subject}.${expiresStr}`
+function verifySignature(payload: string, sig: string): boolean {
   const expected = sign(payload)
   const sigBuf = Buffer.from(sig, 'hex')
   const expectedBuf = Buffer.from(expected, 'hex')
-  if (sigBuf.length !== expectedBuf.length || !timingSafeEqual(sigBuf, expectedBuf)) {
-    return false
-  }
-  const expires = Number(expiresStr)
-  if (!Number.isFinite(expires) || Date.now() > expires) return false
-  return true
+  return sigBuf.length === expectedBuf.length && timingSafeEqual(sigBuf, expectedBuf)
 }
 
-export async function createSession() {
+/** Asks the Watson backend which deacon(s) this PIN belongs to. Empty
+ * array means wrong PIN; more than one means the caller must disambiguate. */
+export async function verifyPin(pin: string): Promise<string[]> {
+  const res = await watsonFetch('/api/cat/deacons/verify_pin', {
+    method: 'POST',
+    headers: { 'X-Watson-Key': process.env.DEACONS_API_KEY ?? '' },
+    body: JSON.stringify({ pin }),
+  })
+  if (!res.ok) return []
+  const data = await res.json().catch(() => null)
+  return Array.isArray(data?.matches) ? data.matches : []
+}
+
+function makeToken(name: string): string {
+  const expires = Date.now() + SESSION_TTL_MS
+  const encodedName = Buffer.from(name, 'utf8').toString('base64url')
+  const payload = `deacon.${encodedName}.${expires}`
+  return `${payload}.${sign(payload)}`
+}
+
+function tokenValid(token: string): string | null {
+  const parts = token.split('.')
+  if (parts.length !== 4) return null
+  const [subject, encodedName, expiresStr, sig] = parts
+  if (subject !== 'deacon') return null
+  if (!verifySignature(`${subject}.${encodedName}.${expiresStr}`, sig)) return null
+  const expires = Number(expiresStr)
+  if (!Number.isFinite(expires) || Date.now() > expires) return null
+  try {
+    return Buffer.from(encodedName, 'base64url').toString('utf8')
+  } catch {
+    return null
+  }
+}
+
+export async function createSession(name: string) {
   const store = await cookies()
-  store.set(COOKIE_NAME, makeToken(), {
+  store.set(COOKIE_NAME, makeToken(name), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
@@ -80,9 +88,52 @@ export async function destroySession() {
   store.delete(COOKIE_NAME)
 }
 
-export async function getSession(): Promise<boolean> {
+/** Returns the logged-in deacon's name, or null if not logged in. */
+export async function getSession(): Promise<string | null> {
   const store = await cookies()
   const token = store.get(COOKIE_NAME)?.value
-  if (!token) return false
+  if (!token) return null
   return tokenValid(token)
+}
+
+// --- Pending name choice, for the shared-PIN interim only ---
+// Holds the PIN-verified candidate names for a few minutes so the picker
+// screen can't be handed an identity the PIN check didn't actually
+// produce (the cookie is HMAC-signed the same way the real session is).
+
+export async function createPendingChoice(names: string[]) {
+  const expires = Date.now() + PENDING_TTL_MS
+  const encoded = Buffer.from(JSON.stringify(names), 'utf8').toString('base64url')
+  const payload = `pending.${encoded}.${expires}`
+  const store = await cookies()
+  store.set(PENDING_COOKIE, `${payload}.${sign(payload)}`, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: PENDING_TTL_MS / 1000,
+  })
+}
+
+/** Reads and clears the pending choice cookie in one shot — it's single-use. */
+export async function consumePendingChoice(): Promise<string[] | null> {
+  const store = await cookies()
+  const token = store.get(PENDING_COOKIE)?.value
+  store.delete(PENDING_COOKIE)
+  if (!token) return null
+
+  const parts = token.split('.')
+  if (parts.length !== 4) return null
+  const [subject, encoded, expiresStr, sig] = parts
+  if (subject !== 'pending') return null
+  if (!verifySignature(`${subject}.${encoded}.${expiresStr}`, sig)) return null
+  const expires = Number(expiresStr)
+  if (!Number.isFinite(expires) || Date.now() > expires) return null
+
+  try {
+    const names = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8'))
+    return Array.isArray(names) ? (names as string[]) : null
+  } catch {
+    return null
+  }
 }
