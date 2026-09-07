@@ -13,9 +13,22 @@
   color-scheme: dark;
 }
 
+/* No background-color here: this rule sits outside any @layer, so per CSS
+   Cascade Layers it would always beat layout.tsx's `dark:bg-gray-950`
+   Tailwind utility on <body> (Tailwind's utilities live inside a named
+   layer, and unlayered rules always win over layered ones regardless of
+   specificity or source order) -- body would stay hardcoded white on every
+   page, dark mode or not. Normally invisible because a full-viewport
+   content div paints over it, but it's exactly what iOS Safari's chrome-
+   tinting samples at the very top/bottom edges, and what elastic overscroll
+   bounce reveals -- found 2026-09-06 debugging why dark mode wasn't
+   reaching Safari's address/toolbar bars on cat/shepherdingreport. */
 body {
-  background-color: #ffffff;
   color: #111827;
   font-family: system-ui, -apple-system, sans-serif;
   -webkit-tap-highlight-color: transparent;
+}
+
+.dark body {
+  color: #f3f4f6;
 }
