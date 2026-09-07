@@ -131,9 +131,12 @@ export default function DeaconAppTabs({
 
           <div className={tab === 'shepherding' ? '' : 'hidden'}>
             <div className="max-w-md mx-auto">
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
                 {shepherdingDate ? `Generated ${shepherdingDate}` : 'Report unavailable'} — grouped
                 by deacon, most at-risk first in each group.
+              </p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">
+                Tap a weeks-since badge to update someone&apos;s last attendance date.
               </p>
 
               {!shepherdingGroups && (
