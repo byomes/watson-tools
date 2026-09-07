@@ -16,8 +16,7 @@ interface Member {
 interface StateResponse {
   service_date: string
   recent_sundays: string[]
-  wilmington: Member[]
-  online: Member[]
+  members: Member[]
   inactive: Member[]
 }
 
@@ -86,15 +85,13 @@ function MemberRow({
   member,
   editMode,
   pending,
-  attendanceCampus,
   onToggle,
   onCampusChange,
 }: {
   member: Member
   editMode: boolean
   pending: boolean
-  attendanceCampus: 'Wilmington' | 'Online'
-  onToggle: (member: Member, campus: 'Wilmington' | 'Online') => void
+  onToggle: (member: Member) => void
   onCampusChange: (member: Member, value: CampusPreference) => void
 }) {
   return (
@@ -103,15 +100,13 @@ function MemberRow({
       {editMode ? (
         <CampusRadios member={member} disabled={pending} onChange={onCampusChange} />
       ) : (
-        <Toggle on={member.present} disabled={pending} onClick={() => onToggle(member, attendanceCampus)} />
+        <Toggle on={member.present} disabled={pending} onClick={() => onToggle(member)} />
       )}
     </li>
   )
 }
 
-function CampusSection({
-  title,
-  campus,
+function MemberSection({
   members,
   filter,
   pending,
@@ -119,13 +114,11 @@ function CampusSection({
   onToggle,
   onCampusChange,
 }: {
-  title: string
-  campus: 'Wilmington' | 'Online'
   members: Member[]
   filter: string
   pending: Set<number>
   editMode: boolean
-  onToggle: (member: Member, campus: 'Wilmington' | 'Online') => void
+  onToggle: (member: Member) => void
   onCampusChange: (member: Member, value: CampusPreference) => void
 }) {
   const visible = members.filter((m) => m.name.toLowerCase().includes(filter.toLowerCase()))
@@ -134,7 +127,7 @@ function CampusSection({
   return (
     <section className="mb-8">
       <h2 className="text-lg font-semibold text-black dark:text-white mb-2">
-        {title}{' '}
+        Members{' '}
         <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
           ({presentCount}/{members.length} present)
         </span>
@@ -146,7 +139,6 @@ function CampusSection({
             member={m}
             editMode={editMode}
             pending={pending.has(m.id)}
-            attendanceCampus={campus}
             onToggle={onToggle}
             onCampusChange={onCampusChange}
           />
@@ -171,14 +163,14 @@ function InactiveSection({
   filter: string
   pending: Set<number>
   editMode: boolean
-  onToggle: (member: Member, campus: 'Wilmington' | 'Online') => void
+  onToggle: (member: Member) => void
   onCampusChange: (member: Member, value: CampusPreference) => void
 }) {
   const visible = members.filter((m) => m.name.toLowerCase().includes(filter.toLowerCase()))
 
   return (
     <section className="mb-8">
-      {/* Collapsed by default (no `open` attr) — kept below Wilmington/Online
+      {/* Collapsed by default (no `open` attr) — kept below the main list
           and out of the way so it isn't scrolled past during weekly
           attendance-taking. */}
       <details>
@@ -192,7 +184,6 @@ function InactiveSection({
               member={m}
               editMode={editMode}
               pending={pending.has(m.id)}
-              attendanceCampus={m.campus_preference === 'Online' ? 'Online' : 'Wilmington'}
               onToggle={onToggle}
               onCampusChange={onCampusChange}
             />
@@ -232,9 +223,15 @@ export default function AttendanceBoard() {
 
   const sundayOptions = useMemo(() => data?.recent_sundays ?? [], [data])
 
-  const handleToggle = async (member: Member, campus: 'Wilmington' | 'Online') => {
+  const handleToggle = async (member: Member) => {
     if (!data) return
     const nextPresent = !member.present
+    // Campus is required (NOT NULL) on the attendance row, but leaders
+    // correcting attendance shouldn't have to think about it -- derive it
+    // from the member's own campus_preference (Hybrid folds to Wilmington),
+    // same fallback used elsewhere in this codebase (e.g. the shepherding
+    // report's "last seen" correction).
+    const campus: 'Wilmington' | 'Online' = member.campus_preference === 'Online' ? 'Online' : 'Wilmington'
 
     setPending((prev) => new Set(prev).add(member.id))
     setError(null)
@@ -261,9 +258,6 @@ export default function AttendanceBoard() {
       return
     }
 
-    // Refetch rather than patch client state locally — a Hybrid member
-    // appears in both campus lists sharing one underlying present flag, and
-    // a full refetch keeps both in sync without duplicating that logic here.
     await fetchState(data.service_date)
   }
 
@@ -290,8 +284,8 @@ export default function AttendanceBoard() {
       return
     }
 
-    // Refetch — a campus change can move a member between the Wilmington,
-    // Online, and Inactive lists.
+    // Refetch — a campus change can move a member between the main list and
+    // Inactive.
     await fetchState(data.service_date)
   }
 
@@ -336,20 +330,8 @@ export default function AttendanceBoard() {
 
       {error && <p className="text-red-600 dark:text-red-400 text-sm mb-4">{error}</p>}
 
-      <CampusSection
-        title="Wilmington"
-        campus="Wilmington"
-        members={data.wilmington}
-        filter={filter}
-        pending={pending}
-        editMode={editMode}
-        onToggle={handleToggle}
-        onCampusChange={handleCampusChange}
-      />
-      <CampusSection
-        title="Online"
-        campus="Online"
-        members={data.online}
+      <MemberSection
+        members={data.members}
         filter={filter}
         pending={pending}
         editMode={editMode}
