@@ -44,9 +44,12 @@ export default async function ShepherdingReportPage() {
       <div className="min-h-screen bg-white dark:bg-gray-950 py-8 px-4">
         <div className="max-w-md mx-auto">
           <h1 className="text-2xl font-bold text-black dark:text-white mb-1">Catalyst Shepherding Report</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
             {data ? `Generated ${data.generated_date}` : 'Report unavailable'} — grouped by deacon,
             most at-risk first in each group.
+          </p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">
+            Tap a weeks-since badge to update someone&apos;s last attendance date.
           </p>
 
           {!data && (
