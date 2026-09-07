@@ -134,9 +134,10 @@ export default function ConnectCardForm() {
   const renderedAtRef = useRef(Date.now())
 
   // Diagnostics for the "autofill isn't working for me" reports -- sent
-  // alongside the submission (not stored anywhere client-side) so whoever
-  // reviews the email can see what browser/device it was and whether
-  // localStorage itself was even reachable, instead of guessing blind.
+  // alongside the submission straight to a server log (route.ts), not the
+  // card email itself, so it's there to check what browser/device it was
+  // and whether localStorage itself was even reachable, without putting
+  // browser noise in front of Donna/Tyler on a pastoral form.
   function localStorageIsAvailable(): boolean {
     try {
       const testKey = '__cc_ls_test__'

@@ -105,22 +105,6 @@ function buildHtmlBody(data: ConnectCardPayload): string {
     parts.push(field('How can we pray for you this week?', escapeHtmlMultiline(data.prayerRequest)))
   }
 
-  // Diagnostic only, for troubleshooting "autofill isn't working" reports --
-  // not a real connect-card question, so it's placed last and clearly
-  // separate. jobs.connect_cards.intake's field parser looks up fields by
-  // label substring and only recognizes labels it already maps -- this
-  // block is invisible to it and won't affect congregation.db import, but
-  // survives in connect_cards.raw_text (the full email is always stored)
-  // and is visible directly in the inbox for whoever's investigating.
-  parts.push(
-    field(
-      'Device Info (diagnostic only)',
-      `Autofill loaded: ${data.autofillLoaded ? 'Yes' : 'No'}<br>\n` +
-        `Local storage available: ${data.localStorageAvailable ? 'Yes' : 'No'}<br>\n` +
-        `User agent: ${escapeHtml(data.userAgent || '(none)')}`,
-    ),
-  )
-
   return parts.join('')
 }
 
@@ -188,6 +172,17 @@ export async function POST(req: NextRequest) {
     autofillLoaded: Boolean(data.autofillLoaded),
     localStorageAvailable: Boolean(data.localStorageAvailable),
   }
+
+  // Diagnostic-only, for troubleshooting "autofill isn't working" reports --
+  // deliberately kept out of the card email itself (Donna/Tyler don't need
+  // browser noise on a pastoral form). Server log line only; pull via
+  // `vercel logs` when a specific member reports an issue, keyed by name/
+  // email to correlate with the actual submission.
+  console.log(
+    `[cat/connect] diagnostics name=${firstName} ${lastName} email=${email} ` +
+      `autofillLoaded=${payload.autofillLoaded} localStorageAvailable=${payload.localStorageAvailable} ` +
+      `userAgent=${JSON.stringify(payload.userAgent)}`,
+  )
 
   const toRecipients = [
     { email: process.env.CONNECT_CARD_TO_BILL, name: 'Bill' },
