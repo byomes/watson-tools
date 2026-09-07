@@ -3,8 +3,11 @@ import { watsonFetch } from '@/lib/watson'
 export type Bucket = '6wk' | '3-5wk' | '2wk' | null
 
 export interface Member {
+  id: number
   name: string
   bucket: Bucket
+  days_since: number
+  last_seen: string
   email: string | null
   phone: string | null
 }

@@ -1,11 +1,15 @@
 'use client'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 type Bucket = '6wk' | '3-5wk' | '2wk' | null
 
 interface Member {
+  id: number
   name: string
   bucket: Bucket
+  days_since: number
+  last_seen: string
   email: string | null
   phone: string | null
 }
@@ -98,6 +102,69 @@ function ContactIcons({ member }: { member: Member }) {
   )
 }
 
+function weeksLabel(daysSince: number): string {
+  const weeks = Math.floor(daysSince / 7)
+  return `${weeks} wk${weeks === 1 ? '' : 's'}`
+}
+
+const todayIso = () => new Date().toISOString().slice(0, 10)
+
+// Shows the exact week count (not the coarse bucket range) as a tappable
+// label wired to a same-origin, visually-hidden <input type="date"> via
+// its `for`/`id` pairing -- tapping the label focuses the input and opens
+// the OS date picker, same as tapping the input directly, without needing
+// to fight styling a native date input to look like the pill badges used
+// elsewhere here. On a picked date, POSTs to the Next.js proxy route
+// (jobs/congregation/elder_shepherding_report_web.py's set_last_seen
+// inserts an attendance row for that date -- "last seen" is derived, not
+// stored) and refreshes the server data so the row's bucket/count reflect
+// the correction immediately.
+function LastSeenBadge({ member, className }: { member: Member; className: string }) {
+  const router = useRouter()
+  const [status, setStatus] = useState<'idle' | 'saving' | 'error'>('idle')
+  const inputId = `lastseen-${member.id}`
+
+  async function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const serviceDate = e.target.value
+    if (!serviceDate) return
+    setStatus('saving')
+    try {
+      const res = await fetch('/api/cat/shepherdingreport/lastseen', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ member_id: member.id, service_date: serviceDate }),
+      })
+      if (!res.ok) throw new Error('save failed')
+      setStatus('idle')
+      router.refresh()
+    } catch {
+      setStatus('error')
+    }
+  }
+
+  return (
+    <span className="flex flex-col items-end shrink-0">
+      <label
+        htmlFor={inputId}
+        className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border cursor-pointer underline decoration-dotted underline-offset-2 ${className}`}
+      >
+        {status === 'saving' ? 'Saving…' : weeksLabel(member.days_since)}
+      </label>
+      <input
+        id={inputId}
+        type="date"
+        className="sr-only"
+        defaultValue={member.last_seen}
+        max={todayIso()}
+        onChange={handleChange}
+      />
+      {status === 'error' && (
+        <span className="text-[10px] text-red-600 dark:text-red-400 mt-0.5">Couldn&apos;t save</span>
+      )}
+    </span>
+  )
+}
+
 // Bulk expand/collapse remounts each <details> with a fresh defaultOpen via
 // a changed key, instead of trying to drive the native `open` attribute as
 // a controlled prop -- that pattern fights the browser's own `toggle` event
@@ -148,20 +215,22 @@ export default function GroupList({ groups }: { groups: Group[] }) {
               </span>
             </summary>
             <ul className="divide-y divide-gray-100 dark:divide-gray-800">
-              {group.members.map((m, i) => {
+              {group.members.map((m) => {
                 const meta = BUCKET_META[bucketKey(m.bucket)]
                 return (
                   <li
-                    key={`${m.name}-${i}`}
+                    key={m.id}
                     className="px-4 py-4 flex items-center gap-3 text-sm"
                   >
                     <span className="flex-1 min-w-0 truncate text-gray-900 dark:text-gray-100">{m.name}</span>
                     <ContactIcons member={m} />
-                    <span
-                      className={`shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${meta.className}`}
-                    >
-                      {meta.label}
-                    </span>
+                    {m.bucket !== null ? (
+                      <LastSeenBadge member={m} className={meta.className} />
+                    ) : (
+                      <span className={`shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${meta.className}`}>
+                        {meta.label}
+                      </span>
+                    )}
                   </li>
                 )
               })}

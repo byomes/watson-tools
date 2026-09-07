@@ -56,17 +56,22 @@ export default async function ShepherdingReportPage() {
           )}
 
           {totals && (
-            <div className="flex gap-2 mb-6 text-xs font-semibold">
-              <span className="flex-1 text-center rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 py-2">
-                2 wks {totals.wk2}
-              </span>
-              <span className="flex-1 text-center rounded-md border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 py-2">
-                3-5 wks {totals.wk35}
-              </span>
-              <span className="flex-1 text-center rounded-md border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 py-2">
-                6+ wks {totals.wk6}
-              </span>
-            </div>
+            <>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1.5">
+                Weeks since last seen
+              </p>
+              <div className="flex gap-2 mb-6 text-xs font-semibold">
+                <span className="flex-1 text-center rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 py-2">
+                  2 wks {totals.wk2}
+                </span>
+                <span className="flex-1 text-center rounded-md border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 py-2">
+                  3-5 wks {totals.wk35}
+                </span>
+                <span className="flex-1 text-center rounded-md border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 py-2">
+                  6+ wks {totals.wk6}
+                </span>
+              </div>
+            </>
           )}
 
           {data && <GroupList groups={data.groups} />}
