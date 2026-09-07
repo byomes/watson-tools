@@ -119,7 +119,7 @@ const todayIso = () => new Date().toISOString().slice(0, 10)
 // inserts an attendance row for that date -- "last seen" is derived, not
 // stored) and refreshes the server data so the row's bucket/count reflect
 // the correction immediately.
-function LastSeenBadge({ member, className }: { member: Member; className: string }) {
+function LastSeenBadge({ member, className, idleLabel }: { member: Member; className: string; idleLabel?: string }) {
   const router = useRouter()
   const [status, setStatus] = useState<'idle' | 'saving' | 'error'>('idle')
   const inputId = `lastseen-${member.id}`
@@ -148,7 +148,7 @@ function LastSeenBadge({ member, className }: { member: Member; className: strin
         htmlFor={inputId}
         className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border cursor-pointer underline decoration-dotted underline-offset-2 ${className}`}
       >
-        {status === 'saving' ? 'Saving…' : weeksLabel(member.days_since)}
+        {status === 'saving' ? 'Saving…' : (idleLabel ?? weeksLabel(member.days_since))}
       </label>
       <input
         id={inputId}
@@ -224,13 +224,7 @@ export default function GroupList({ groups }: { groups: Group[] }) {
                   >
                     <span className="flex-1 min-w-0 truncate text-gray-900 dark:text-gray-100">{m.name}</span>
                     <ContactIcons member={m} />
-                    {m.bucket !== null ? (
-                      <LastSeenBadge member={m} className={meta.className} />
-                    ) : (
-                      <span className={`shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${meta.className}`}>
-                        {meta.label}
-                      </span>
-                    )}
+                    <LastSeenBadge member={m} className={meta.className} idleLabel={m.bucket === null ? meta.label : undefined} />
                   </li>
                 )
               })}
