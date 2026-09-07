@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { requireLiveTool } from '@/lib/requireLiveTool'
 import { getShepherdingReport, computeShepherdingTotals } from '@/lib/shepherdingReport'
 import { AutoThemeShell } from './AutoThemeShell'
@@ -7,15 +7,27 @@ import GroupList from './GroupList'
 // statusBarStyle is fixed at 'default' (light/opaque, dark icons) -- iOS
 // reads this once at launch for an installed (Add to Home Screen) icon and
 // has no live-updating variant, so an installed icon's status bar cannot
-// track prefers-color-scheme the way AutoThemeShell does for a plain Safari
-// tab's own toolbar. Bill chose fixed-light over fixed-dark 2026-09-06.
-// icon.jpg/apple-icon.jpg alongside this file are Next's file-convention
-// icons (same source image as cat/deaconapp's) -- auto-linked, no manifest
-// needed, matching that route's pattern.
+// track prefers-color-scheme the way a plain Safari tab's own toolbar can.
+// Bill chose fixed-light over fixed-dark 2026-09-06. icon.jpg/apple-icon.jpg
+// alongside this file are Next's file-convention icons (same source image
+// as cat/deaconapp's) -- auto-linked, no manifest needed.
 export const metadata: Metadata = {
   title: 'Catalyst Shepherding Report',
   robots: { index: false, follow: false },
   appleWebApp: { title: 'Shepherding', statusBarStyle: 'default' },
+}
+
+// Two static theme-color tags (one per media query) rather than a single JS-
+// mutated one -- Safari only honors theme-color as parsed from the initial
+// HTML for tinting a regular tab's own address/toolbar chrome, and ignores
+// changes made from JS after the page has already rendered. These are
+// re-evaluated live by the browser itself as the OS setting changes, no JS
+// required. #030712 matches dark:bg-gray-950 used across the site.
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#030712' },
+  ],
 }
 
 // Never statically prerendered — see cat/attendance/page.tsx for why (the

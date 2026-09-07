@@ -2,32 +2,23 @@
 
 import { useEffect } from 'react'
 
-const LIGHT_THEME_COLOR = '#ffffff'
-const DARK_THEME_COLOR = '#030712' // matches dark:bg-gray-950 used across the site
-
 // System-preference-only counterpart to deaconTheme.ts's useDeaconTheme (which
-// adds a manual toggle + localStorage on top of this same mechanism). Applies
-// `.dark` to <html> -- not a wrapper div -- so a phone's status bar / browser
-// chrome, which samples the real page background, follows prefers-color-scheme
-// live, and keeps a theme-color meta tag in sync for the same reason. Cleans
-// up on unmount so navigating to another tool doesn't leak dark mode into
-// pages that share the same <html>.
+// adds a manual toggle + localStorage on top of a similar mechanism). Applies
+// `.dark` to <html> -- not a wrapper div -- so this page's own dark: Tailwind
+// classes actually activate (dark mode here is class-based, not media-based).
+// Cleans up on unmount so navigating to another tool doesn't leak dark mode
+// into pages that share the same <html>.
+//
+// Does NOT touch the theme-color meta tag -- iOS Safari only honors that tag
+// as parsed from the initial HTML for tinting its own chrome; mutating it
+// from JS after hydration has no effect there. The page's `viewport` export
+// (see page.tsx) instead ships two static theme-color meta tags with
+// `media` attributes, which both Safari and Chrome do re-evaluate live as
+// the OS setting changes.
 export function useAutoTheme(): void {
   useEffect(() => {
     const mql = window.matchMedia('(prefers-color-scheme: dark)')
-
-    const apply = (isDark: boolean) => {
-      document.documentElement.classList.toggle('dark', isDark)
-
-      let meta = document.querySelector('meta[name="theme-color"]')
-      if (!meta) {
-        meta = document.createElement('meta')
-        meta.setAttribute('name', 'theme-color')
-        document.head.appendChild(meta)
-      }
-      meta.setAttribute('content', isDark ? DARK_THEME_COLOR : LIGHT_THEME_COLOR)
-    }
-
+    const apply = (isDark: boolean) => document.documentElement.classList.toggle('dark', isDark)
     const onChange = (e: MediaQueryListEvent) => apply(e.matches)
 
     apply(mql.matches)
@@ -36,7 +27,6 @@ export function useAutoTheme(): void {
     return () => {
       mql.removeEventListener('change', onChange)
       document.documentElement.classList.remove('dark')
-      document.querySelector('meta[name="theme-color"]')?.remove()
     }
   }, [])
 }
