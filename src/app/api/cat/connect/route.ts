@@ -17,6 +17,9 @@ interface ConnectCardPayload {
   howHeard: string | null
   restrictToLeadership: boolean
   prayerRequest: string | null
+  userAgent: string
+  autofillLoaded: boolean
+  localStorageAvailable: boolean
 }
 
 // Numbers used by a spam bot that repeatedly resubmitted the same fake
@@ -102,6 +105,22 @@ function buildHtmlBody(data: ConnectCardPayload): string {
     parts.push(field('How can we pray for you this week?', escapeHtmlMultiline(data.prayerRequest)))
   }
 
+  // Diagnostic only, for troubleshooting "autofill isn't working" reports --
+  // not a real connect-card question, so it's placed last and clearly
+  // separate. jobs.connect_cards.intake's field parser looks up fields by
+  // label substring and only recognizes labels it already maps -- this
+  // block is invisible to it and won't affect congregation.db import, but
+  // survives in connect_cards.raw_text (the full email is always stored)
+  // and is visible directly in the inbox for whoever's investigating.
+  parts.push(
+    field(
+      'Device Info (diagnostic only)',
+      `Autofill loaded: ${data.autofillLoaded ? 'Yes' : 'No'}<br>\n` +
+        `Local storage available: ${data.localStorageAvailable ? 'Yes' : 'No'}<br>\n` +
+        `User agent: ${escapeHtml(data.userAgent || '(none)')}`,
+    ),
+  )
+
   return parts.join('')
 }
 
@@ -163,6 +182,11 @@ export async function POST(req: NextRequest) {
     howHeard: (data.howHeard ?? '').trim() || null,
     restrictToLeadership: Boolean(data.restrictToLeadership),
     prayerRequest: (data.prayerRequest ?? '').trim() || null,
+    // Truncated -- a User-Agent string is never legitimately this long, and
+    // this field is diagnostic-only, not something to let grow unbounded.
+    userAgent: typeof data.userAgent === 'string' ? data.userAgent.trim().slice(0, 500) : '',
+    autofillLoaded: Boolean(data.autofillLoaded),
+    localStorageAvailable: Boolean(data.localStorageAvailable),
   }
 
   const toRecipients = [

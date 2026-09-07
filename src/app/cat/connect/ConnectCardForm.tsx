@@ -133,6 +133,21 @@ export default function ConnectCardForm() {
   // sends a value the server can prove is too recent (see route.ts).
   const renderedAtRef = useRef(Date.now())
 
+  // Diagnostics for the "autofill isn't working for me" reports -- sent
+  // alongside the submission (not stored anywhere client-side) so whoever
+  // reviews the email can see what browser/device it was and whether
+  // localStorage itself was even reachable, instead of guessing blind.
+  function localStorageIsAvailable(): boolean {
+    try {
+      const testKey = '__cc_ls_test__'
+      window.localStorage.setItem(testKey, '1')
+      window.localStorage.removeItem(testKey)
+      return true
+    } catch {
+      return false
+    }
+  }
+
   useEffect(() => {
     const profile = readStoredProfile()
     if (profile) {
@@ -187,6 +202,9 @@ export default function ConnectCardForm() {
           prayerRequest: prayerRequest || null,
           website,
           renderedAt: renderedAtRef.current,
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+          autofillLoaded: hasStoredProfile,
+          localStorageAvailable: localStorageIsAvailable(),
         }),
       })
       const data = await res.json().catch(() => ({}))
