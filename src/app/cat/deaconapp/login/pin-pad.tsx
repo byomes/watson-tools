@@ -39,6 +39,19 @@ export default function PinPad() {
     }
   }
 
+  useEffect(() => {
+    if (choices) return
+    function onKeyDown(e: KeyboardEvent) {
+      if (/^[0-9]$/.test(e.key)) {
+        press(e.key)
+      } else if (e.key === 'Backspace') {
+        press('back')
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  })
+
   async function pick(name: string) {
     setSelectError(null)
     setSelecting(true)
