@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { formatDeaconNoteDate } from '@/lib/deaconNotes'
 
 interface DeaconNote {
+  id: number
   note: string
   status: string
   created_at: string
@@ -17,6 +18,7 @@ interface Person {
 }
 
 interface FeedEntry {
+  noteId: number
   personId: number
   personName: string
   note: string
@@ -148,6 +150,144 @@ function LogFollowUpForm({
   )
 }
 
+function NoteCard({
+  entry,
+  onEdit,
+  onDelete,
+}: {
+  entry: FeedEntry
+  onEdit: (noteId: number, personId: number, note: string) => Promise<boolean>
+  onDelete: (noteId: number, personId: number) => Promise<boolean>
+}) {
+  const [mode, setMode] = useState<'view' | 'editing' | 'confirmDelete'>('view')
+  const [draft, setDraft] = useState(entry.note)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState(false)
+
+  async function saveEdit() {
+    const trimmed = draft.trim()
+    if (!trimmed) return
+    setBusy(true)
+    setError(false)
+    const ok = await onEdit(entry.noteId, entry.personId, trimmed)
+    setBusy(false)
+    if (ok) setMode('view')
+    else setError(true)
+  }
+
+  async function confirmDelete() {
+    setBusy(true)
+    setError(false)
+    const ok = await onDelete(entry.noteId, entry.personId)
+    if (!ok) {
+      setBusy(false)
+      setError(true)
+    }
+    // On success the entry disappears from the parent's list entirely, so
+    // there's no local state left to reset.
+  }
+
+  return (
+    <div className="border-2 border-gray-200 dark:border-gray-700 rounded-xl p-4 bg-white dark:bg-gray-900">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="font-bold text-gray-900 dark:text-gray-100">{entry.personName}</span>
+        <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+          {formatDeaconNoteDate(entry.created_at)}
+        </span>
+      </div>
+
+      {mode === 'editing' ? (
+        <>
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={2}
+            autoFocus
+            className="w-full mt-2 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-700 dark:focus:border-blue-500"
+          />
+          <div className="flex items-center gap-3 mt-1.5">
+            <button
+              type="button"
+              onClick={saveEdit}
+              disabled={busy || !draft.trim()}
+              className="text-xs font-semibold text-blue-700 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 disabled:opacity-40"
+            >
+              {busy ? 'Saving…' : 'Save'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDraft(entry.note)
+                setMode('view')
+                setError(false)
+              }}
+              disabled={busy}
+              className="text-xs text-gray-500 dark:text-gray-400 disabled:opacity-40"
+            >
+              Cancel
+            </button>
+            {error && <span className="text-xs text-red-700 dark:text-red-400 font-semibold">Failed — try again</span>}
+          </div>
+        </>
+      ) : (
+        <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">
+          {entry.note}
+          {entry.status !== 'open' && <span className="text-gray-400 dark:text-gray-500"> · {entry.status}</span>}
+        </p>
+      )}
+
+      <div className="flex items-center justify-between mt-1.5">
+        {entry.authorDeacon ? (
+          <p className="text-[11px] text-gray-400 dark:text-gray-500">— {entry.authorDeacon}</p>
+        ) : (
+          <span />
+        )}
+
+        {mode === 'view' && (
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setMode('editing')}
+              className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('confirmDelete')}
+              className="text-[11px] font-semibold text-red-700 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
+            >
+              Delete
+            </button>
+          </div>
+        )}
+        {mode === 'confirmDelete' && (
+          <div className="flex items-center gap-3">
+            {error && <span className="text-[11px] text-red-700 dark:text-red-400 font-semibold">Failed</span>}
+            <span className="text-[11px] text-gray-500 dark:text-gray-400">Delete this note?</span>
+            <button
+              type="button"
+              onClick={confirmDelete}
+              disabled={busy}
+              className="text-[11px] font-semibold text-red-700 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 disabled:opacity-40"
+            >
+              {busy ? 'Deleting…' : 'Delete'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setMode('view'); setError(false) }}
+              disabled={busy}
+              className="text-[11px] text-gray-500 dark:text-gray-400 disabled:opacity-40"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function NotesFeed({ deaconName }: { deaconName: string }) {
   const [people, setPeople] = useState<Person[] | null>(null)
   const [entries, setEntries] = useState<FeedEntry[] | null>(null)
@@ -162,6 +302,7 @@ export default function NotesFeed({ deaconName }: { deaconName: string }) {
         const data: Person[] = await res.json()
         const flattened = data.flatMap((p) =>
           p.deacon_notes.map((dn) => ({
+            noteId: dn.id,
             personId: p.id,
             personName: p.name,
             note: dn.note,
@@ -197,6 +338,7 @@ export default function NotesFeed({ deaconName }: { deaconName: string }) {
       setEntries((prev) =>
         sortNewestFirst([
           {
+            noteId: created.id,
             personId,
             personName,
             note: created.note,
@@ -207,6 +349,35 @@ export default function NotesFeed({ deaconName }: { deaconName: string }) {
           ...(prev ?? []),
         ]),
       )
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  async function editNote(noteId: number, personId: number, note: string): Promise<boolean> {
+    try {
+      const res = await fetch(`/api/cat/deacons/member/${personId}/note/${noteId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note }),
+      })
+      if (!res.ok) return false
+      const updated: DeaconNote = await res.json()
+      setEntries((prev) =>
+        (prev ?? []).map((e) => (e.noteId === noteId ? { ...e, note: updated.note } : e)),
+      )
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  async function deleteNote(noteId: number, personId: number): Promise<boolean> {
+    try {
+      const res = await fetch(`/api/cat/deacons/member/${personId}/note/${noteId}`, { method: 'DELETE' })
+      if (!res.ok) return false
+      setEntries((prev) => (prev ?? []).filter((e) => e.noteId !== noteId))
       return true
     } catch {
       return false
@@ -232,22 +403,8 @@ export default function NotesFeed({ deaconName }: { deaconName: string }) {
       {entries.length === 0 ? (
         <p className="text-gray-500 dark:text-gray-400 text-sm px-4 py-8">No deacon notes logged yet.</p>
       ) : (
-        entries.map((e, i) => (
-          <div key={i} className="border-2 border-gray-200 dark:border-gray-700 rounded-xl p-4 bg-white dark:bg-gray-900">
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="font-bold text-gray-900 dark:text-gray-100">{e.personName}</span>
-              <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
-                {formatDeaconNoteDate(e.created_at)}
-              </span>
-            </div>
-            <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">
-              {e.note}
-              {e.status !== 'open' && <span className="text-gray-400 dark:text-gray-500"> · {e.status}</span>}
-            </p>
-            {e.authorDeacon && (
-              <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">— {e.authorDeacon}</p>
-            )}
-          </div>
+        entries.map((e) => (
+          <NoteCard key={e.noteId} entry={e} onEdit={editNote} onDelete={deleteNote} />
         ))
       )}
     </div>
