@@ -255,7 +255,7 @@ function NoteCard({
             <button
               type="button"
               onClick={() => setMode('confirmDelete')}
-              className="text-[11px] font-semibold text-red-700 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
+              className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
             >
               Delete
             </button>
