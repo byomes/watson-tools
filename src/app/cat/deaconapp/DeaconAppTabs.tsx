@@ -127,9 +127,9 @@ export default function DeaconAppTabs({
           <button
             type="button"
             onClick={() => logoutAction()}
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400 active:opacity-60 max-w-[35%] truncate"
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400 active:opacity-60"
           >
-            {deaconName} · Log out
+            Log out
           </button>
           <button
             type="button"
