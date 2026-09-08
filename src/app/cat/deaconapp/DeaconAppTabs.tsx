@@ -43,6 +43,15 @@ function NotesIcon() {
   )
 }
 
+function TelegramIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
+      <line x1="22" y1="2" x2="11" y2="13" />
+      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+    </svg>
+  )
+}
+
 function CalendarCheckIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
@@ -219,6 +228,18 @@ export default function DeaconAppTabs({
               </button>
             )
           })}
+          {/* Opens the deacon's own Telegram chat with Watson (@wckyWatsonbot)
+              -- not an in-app tab, so it's kept out of TABS/setTab entirely.
+              Telegram identifies the sender by their own logged-in account,
+              so this link is the same for every deacon. */}
+          <button
+            type="button"
+            onClick={() => window.open('https://t.me/wckyWatsonbot', '_blank', 'noopener,noreferrer')}
+            className="flex-1 flex flex-col items-center justify-center gap-1 py-[18px] transition text-gray-400 dark:text-gray-500"
+          >
+            <TelegramIcon />
+            <span className="text-[11px] font-medium">Watson</span>
+          </button>
         </div>
       </div>
     </>
