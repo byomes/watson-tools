@@ -1,9 +1,28 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+
+type CategorySlug = 'beach' | 'mountain' | 'romance'
+
+interface AmenityDef {
+  key: string
+  label: string
+}
+
+interface CategoryConfig {
+  label: string
+  states: string[]
+  amenities: AmenityDef[]
+  default_min_bedrooms: number | null
+  default_max_bedrooms: number | null
+  default_min_bathrooms: number | null
+}
+
+type Categories = Record<CategorySlug, CategoryConfig>
 
 interface Listing {
   id: number
+  category: CategorySlug
   source: 'vrbo' | 'airbnb'
   name: string
   city: string | null
@@ -11,12 +30,11 @@ interface Listing {
   bedrooms: number | null
   bathrooms: number | null
   max_sleeps: number | null
-  has_pool: boolean
-  oceanfront: boolean
   source_url: string
   primary_image_url: string | null
   price_note: string | null
   review_status: 'new' | 'saved' | 'dismissed'
+  [amenityKey: string]: unknown
 }
 
 interface ListingDetail extends Listing {
@@ -29,18 +47,22 @@ interface StateOption {
 }
 
 const SOURCE_LABEL: Record<Listing['source'], string> = { vrbo: 'Vrbo', airbnb: 'Airbnb' }
-const ALL_STATES = ['Virginia', 'North Carolina', 'South Carolina', 'Georgia', 'Florida']
+const CATEGORY_ORDER: CategorySlug[] = ['beach', 'mountain', 'romance']
 
-export default function BeachHouseSearch() {
+export default function GetawaySearch() {
+  const [categories, setCategories] = useState<Categories | null>(null)
+  const [category, setCategory] = useState<CategorySlug>('beach')
+
   const [stateCounts, setStateCounts] = useState<StateOption[]>([])
-  const [selectedStates, setSelectedStates] = useState<string[]>(ALL_STATES)
+  const [selectedStates, setSelectedStates] = useState<string[]>([])
   const [source, setSource] = useState('')
   const [reviewStatus, setReviewStatus] = useState('')
-  const [minBedrooms, setMinBedrooms] = useState('7')
-  const [minBathrooms, setMinBathrooms] = useState('3')
-  const [poolRequired, setPoolRequired] = useState(true)
-  const [oceanfrontRequired, setOceanfrontRequired] = useState(true)
+  const [minBedrooms, setMinBedrooms] = useState('')
+  const [maxBedrooms, setMaxBedrooms] = useState('')
+  const [minBathrooms, setMinBathrooms] = useState('')
+  const [requiredAmenities, setRequiredAmenities] = useState<Set<string>>(new Set())
   const [q, setQ] = useState('')
+
   const [results, setResults] = useState<Listing[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -48,36 +70,84 @@ export default function BeachHouseSearch() {
   const [detailLoading, setDetailLoading] = useState(false)
   const [priceDraft, setPriceDraft] = useState('')
 
+  const cfg = categories?.[category]
+
+  // Load category config once.
   useEffect(() => {
-    fetch('/api/p/beachhouse/states')
+    fetch('/api/p/beachhouse/categories')
+      .then((r) => r.json())
+      .then((data: Categories) => {
+        setCategories(data)
+        const first = data[category]
+        if (first) applyCategoryDefaults(first)
+      })
+      .catch(() => setCategories(null))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function applyCategoryDefaults(c: CategoryConfig) {
+    setSelectedStates(c.states)
+    setMinBedrooms(c.default_min_bedrooms != null ? String(c.default_min_bedrooms) : '')
+    setMaxBedrooms(c.default_max_bedrooms != null ? String(c.default_max_bedrooms) : '')
+    setMinBathrooms(c.default_min_bathrooms != null ? String(c.default_min_bathrooms) : '')
+    setRequiredAmenities(new Set(c.amenities.map((a) => a.key)))
+  }
+
+  function switchCategory(next: CategorySlug) {
+    setCategory(next)
+    setResults(null)
+    setSelected(null)
+    const nextCfg = categories?.[next]
+    if (nextCfg) applyCategoryDefaults(nextCfg)
+  }
+
+  // Reload state counts and re-run search whenever the active category changes.
+  useEffect(() => {
+    if (!cfg) return
+    fetch(`/api/p/beachhouse/states?category=${category}`)
       .then((r) => r.json())
       .then((data) => setStateCounts(Array.isArray(data) ? data : []))
       .catch(() => setStateCounts([]))
-  }, [])
-
-  useEffect(() => {
-    runSearch()
+    runSearch(undefined, category)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [category, cfg])
 
   function toggleState(s: string) {
     setSelectedStates((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]))
   }
 
-  async function runSearch(e?: React.FormEvent) {
+  function toggleAmenity(key: string) {
+    setRequiredAmenities((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
+  async function runSearch(e?: React.FormEvent, categoryOverride?: CategorySlug) {
     e?.preventDefault()
+    const activeCategory = categoryOverride ?? category
+    const activeCfg = categories?.[activeCategory]
+    if (!activeCfg) return
     setLoading(true)
     setError(null)
     const params = new URLSearchParams()
-    if (selectedStates.length > 0 && selectedStates.length < ALL_STATES.length) {
-      params.set('states', selectedStates.join(','))
+    params.set('category', activeCategory)
+    const states = categoryOverride ? activeCfg.states : selectedStates
+    if (states.length > 0 && states.length < activeCfg.states.length) {
+      params.set('states', states.join(','))
     }
     if (source) params.set('source', source)
     if (reviewStatus) params.set('review_status', reviewStatus)
-    if (minBedrooms) params.set('min_bedrooms', minBedrooms)
-    if (minBathrooms) params.set('min_bathrooms', minBathrooms)
-    if (poolRequired) params.set('pool_required', '1')
-    if (oceanfrontRequired) params.set('oceanfront_required', '1')
+    const minBd = categoryOverride ? activeCfg.default_min_bedrooms : minBedrooms
+    const maxBd = categoryOverride ? activeCfg.default_max_bedrooms : maxBedrooms
+    const minBa = categoryOverride ? activeCfg.default_min_bathrooms : minBathrooms
+    if (minBd) params.set('min_bedrooms', String(minBd))
+    if (maxBd) params.set('max_bedrooms', String(maxBd))
+    if (minBa) params.set('min_bathrooms', String(minBa))
+    const amenities = categoryOverride ? new Set(activeCfg.amenities.map((a) => a.key)) : requiredAmenities
+    for (const key of amenities) params.set(`amenity_${key}`, '1')
     if (q) params.set('q', q)
 
     try {
@@ -138,21 +208,37 @@ export default function BeachHouseSearch() {
     }
   }
 
+  const amenityBadges = useMemo(() => cfg?.amenities ?? [], [cfg])
+
+  if (!categories || !cfg) {
+    return <p className="text-sm text-gray-500">Loading…</p>
+  }
+
   return (
     <div>
-      <form onSubmit={runSearch} className="mb-8 border-b pb-6">
+      <div className="flex gap-2 mb-6">
+        {CATEGORY_ORDER.map((slug) => (
+          <button
+            key={slug}
+            onClick={() => switchCategory(slug)}
+            className={`px-4 py-2 text-sm font-medium rounded-md border ${
+              category === slug ? 'bg-black text-white border-black' : 'text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            {categories[slug].label}
+          </button>
+        ))}
+      </div>
+
+      <form onSubmit={(e) => runSearch(e)} className="mb-8 border-b pb-6">
         <div className="mb-4">
           <label className="block text-sm text-gray-600 mb-2">States</label>
-          <div className="flex flex-wrap gap-3">
-            {ALL_STATES.map((s) => {
+          <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto">
+            {cfg.states.map((s) => {
               const count = stateCounts.find((c) => c.state === s)?.count ?? 0
               return (
                 <label key={s} className="flex items-center gap-1.5 text-sm border rounded-md px-3 py-1.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={selectedStates.includes(s)}
-                    onChange={() => toggleState(s)}
-                  />
+                  <input type="checkbox" checked={selectedStates.includes(s)} onChange={() => toggleState(s)} />
                   {s} <span className="text-gray-400">({count})</span>
                 </label>
               )
@@ -197,6 +283,17 @@ export default function BeachHouseSearch() {
             />
           </div>
           <div>
+            <label className="block text-sm text-gray-600 mb-1">Max bedrooms</label>
+            <input
+              type="number"
+              min={0}
+              value={maxBedrooms}
+              onChange={(e) => setMaxBedrooms(e.target.value)}
+              placeholder="none"
+              className="border rounded-md px-3 py-2 text-sm w-24"
+            />
+          </div>
+          <div>
             <label className="block text-sm text-gray-600 mb-1">Min bathrooms</label>
             <input
               type="number"
@@ -207,18 +304,16 @@ export default function BeachHouseSearch() {
               className="border rounded-md px-3 py-2 text-sm w-24"
             />
           </div>
-          <label className="flex items-center gap-1.5 text-sm pb-2">
-            <input type="checkbox" checked={poolRequired} onChange={(e) => setPoolRequired(e.target.checked)} />
-            Pool
-          </label>
-          <label className="flex items-center gap-1.5 text-sm pb-2">
-            <input
-              type="checkbox"
-              checked={oceanfrontRequired}
-              onChange={(e) => setOceanfrontRequired(e.target.checked)}
-            />
-            Oceanfront
-          </label>
+          {amenityBadges.map((a) => (
+            <label key={a.key} className="flex items-center gap-1.5 text-sm pb-2">
+              <input
+                type="checkbox"
+                checked={requiredAmenities.has(a.key)}
+                onChange={() => toggleAmenity(a.key)}
+              />
+              {a.label}
+            </label>
+          ))}
           <div className="flex-1 min-w-[10rem]">
             <label className="block text-sm text-gray-600 mb-1">Keyword</label>
             <input
@@ -265,12 +360,17 @@ export default function BeachHouseSearch() {
                 )}
               </div>
               <div className="p-3">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500 border rounded px-1.5 py-0.5">
                     {SOURCE_LABEL[r.source]}
                   </span>
-                  {r.has_pool && <span className="text-[10px] text-gray-500">🏊 Pool</span>}
-                  {r.oceanfront && <span className="text-[10px] text-gray-500">🌊 Oceanfront</span>}
+                  {amenityBadges
+                    .filter((a) => r[a.key])
+                    .map((a) => (
+                      <span key={a.key} className="text-[10px] text-gray-500">
+                        {a.label}
+                      </span>
+                    ))}
                   {r.review_status === 'saved' && (
                     <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600 ml-auto">
                       Saved
@@ -331,8 +431,10 @@ export default function BeachHouseSearch() {
                   {selected.city ? `${selected.city}, ` : ''}
                   {selected.state} · {selected.bedrooms ?? '?'} bd · {selected.bathrooms ?? '?'} ba
                   {selected.max_sleeps ? ` · sleeps ${selected.max_sleeps}` : ''}
-                  {selected.has_pool ? ' · pool' : ''}
-                  {selected.oceanfront ? ' · oceanfront' : ''}
+                  {amenityBadges
+                    .filter((a) => selected[a.key])
+                    .map((a) => ` · ${a.label.toLowerCase()}`)
+                    .join('')}
                 </p>
 
                 {selected.primary_image_url && (
