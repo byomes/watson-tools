@@ -19,9 +19,12 @@ export default async function BeachHousePage() {
       <div className="max-w-5xl mx-auto">
         <h1 className="text-2xl font-semibold mb-1">Beach House Search</h1>
         <p className="text-gray-500 mb-8">
-          7+ bedroom, 3+ bathroom houses with a pool and direct beach access, found on VRBO and
-          Airbnb across Virginia, North Carolina, and South Carolina — for the family reunion week.
-          Save the ones you like, dismiss the rest.
+          Large group houses found on VRBO and Airbnb along the Atlantic coast from Virginia to
+          Florida — for the family reunion week. Set the bedrooms, bathrooms, pool, and beach-access
+          criteria you actually want below (7 bd / 3 ba / pool / oceanfront is just a starting
+          guess), then save or dismiss what comes back. There&apos;s no live pricing — both sites
+          block automated price lookups — so jot down what you find on the real listing in the
+          price note field and it&apos;ll stick around for next time.
         </p>
         <BeachHouseSearch />
       </div>
