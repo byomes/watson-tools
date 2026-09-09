@@ -39,6 +39,7 @@ export default function FlashDeals() {
   const [reviewStatus, setReviewStatus] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
   const [minDiscount, setMinDiscount] = useState('')
+  const [sort, setSort] = useState('')
   const [q, setQ] = useState('')
 
   const [results, setResults] = useState<Deal[] | null>(null)
@@ -77,6 +78,7 @@ export default function FlashDeals() {
     if (reviewStatus) params.set('review_status', reviewStatus)
     if (maxPrice) params.set('max_price', maxPrice)
     if (minDiscount) params.set('min_discount', minDiscount)
+    if (sort) params.set('sort', sort)
     if (q) params.set('q', q)
 
     try {
@@ -177,6 +179,18 @@ export default function FlashDeals() {
               placeholder="any"
               className="border rounded-md px-3 py-2 text-sm w-28"
             />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Sort by</label>
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+              className="border rounded-md px-3 py-2 text-sm min-w-[10rem]"
+            >
+              <option value="">Default</option>
+              <option value="drive_asc">Drive time: closest first</option>
+              <option value="drive_desc">Drive time: farthest first</option>
+            </select>
           </div>
           <div className="flex-1 min-w-[10rem]">
             <label className="block text-sm text-gray-600 mb-1">Keyword</label>

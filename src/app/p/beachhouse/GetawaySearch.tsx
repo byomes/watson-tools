@@ -69,6 +69,7 @@ export default function GetawaySearch() {
   const [requiredAmenities, setRequiredAmenities] = useState<Set<string>>(new Set())
   const [maxPrice, setMaxPrice] = useState('')
   const [includeUnpriced, setIncludeUnpriced] = useState(true)
+  const [sort, setSort] = useState('')
   const [q, setQ] = useState('')
 
   const [results, setResults] = useState<Listing[] | null>(null)
@@ -164,6 +165,7 @@ export default function GetawaySearch() {
       params.set('max_price', maxPrice)
       params.set('include_unpriced', includeUnpriced ? '1' : '0')
     }
+    if (!categoryOverride && sort) params.set('sort', sort)
     if (q) params.set('q', q)
 
     try {
@@ -320,6 +322,18 @@ export default function GetawaySearch() {
               <option value="new">New only</option>
               <option value="saved">Saved only</option>
               <option value="dismissed">Dismissed</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Sort by</label>
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+              className="border rounded-md px-3 py-2 text-sm min-w-[10rem]"
+            >
+              <option value="">Default</option>
+              <option value="drive_asc">Drive time: closest first</option>
+              <option value="drive_desc">Drive time: farthest first</option>
             </select>
           </div>
           <div>
