@@ -1,8 +1,10 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import FlashDeals from './FlashDeals'
 
 type CategorySlug = 'beach' | 'mountain' | 'romance'
+type TabSlug = CategorySlug | 'flash'
 
 interface AmenityDef {
   key: string
@@ -53,6 +55,7 @@ const SOURCE_LABEL: Record<Listing['source'], string> = { vrbo: 'Vrbo', airbnb: 
 const CATEGORY_ORDER: CategorySlug[] = ['beach', 'mountain', 'romance']
 
 export default function GetawaySearch() {
+  const [activeTab, setActiveTab] = useState<TabSlug>('beach')
   const [categories, setCategories] = useState<Categories | null>(null)
   const [category, setCategory] = useState<CategorySlug>('beach')
 
@@ -100,7 +103,9 @@ export default function GetawaySearch() {
     setRequiredAmenities(new Set(c.amenities.map((a) => a.key)))
   }
 
-  function switchCategory(next: CategorySlug) {
+  function switchTab(next: TabSlug) {
+    setActiveTab(next)
+    if (next === 'flash') return
     setCategory(next)
     setResults(null)
     setSelected(null)
@@ -245,26 +250,36 @@ export default function GetawaySearch() {
 
   const amenityBadges = useMemo(() => cfg?.amenities ?? [], [cfg])
 
-  if (!categories || !cfg) {
-    return <p className="text-sm text-gray-500">Loading…</p>
-  }
-
   return (
     <div>
       <div className="flex gap-2 mb-6">
         {CATEGORY_ORDER.map((slug) => (
           <button
             key={slug}
-            onClick={() => switchCategory(slug)}
+            onClick={() => switchTab(slug)}
             className={`px-4 py-2 text-sm font-medium rounded-md border ${
-              category === slug ? 'bg-black text-white border-black' : 'text-gray-600 hover:bg-gray-50'
+              activeTab === slug ? 'bg-black text-white border-black' : 'text-gray-600 hover:bg-gray-50'
             }`}
           >
-            {categories[slug].label}
+            {categories?.[slug]?.label ?? slug}
           </button>
         ))}
+        <button
+          onClick={() => switchTab('flash')}
+          className={`px-4 py-2 text-sm font-medium rounded-md border ${
+            activeTab === 'flash' ? 'bg-black text-white border-black' : 'text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          Flash
+        </button>
       </div>
 
+      {activeTab === 'flash' && <FlashDeals />}
+
+      {activeTab !== 'flash' && (!categories || !cfg) && <p className="text-sm text-gray-500">Loading…</p>}
+
+      {activeTab !== 'flash' && categories && cfg && (
+      <>
       <form onSubmit={(e) => runSearch(e)} className="mb-8 border-b pb-6">
         <div className="mb-4">
           <label className="block text-sm text-gray-600 mb-2">States</label>
@@ -581,6 +596,8 @@ export default function GetawaySearch() {
             )}
           </div>
         </div>
+      )}
+      </>
       )}
     </div>
   )
