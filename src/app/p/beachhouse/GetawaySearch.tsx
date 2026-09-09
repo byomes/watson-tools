@@ -32,6 +32,8 @@ interface Listing {
   max_sleeps: number | null
   source_url: string
   primary_image_url: string | null
+  price_low: number | null
+  price_high: number | null
   price_note: string | null
   review_status: 'new' | 'saved' | 'dismissed'
   [amenityKey: string]: unknown
@@ -61,6 +63,8 @@ export default function GetawaySearch() {
   const [maxBedrooms, setMaxBedrooms] = useState('')
   const [minBathrooms, setMinBathrooms] = useState('')
   const [requiredAmenities, setRequiredAmenities] = useState<Set<string>>(new Set())
+  const [maxPrice, setMaxPrice] = useState('')
+  const [includeUnpriced, setIncludeUnpriced] = useState(true)
   const [q, setQ] = useState('')
 
   const [results, setResults] = useState<Listing[] | null>(null)
@@ -68,7 +72,9 @@ export default function GetawaySearch() {
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<ListingDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
-  const [priceDraft, setPriceDraft] = useState('')
+  const [priceLowDraft, setPriceLowDraft] = useState('')
+  const [priceHighDraft, setPriceHighDraft] = useState('')
+  const [priceNoteDraft, setPriceNoteDraft] = useState('')
 
   const cfg = categories?.[category]
 
@@ -148,6 +154,10 @@ export default function GetawaySearch() {
     if (minBa) params.set('min_bathrooms', String(minBa))
     const amenities = categoryOverride ? new Set(activeCfg.amenities.map((a) => a.key)) : requiredAmenities
     for (const key of amenities) params.set(`amenity_${key}`, '1')
+    if (!categoryOverride && maxPrice) {
+      params.set('max_price', maxPrice)
+      params.set('include_unpriced', includeUnpriced ? '1' : '0')
+    }
     if (q) params.set('q', q)
 
     try {
@@ -170,7 +180,9 @@ export default function GetawaySearch() {
       if (!res.ok) throw new Error('failed')
       const data = await res.json()
       setSelected(data)
-      setPriceDraft(data.price_note ?? '')
+      setPriceLowDraft(data.price_low != null ? String(data.price_low) : '')
+      setPriceHighDraft(data.price_high != null ? String(data.price_high) : '')
+      setPriceNoteDraft(data.price_note ?? '')
     } catch {
       setSelected(null)
     } finally {
@@ -192,20 +204,34 @@ export default function GetawaySearch() {
     }
   }
 
-  async function savePriceNote(id: number) {
+  async function savePrice(id: number) {
     try {
       const res = await fetch(`/api/p/beachhouse/listing/${id}/price`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ price_note: priceDraft }),
+        body: JSON.stringify({
+          price_low: priceLowDraft === '' ? null : Number(priceLowDraft),
+          price_high: priceHighDraft === '' ? null : Number(priceHighDraft),
+          price_note: priceNoteDraft,
+        }),
       })
       if (!res.ok) throw new Error('failed')
       const data = await res.json()
-      setResults((prev) => (prev ? prev.map((r) => (r.id === id ? { ...r, price_note: data.price_note } : r)) : prev))
-      setSelected((prev) => (prev && prev.id === id ? { ...prev, price_note: data.price_note } : prev))
+      const patch = { price_low: data.price_low, price_high: data.price_high, price_note: data.price_note }
+      setResults((prev) => (prev ? prev.map((r) => (r.id === id ? { ...r, ...patch } : r)) : prev))
+      setSelected((prev) => (prev && prev.id === id ? { ...prev, ...patch } : prev))
     } catch {
       // best-effort
     }
+  }
+
+  function formatPrice(r: Pick<Listing, 'price_low' | 'price_high'>): string | null {
+    if (r.price_low == null && r.price_high == null) return null
+    const fmt = (n: number) => `$${n.toLocaleString()}`
+    if (r.price_low != null && r.price_high != null && r.price_low !== r.price_high) {
+      return `${fmt(r.price_low)}–${fmt(r.price_high)}/wk`
+    }
+    return `${fmt((r.price_low ?? r.price_high) as number)}/wk`
   }
 
   const amenityBadges = useMemo(() => cfg?.amenities ?? [], [cfg])
@@ -314,6 +340,23 @@ export default function GetawaySearch() {
               {a.label}
             </label>
           ))}
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Max price ($/wk)</label>
+            <input
+              type="number"
+              min={0}
+              value={maxPrice}
+              onChange={(e) => setMaxPrice(e.target.value)}
+              placeholder="any"
+              className="border rounded-md px-3 py-2 text-sm w-28"
+            />
+          </div>
+          {maxPrice && (
+            <label className="flex items-center gap-1.5 text-sm pb-2">
+              <input type="checkbox" checked={includeUnpriced} onChange={(e) => setIncludeUnpriced(e.target.checked)} />
+              Include not-yet-priced
+            </label>
+          )}
           <div className="flex-1 min-w-[10rem]">
             <label className="block text-sm text-gray-600 mb-1">Keyword</label>
             <input
@@ -387,8 +430,13 @@ export default function GetawaySearch() {
                   {r.max_sleeps ? ` · sleeps ${r.max_sleeps}` : ''}
                 </p>
                 <p className="text-xs mt-1 font-medium">
-                  {r.price_note ? r.price_note : <span className="text-gray-400 font-normal">Price: not checked yet</span>}
+                  {formatPrice(r) ? (
+                    formatPrice(r)
+                  ) : (
+                    <span className="text-gray-400 font-normal">Price: not checked yet</span>
+                  )}
                 </p>
+                {r.price_note && <p className="text-[11px] text-gray-500 mt-0.5">{r.price_note}</p>}
               </div>
             </button>
             <div className="flex border-t text-xs">
@@ -452,18 +500,37 @@ export default function GetawaySearch() {
 
                 <div className="mb-4 border rounded-md p-3 bg-gray-50">
                   <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Price note (peak vs. off-season, whatever you find on the real listing)
+                    Price, per week (whatever you find on the real listing — low is what feeds the
+                    Max price filter)
                   </label>
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      type="number"
+                      min={0}
+                      value={priceLowDraft}
+                      onChange={(e) => setPriceLowDraft(e.target.value)}
+                      placeholder="low, e.g. 5400"
+                      className="border rounded-md px-3 py-2 text-sm w-32"
+                    />
+                    <input
+                      type="number"
+                      min={0}
+                      value={priceHighDraft}
+                      onChange={(e) => setPriceHighDraft(e.target.value)}
+                      placeholder="high (peak), e.g. 9200"
+                      className="border rounded-md px-3 py-2 text-sm w-36"
+                    />
+                  </div>
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      value={priceDraft}
-                      onChange={(e) => setPriceDraft(e.target.value)}
-                      placeholder='e.g. "peak ~$9200/wk, May ~$5400/wk"'
+                      value={priceNoteDraft}
+                      onChange={(e) => setPriceNoteDraft(e.target.value)}
+                      placeholder='notes, e.g. "checked May 10-17 and July 10-17"'
                       className="border rounded-md px-3 py-2 text-sm flex-1"
                     />
                     <button
-                      onClick={() => savePriceNote(selected.id)}
+                      onClick={() => savePrice(selected.id)}
                       className="border rounded-md px-3 py-2 text-sm font-medium"
                     >
                       Save
