@@ -27,6 +27,7 @@ interface Listing {
   name: string
   city: string | null
   state: string | null
+  drive_hours: number | null
   bedrooms: number | null
   bathrooms: number | null
   max_sleeps: number | null
@@ -234,6 +235,14 @@ export default function GetawaySearch() {
     return `${fmt((r.price_low ?? r.price_high) as number)}/wk`
   }
 
+  function formatDriveHours(hours: number | null): string | null {
+    if (hours == null) return null
+    // stored/estimated on a 0.5hr scale already; round defensively so a
+    // stray value never prints an odd decimal like "3.7 hrs"
+    const rounded = Math.round(hours * 2) / 2
+    return `~${rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1)} hr${rounded === 1 ? '' : 's'} away`
+  }
+
   const amenityBadges = useMemo(() => cfg?.amenities ?? [], [cfg])
 
   if (!categories || !cfg) {
@@ -424,6 +433,7 @@ export default function GetawaySearch() {
                 <p className="text-xs text-gray-500">
                   {r.city ? `${r.city}, ` : ''}
                   {r.state}
+                  {formatDriveHours(r.drive_hours) && ` · ${formatDriveHours(r.drive_hours)}`}
                 </p>
                 <p className="text-xs text-gray-600 mt-1">
                   {r.bedrooms ?? '?'} bd · {r.bathrooms ?? '?'} ba
@@ -477,7 +487,10 @@ export default function GetawaySearch() {
                 </div>
                 <p className="text-sm text-gray-500 mb-3">
                   {selected.city ? `${selected.city}, ` : ''}
-                  {selected.state} · {selected.bedrooms ?? '?'} bd · {selected.bathrooms ?? '?'} ba
+                  {selected.state}
+                  {formatDriveHours(selected.drive_hours) && ` (${formatDriveHours(selected.drive_hours)})`}
+                  {' · '}
+                  {selected.bedrooms ?? '?'} bd · {selected.bathrooms ?? '?'} ba
                   {selected.max_sleeps ? ` · sleeps ${selected.max_sleeps}` : ''}
                   {amenityBadges
                     .filter((a) => selected[a.key])
