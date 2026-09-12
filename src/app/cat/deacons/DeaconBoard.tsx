@@ -28,6 +28,7 @@ interface Person {
   address: string | null
   birthdate: string | null
   household_id: string | null
+  household_role: string | null
   deacon: string | null
   deacon_status: string | null
   member_status: string | null
@@ -178,6 +179,162 @@ function DeaconNoteForm({ personId, onSubmit }: { personId: number; onSubmit: (n
   )
 }
 
+// Typeahead over the full roster (hundreds of names -- a plain <select>
+// like EditableSelect's isn't usable at that size). Filters client-side
+// since `people` is already fully loaded; no separate search endpoint.
+function PersonPicker({
+  people,
+  excludeIds,
+  placeholder,
+  busy,
+  onPick,
+}: {
+  people: Person[]
+  excludeIds: Set<number>
+  placeholder: string
+  busy: boolean
+  onPick: (id: number) => void
+}) {
+  const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(false)
+
+  const matches = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return []
+    return people.filter((p) => !excludeIds.has(p.id) && p.name.toLowerCase().includes(q)).slice(0, 8)
+  }, [people, excludeIds, query])
+
+  return (
+    <div className="relative">
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value)
+          setOpen(true)
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        placeholder={placeholder}
+        disabled={busy}
+        className="w-full bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-700 dark:focus:border-blue-500 disabled:opacity-50"
+      />
+      {open && matches.length > 0 && (
+        <ul className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-48 overflow-y-auto">
+          {matches.map((p) => (
+            <li key={p.id}>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  onPick(p.id)
+                  setQuery('')
+                  setOpen(false)
+                }}
+                className="w-full text-left px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+              >
+                {p.name}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+type FamilySaveState = 'idle' | 'saving' | 'error'
+
+// Reads current spouse/children/parent straight off household_id +
+// household_role in the already-loaded roster (no separate fetch) --
+// see jobs/congregation/family_edit.py / migrate_household_role.py.
+// Every logged-in deacon can act here (Bill's 2026-09-12 request to open
+// family management to all leaders, not just Telegram's small allowlist).
+function FamilySection({
+  person: p,
+  allPeople,
+  onMarkSpouse,
+  onMarkChild,
+  onAddChild,
+}: {
+  person: Person
+  allPeople: Person[]
+  onMarkSpouse: (otherId: number) => Promise<string | null>
+  onMarkChild: (parentId: number) => Promise<string | null>
+  onAddChild: (childId: number) => Promise<string | null>
+}) {
+  const [state, setState] = useState<FamilySaveState>('idle')
+  const [error, setError] = useState<string | null>(null)
+
+  const householdMates = useMemo(
+    () => (p.household_id ? allPeople.filter((m) => m.id !== p.id && m.household_id === p.household_id) : []),
+    [allPeople, p.household_id, p.id]
+  )
+  const spouses = householdMates.filter((m) => m.household_role === 'head' || m.household_role === 'spouse')
+  const children = householdMates.filter((m) => m.household_role === 'child')
+  const parents =
+    p.household_role === 'child'
+      ? householdMates.filter((m) => m.household_role === 'head' || m.household_role === 'spouse')
+      : []
+  const excludeIds = useMemo(() => new Set([p.id, ...householdMates.map((m) => m.id)]), [p.id, householdMates])
+
+  async function run(action: () => Promise<string | null>) {
+    setState('saving')
+    setError(null)
+    const err = await action()
+    setState(err ? 'error' : 'idle')
+    setError(err)
+  }
+
+  return (
+    <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-3">
+      <div className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Family</div>
+
+      <div>
+        <div className="text-xs text-gray-700 dark:text-gray-300 mb-1">
+          {spouses.length > 0 ? `Spouse: ${spouses.map((s) => s.name).join(', ')}` : 'No spouse on file'}
+        </div>
+        <PersonPicker
+          people={allPeople}
+          excludeIds={excludeIds}
+          placeholder="Mark spouse…"
+          busy={state === 'saving'}
+          onPick={(id) => run(() => onMarkSpouse(id))}
+        />
+      </div>
+
+      <div>
+        <div className="text-xs text-gray-700 dark:text-gray-300 mb-1">
+          {parents.length > 0 ? `Parent: ${parents.map((s) => s.name).join(', ')}` : 'Not marked as anyone’s child'}
+        </div>
+        <PersonPicker
+          people={allPeople}
+          excludeIds={excludeIds}
+          placeholder="Mark as child of…"
+          busy={state === 'saving'}
+          onPick={(id) => run(() => onMarkChild(id))}
+        />
+      </div>
+
+      <div>
+        <div className="text-xs text-gray-700 dark:text-gray-300 mb-1">
+          {children.length > 0 ? `Children: ${children.map((c) => c.name).join(', ')}` : 'No children on file'}
+        </div>
+        <PersonPicker
+          people={allPeople}
+          excludeIds={excludeIds}
+          placeholder="Add existing member as child…"
+          busy={state === 'saving'}
+          onPick={(id) => run(() => onAddChild(id))}
+        />
+      </div>
+
+      {state === 'saving' && <div className="text-xs text-gray-500 dark:text-gray-400">Saving…</div>}
+      {error && <div className="text-xs text-red-700 dark:text-red-400">{error}</div>}
+    </div>
+  )
+}
+
 function PersonCard({
   person: p,
   isOpen,
@@ -185,10 +342,14 @@ function PersonCard({
   saveState,
   deaconOptions,
   statusOptions,
+  allPeople,
   onUpdateField,
   onAddDeaconOption,
   onAddStatusOption,
   onSubmitDeaconNote,
+  onMarkSpouse,
+  onMarkChild,
+  onAddChild,
 }: {
   person: Person
   isOpen: boolean
@@ -196,10 +357,14 @@ function PersonCard({
   saveState: SaveState | undefined
   deaconOptions: string[]
   statusOptions: string[]
+  allPeople: Person[]
   onUpdateField: (field: keyof Person, value: string) => void
   onAddDeaconOption: (name: string) => void
   onAddStatusOption: (status: string) => void
   onSubmitDeaconNote: (note: string) => Promise<boolean>
+  onMarkSpouse: (otherId: number) => Promise<string | null>
+  onMarkChild: (parentId: number) => Promise<string | null>
+  onAddChild: (childId: number) => Promise<string | null>
 }) {
   return (
     <div className="border-2 border-gray-200 dark:border-gray-700 rounded-xl p-4 bg-white dark:bg-gray-900">
@@ -301,6 +466,14 @@ function PersonCard({
             type="date"
             value={p.birthdate ?? ''}
             onCommit={(v) => onUpdateField('birthdate', v)}
+          />
+
+          <FamilySection
+            person={p}
+            allPeople={allPeople}
+            onMarkSpouse={onMarkSpouse}
+            onMarkChild={onMarkChild}
+            onAddChild={onAddChild}
           />
 
           {(() => {
@@ -549,6 +722,35 @@ export default function DeaconBoard() {
     setStatusOptions((prev) => (prev.includes(status) ? prev : [...prev, status]))
   }
 
+  // Both family routes change TWO people's household_id/household_role at
+  // once, so the response carries both updated rows (see
+  // deacons_web.py::_roster_rows) -- patched into `people` here rather than
+  // re-fetching the whole roster.
+  async function markFamily(path: string, body: Record<string, number>): Promise<string | null> {
+    try {
+      const res = await fetch(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const resBody = await res.json().catch(() => ({}))
+      if (!res.ok) return resBody?.error ?? 'Failed to save'
+      const updated: Person[] = resBody.updated ?? []
+      setPeople((prev) => prev.map((p) => updated.find((u) => u.id === p.id) ?? p))
+      return null
+    } catch {
+      return 'Network error'
+    }
+  }
+
+  function markSpouse(memberId: number, spouseId: number): Promise<string | null> {
+    return markFamily('/api/cat/deacons/family/spouse', { memberId, spouseId })
+  }
+
+  function markChild(childId: number, parentId: number): Promise<string | null> {
+    return markFamily('/api/cat/deacons/family/child', { childId, parentId })
+  }
+
   function cardProps(p: Person): React.ComponentProps<typeof PersonCard> {
     return {
       person: p,
@@ -557,10 +759,14 @@ export default function DeaconBoard() {
       saveState: saveState[p.id],
       deaconOptions,
       statusOptions,
+      allPeople: people,
       onUpdateField: (field, value) => updateField(p.id, field, value),
       onAddDeaconOption: addDeaconOption,
       onAddStatusOption: addStatusOption,
       onSubmitDeaconNote: (note) => submitDeaconNote(p.id, note),
+      onMarkSpouse: (otherId) => markSpouse(p.id, otherId),
+      onMarkChild: (parentId) => markChild(p.id, parentId),
+      onAddChild: (childId) => markChild(childId, p.id),
     }
   }
 
