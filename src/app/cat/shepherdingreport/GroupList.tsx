@@ -44,11 +44,15 @@ const ENGAGEMENT_META: Record<string, { label: string; className: string }> = {
   lapsed: { label: 'Lapsed', className: 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800' },
 }
 
+// Same pill chrome as LastSeenBadge's label below (text-[11px] font-semibold
+// px-2 py-0.5 rounded-full border) so the two stacked badges read as one
+// family, minus the cursor-pointer/underline that only make sense on the
+// clickable last-seen badge.
 function EngagementBadge({ engagement }: { engagement: Engagement }) {
   if (!engagement) return null
   const meta = ENGAGEMENT_META[engagement]
   return (
-    <span className={`inline-block mt-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded border ${meta.className}`}>
+    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${meta.className}`}>
       {meta.label}
     </span>
   )
@@ -245,12 +249,12 @@ export default function GroupList({ groups }: { groups: Group[] }) {
                     key={m.id}
                     className="px-4 py-4 flex items-center gap-3 text-sm"
                   >
-                    <span className="flex-1 min-w-0">
-                      <span className="block truncate text-gray-900 dark:text-gray-100">{m.name}</span>
+                    <span className="flex-1 min-w-0 truncate text-gray-900 dark:text-gray-100">{m.name}</span>
+                    <ContactIcons member={m} />
+                    <span className="flex flex-col items-end gap-1 shrink-0">
+                      <LastSeenBadge member={m} className={meta.className} idleLabel={m.bucket === null ? meta.label : undefined} />
                       <EngagementBadge engagement={m.engagement} />
                     </span>
-                    <ContactIcons member={m} />
-                    <LastSeenBadge member={m} className={meta.className} idleLabel={m.bucket === null ? meta.label : undefined} />
                   </li>
                 )
               })}
