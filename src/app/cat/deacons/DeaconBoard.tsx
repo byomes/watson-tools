@@ -182,63 +182,106 @@ function DeaconNoteForm({ personId, onSubmit }: { personId: number; onSubmit: (n
 // Typeahead over the full roster (hundreds of names -- a plain <select>
 // like EditableSelect's isn't usable at that size). Filters client-side
 // since `people` is already fully loaded; no separate search endpoint.
-function PersonPicker({
+function PersonChip({ name, tone }: { name: string; tone: 'blue' | 'purple' | 'emerald' }) {
+  const toneClasses = {
+    blue: 'bg-blue-50 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900',
+    purple: 'bg-purple-50 text-purple-800 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-900',
+    emerald: 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900',
+  }[tone]
+  return (
+    <span className={`inline-flex items-center px-3 py-1.5 rounded-full border text-sm font-bold ${toneClasses}`}>
+      {name}
+    </span>
+  )
+}
+
+function AddButton({ label, onClick, disabled }: { label: string; onClick: () => void; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border-2 border-blue-700 dark:border-blue-500 text-blue-700 dark:text-blue-400 text-[11px] font-bold uppercase tracking-wide hover:bg-blue-50 dark:hover:bg-blue-950/40 disabled:opacity-40 disabled:pointer-events-none active:scale-95 transition"
+    >
+      <svg viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+        <path fillRule="evenodd" d="M10 4a1 1 0 011 1v4h4a1 1 0 110 2h-4v4a1 1 0 11-2 0v-4H5a1 1 0 110-2h4V5a1 1 0 011-1z" clipRule="evenodd" />
+      </svg>
+      {label}
+    </button>
+  )
+}
+
+function RelationPickerModal({
+  title,
   people,
   excludeIds,
-  placeholder,
-  busy,
   onPick,
+  onClose,
 }: {
+  title: string
   people: Person[]
   excludeIds: Set<number>
-  placeholder: string
-  busy: boolean
   onPick: (id: number) => void
+  onClose: () => void
 }) {
   const [query, setQuery] = useState('')
-  const [open, setOpen] = useState(false)
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return []
-    return people.filter((p) => !excludeIds.has(p.id) && p.name.toLowerCase().includes(q)).slice(0, 8)
+    const pool = people.filter((p) => !excludeIds.has(p.id))
+    return (q ? pool.filter((p) => p.name.toLowerCase().includes(q)) : pool).slice(0, 30)
   }, [people, excludeIds, query])
 
   return (
-    <div className="relative">
-      <input
-        type="text"
-        value={query}
-        onChange={(e) => {
-          setQuery(e.target.value)
-          setOpen(true)
-        }}
-        onFocus={() => setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
-        placeholder={placeholder}
-        disabled={busy}
-        className="w-full bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-700 dark:focus:border-blue-500 disabled:opacity-50"
-      />
-      {open && matches.length > 0 && (
-        <ul className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-48 overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-[1px]"
+      onClick={onClose}
+    >
+      <div
+        className="w-full sm:w-96 sm:rounded-2xl rounded-t-2xl bg-white dark:bg-gray-900 border-t-2 sm:border-2 border-gray-200 dark:border-gray-700 shadow-2xl max-h-[80vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+          <div className="font-bold text-gray-900 dark:text-gray-100 text-sm">{title}</div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 -mr-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+          >
+            <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+              <path
+                fillRule="evenodd"
+                d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
+        </div>
+        <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+          <input
+            autoFocus
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by name…"
+            className="w-full bg-gray-50 dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-700 dark:focus:border-blue-500"
+          />
+        </div>
+        <ul className="overflow-y-auto flex-1">
+          {matches.length === 0 && <li className="px-4 py-6 text-sm text-gray-400 dark:text-gray-500 text-center">No matches</li>}
           {matches.map((p) => (
             <li key={p.id}>
               <button
                 type="button"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => {
-                  onPick(p.id)
-                  setQuery('')
-                  setOpen(false)
-                }}
-                className="w-full text-left px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                onClick={() => onPick(p.id)}
+                className="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-900 dark:text-gray-100 hover:bg-blue-50 dark:hover:bg-blue-950/40 border-b border-gray-100 dark:border-gray-800 last:border-0"
               >
                 {p.name}
               </button>
             </li>
           ))}
         </ul>
-      )}
+      </div>
     </div>
   )
 }
@@ -265,6 +308,7 @@ function FamilySection({
 }) {
   const [state, setState] = useState<FamilySaveState>('idle')
   const [error, setError] = useState<string | null>(null)
+  const [activeModal, setActiveModal] = useState<'spouse' | 'parent' | 'child' | null>(null)
 
   const householdMates = useMemo(
     () => (p.household_id ? allPeople.filter((m) => m.id !== p.id && m.household_id === p.household_id) : []),
@@ -286,51 +330,86 @@ function FamilySection({
     setError(err)
   }
 
+  function handlePick(id: number) {
+    const modal = activeModal
+    setActiveModal(null)
+    if (modal === 'spouse') run(() => onMarkSpouse(id))
+    else if (modal === 'parent') run(() => onMarkChild(id))
+    else if (modal === 'child') run(() => onAddChild(id))
+  }
+
+  const modalTitle =
+    activeModal === 'spouse'
+      ? `Add spouse for ${p.name}`
+      : activeModal === 'parent'
+        ? `Mark ${p.name} as child of…`
+        : activeModal === 'child'
+          ? `Add ${p.name}'s child`
+          : ''
+
   return (
-    <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-3">
-      <div className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Family</div>
-
-      <div>
-        <div className="text-xs text-gray-700 dark:text-gray-300 mb-1">
-          {spouses.length > 0 ? `Spouse: ${spouses.map((s) => s.name).join(', ')}` : 'No spouse on file'}
-        </div>
-        <PersonPicker
-          people={allPeople}
-          excludeIds={excludeIds}
-          placeholder="Mark spouse…"
-          busy={state === 'saving'}
-          onPick={(id) => run(() => onMarkSpouse(id))}
-        />
+    <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-3.5">
+      <div className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+        <svg viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+          <path d="M10 9a3 3 0 100-6 3 3 0 000 6zM6 8a2 2 0 11-4 0 2 2 0 014 0zM1.49 15.326a.78.78 0 01-.358-.442 3 3 0 014.308-3.516 6.484 6.484 0 00-1.905 3.959c-.023.222-.014.442.025.654a4.97 4.97 0 01-2.07-.655zM16.44 15.98a4.97 4.97 0 002.07-.654.78.78 0 00.357-.442 3 3 0 00-4.308-3.517 6.484 6.484 0 011.907 3.96 2.32 2.32 0 01-.026.654zM18 8a2 2 0 11-4 0 2 2 0 014 0zM5.304 16.19a.844.844 0 01-.277-.71 5 5 0 019.947 0 .843.843 0 01-.277.71A6.975 6.975 0 0110 18a6.974 6.974 0 01-4.696-1.81z" />
+        </svg>
+        Family
       </div>
 
       <div>
-        <div className="text-xs text-gray-700 dark:text-gray-300 mb-1">
-          {parents.length > 0 ? `Parent: ${parents.map((s) => s.name).join(', ')}` : 'Not marked as anyone’s child'}
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Spouse</span>
+          <AddButton label="Add" onClick={() => setActiveModal('spouse')} disabled={state === 'saving'} />
         </div>
-        <PersonPicker
-          people={allPeople}
-          excludeIds={excludeIds}
-          placeholder="Mark as child of…"
-          busy={state === 'saving'}
-          onPick={(id) => run(() => onMarkChild(id))}
-        />
+        <div className="flex flex-wrap gap-1.5">
+          {spouses.length > 0 ? (
+            spouses.map((s) => <PersonChip key={s.id} name={s.name} tone="blue" />)
+          ) : (
+            <span className="text-sm text-gray-400 dark:text-gray-500 italic">No spouse on file</span>
+          )}
+        </div>
       </div>
 
       <div>
-        <div className="text-xs text-gray-700 dark:text-gray-300 mb-1">
-          {children.length > 0 ? `Children: ${children.map((c) => c.name).join(', ')}` : 'No children on file'}
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Parent</span>
+          <AddButton label="Add" onClick={() => setActiveModal('parent')} disabled={state === 'saving'} />
         </div>
-        <PersonPicker
-          people={allPeople}
-          excludeIds={excludeIds}
-          placeholder="Add existing member as child…"
-          busy={state === 'saving'}
-          onPick={(id) => run(() => onAddChild(id))}
-        />
+        <div className="flex flex-wrap gap-1.5">
+          {parents.length > 0 ? (
+            parents.map((s) => <PersonChip key={s.id} name={s.name} tone="purple" />)
+          ) : (
+            <span className="text-sm text-gray-400 dark:text-gray-500 italic">Not marked as anyone’s child</span>
+          )}
+        </div>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Children</span>
+          <AddButton label="Add" onClick={() => setActiveModal('child')} disabled={state === 'saving'} />
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {children.length > 0 ? (
+            children.map((c) => <PersonChip key={c.id} name={c.name} tone="emerald" />)
+          ) : (
+            <span className="text-sm text-gray-400 dark:text-gray-500 italic">No children on file</span>
+          )}
+        </div>
       </div>
 
       {state === 'saving' && <div className="text-xs text-gray-500 dark:text-gray-400">Saving…</div>}
       {error && <div className="text-xs text-red-700 dark:text-red-400">{error}</div>}
+
+      {activeModal && (
+        <RelationPickerModal
+          title={modalTitle}
+          people={allPeople}
+          excludeIds={excludeIds}
+          onPick={handlePick}
+          onClose={() => setActiveModal(null)}
+        />
+      )}
     </div>
   )
 }
