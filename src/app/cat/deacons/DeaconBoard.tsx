@@ -471,7 +471,7 @@ function FamilySection({
 }: {
   person: Person
   allPeople: Person[]
-  onMarkSpouse: (otherId: number) => Promise<string | null>
+  onMarkSpouse: (otherId: number, otherRole: 'husband' | 'wife') => Promise<string | null>
   onMarkChild: (parentId: number) => Promise<string | null>
   onAddChild: (childId: number) => Promise<string | null>
   onUnlinkMember: (memberId: number) => Promise<string | null>
@@ -479,17 +479,17 @@ function FamilySection({
 }) {
   const [state, setState] = useState<FamilySaveState>('idle')
   const [error, setError] = useState<string | null>(null)
-  const [activeModal, setActiveModal] = useState<'spouse' | 'parent' | 'child' | null>(null)
+  const [activeModal, setActiveModal] = useState<'spouse-husband' | 'spouse-wife' | 'parent' | 'child' | null>(null)
 
   const householdMates = useMemo(
     () => (p.household_id ? allPeople.filter((m) => m.id !== p.id && m.household_id === p.household_id) : []),
     [allPeople, p.household_id, p.id]
   )
-  const spouses = householdMates.filter((m) => m.household_role === 'head' || m.household_role === 'spouse')
+  const spouse = householdMates.find((m) => m.household_role === 'husband' || m.household_role === 'wife')
   const children = householdMates.filter((m) => m.household_role === 'child')
   const parents =
     p.household_role === 'child'
-      ? householdMates.filter((m) => m.household_role === 'head' || m.household_role === 'spouse')
+      ? householdMates.filter((m) => m.household_role === 'husband' || m.household_role === 'wife' || m.household_role === 'head')
       : []
   const excludeIds = useMemo(() => new Set([p.id, ...householdMates.map((m) => m.id)]), [p.id, householdMates])
 
@@ -504,19 +504,24 @@ function FamilySection({
   function handlePick(id: number) {
     const modal = activeModal
     setActiveModal(null)
-    if (modal === 'spouse') run(() => onMarkSpouse(id))
+    if (modal === 'spouse-husband') run(() => onMarkSpouse(id, 'husband'))
+    else if (modal === 'spouse-wife') run(() => onMarkSpouse(id, 'wife'))
     else if (modal === 'parent') run(() => onMarkChild(id))
     else if (modal === 'child') run(() => onAddChild(id))
   }
 
   const modalTitle =
-    activeModal === 'spouse'
-      ? `Add spouse for ${p.name}`
-      : activeModal === 'parent'
-        ? `Mark ${p.name} as child of…`
-        : activeModal === 'child'
-          ? `Add ${p.name}'s child`
-          : ''
+    activeModal === 'spouse-husband'
+      ? `Add husband for ${p.name}`
+      : activeModal === 'spouse-wife'
+        ? `Add wife for ${p.name}`
+        : activeModal === 'parent'
+          ? `Mark ${p.name} as child of…`
+          : activeModal === 'child'
+            ? `Add ${p.name}'s child`
+            : ''
+
+  const spouseSectionLabel = spouse ? (spouse.household_role === 'husband' ? 'Husband' : 'Wife') : 'Spouse'
 
   return (
     <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-3.5">
@@ -529,21 +534,24 @@ function FamilySection({
 
       <div>
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Spouse</span>
-          <AddButton label="Add" onClick={() => setActiveModal('spouse')} disabled={state === 'saving'} />
+          <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wide">{spouseSectionLabel}</span>
+          {!spouse && (
+            <div className="flex gap-1.5">
+              <AddButton label="Husband" onClick={() => setActiveModal('spouse-husband')} disabled={state === 'saving'} />
+              <AddButton label="Wife" onClick={() => setActiveModal('spouse-wife')} disabled={state === 'saving'} />
+            </div>
+          )}
         </div>
         <div className="flex flex-wrap gap-1.5">
-          {spouses.length > 0 ? (
-            spouses.map((s) => (
-              <PersonChip
-                key={s.id}
-                name={s.name}
-                tone="blue"
-                disabled={state === 'saving'}
-                removeTitle={`Remove ${s.name} as spouse`}
-                onRemove={() => run(() => onUnlinkMember(s.id))}
-              />
-            ))
+          {spouse ? (
+            <PersonChip
+              key={spouse.id}
+              name={spouse.name}
+              tone="blue"
+              disabled={state === 'saving'}
+              removeTitle={`Remove ${spouse.name} as spouse`}
+              onRemove={() => run(() => onUnlinkMember(spouse.id))}
+            />
           ) : (
             <span className="text-sm text-gray-400 dark:text-gray-500 italic">No spouse on file</span>
           )}
@@ -642,7 +650,7 @@ function PersonCard({
   onAddDeaconOption: (name: string) => void
   onAddStatusOption: (status: string) => void
   onSubmitDeaconNote: (note: string) => Promise<boolean>
-  onMarkSpouse: (otherId: number) => Promise<string | null>
+  onMarkSpouse: (otherId: number, otherRole: 'husband' | 'wife') => Promise<string | null>
   onMarkChild: (parentId: number) => Promise<string | null>
   onAddChild: (childId: number) => Promise<string | null>
   onUnlinkMember: (memberId: number) => Promise<string | null>
@@ -1019,7 +1027,7 @@ const DeaconBoard = forwardRef<DeaconBoardHandle>(function DeaconBoard(_props, r
   // once, so the response carries both updated rows (see
   // deacons_web.py::_roster_rows) -- patched into `people` here rather than
   // re-fetching the whole roster.
-  async function markFamily(path: string, body: Record<string, number>): Promise<string | null> {
+  async function markFamily(path: string, body: Record<string, number | string>): Promise<string | null> {
     try {
       const res = await fetch(path, {
         method: 'POST',
@@ -1036,8 +1044,8 @@ const DeaconBoard = forwardRef<DeaconBoardHandle>(function DeaconBoard(_props, r
     }
   }
 
-  function markSpouse(memberId: number, spouseId: number): Promise<string | null> {
-    return markFamily('/api/cat/deacons/family/spouse', { memberId, spouseId })
+  function markSpouse(memberId: number, spouseId: number, spouseRole: 'husband' | 'wife'): Promise<string | null> {
+    return markFamily('/api/cat/deacons/family/spouse', { memberId, spouseId, spouseRole })
   }
 
   function markChild(childId: number, parentId: number): Promise<string | null> {
@@ -1061,7 +1069,7 @@ const DeaconBoard = forwardRef<DeaconBoardHandle>(function DeaconBoard(_props, r
       onAddDeaconOption: addDeaconOption,
       onAddStatusOption: addStatusOption,
       onSubmitDeaconNote: (note) => submitDeaconNote(p.id, note),
-      onMarkSpouse: (otherId) => markSpouse(p.id, otherId),
+      onMarkSpouse: (otherId, otherRole) => markSpouse(p.id, otherId, otherRole),
       onMarkChild: (parentId) => markChild(p.id, parentId),
       onAddChild: (childId) => markChild(childId, p.id),
       onUnlinkMember: (memberId) => unlinkMember(memberId),

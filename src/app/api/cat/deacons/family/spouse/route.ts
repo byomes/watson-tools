@@ -18,14 +18,18 @@ export async function POST(req: NextRequest) {
   const data = await req.json().catch(() => null)
   const memberId = Number(data?.memberId)
   const spouseId = Number(data?.spouseId)
+  const spouseRole = data?.spouseRole
   if (!Number.isInteger(memberId) || !Number.isInteger(spouseId)) {
     return NextResponse.json({ error: 'memberId and spouseId are required' }, { status: 400 })
+  }
+  if (spouseRole !== 'husband' && spouseRole !== 'wife') {
+    return NextResponse.json({ error: "spouseRole must be 'husband' or 'wife'" }, { status: 400 })
   }
 
   const res = await watsonFetch('/api/cat/deacons/family/spouse', {
     method: 'POST',
     headers: { 'X-Watson-Key': process.env.DEACONS_API_KEY ?? '' },
-    body: JSON.stringify({ member_id: memberId, spouse_id: spouseId, sender: deaconName }),
+    body: JSON.stringify({ member_id: memberId, spouse_id: spouseId, spouse_role: spouseRole, sender: deaconName }),
   })
 
   const resBody = await res.json().catch(() => ({}))
