@@ -99,7 +99,7 @@ function LogFollowUpForm({
             setQuery(e.target.value)
           }}
           placeholder="Search person by name…"
-          className="w-full bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-700 dark:focus:border-blue-500"
+          className="w-full bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-md px-2 py-1.5 text-base text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-700 dark:focus:border-blue-500"
         />
         {selectedId && (
           <button
@@ -126,12 +126,17 @@ function LogFollowUpForm({
         )}
       </div>
 
+      {/* text-base (16px), not text-sm -- iOS Safari auto-zooms the viewport
+          on focus for any field under 16px, which read as the app "zooming
+          in at odd times". Fixing font-size here (not maximum-scale/
+          user-scalable on the viewport meta) keeps pinch-zoom available
+          elsewhere on the page. */}
       <textarea
         value={note}
         onChange={(e) => setNote(e.target.value)}
         rows={2}
         placeholder="Called, texted, visited…"
-        className="w-full mt-2 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-700 dark:focus:border-blue-500"
+        className="w-full mt-2 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-md px-2 py-1.5 text-base text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-700 dark:focus:border-blue-500"
       />
 
       <div className="flex items-center gap-2 mt-1.5">
@@ -203,7 +208,7 @@ function NoteCard({
             onChange={(e) => setDraft(e.target.value)}
             rows={2}
             autoFocus
-            className="w-full mt-2 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-700 dark:focus:border-blue-500"
+            className="w-full mt-2 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-md px-2 py-1.5 text-base text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-700 dark:focus:border-blue-500"
           />
           <div className="flex items-center gap-3 mt-1.5">
             <button
