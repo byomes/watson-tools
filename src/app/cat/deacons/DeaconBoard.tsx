@@ -1,5 +1,6 @@
 'use client'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useImperativeHandle, useMemo, useState, forwardRef } from 'react'
+import { createPortal } from 'react-dom'
 import { EditableSelect } from './EditableSelect'
 import { formatDeaconNoteDate } from '@/lib/deaconNotes'
 
@@ -245,14 +246,17 @@ function RelationPickerModal({
   excludeIds,
   onPick,
   onClose,
+  onPersonCreated,
 }: {
   title: string
   people: Person[]
   excludeIds: Set<number>
   onPick: (id: number) => void
   onClose: () => void
+  onPersonCreated: (person: Person) => void
 }) {
   const [query, setQuery] = useState('')
+  const [showAddNew, setShowAddNew] = useState(false)
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -309,6 +313,141 @@ function RelationPickerModal({
             </li>
           ))}
         </ul>
+        <div className="p-3 border-t border-gray-200 dark:border-gray-700">
+          <button
+            type="button"
+            onClick={() => setShowAddNew(true)}
+            className="w-full text-center text-sm font-semibold text-blue-700 dark:text-blue-400 py-1.5"
+          >
+            Can&apos;t find them? + Add a new person
+          </button>
+        </div>
+      </div>
+      {showAddNew && (
+        <AddPersonModal
+          title="Add New Person"
+          onClose={() => setShowAddNew(false)}
+          onCreated={(person) => {
+            onPersonCreated(person)
+            setShowAddNew(false)
+            onPick(person.id)
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+function LabeledInput({
+  label,
+  value,
+  onChange,
+  type = 'text',
+  autoFocus,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  type?: string
+  autoFocus?: boolean
+}) {
+  return (
+    <div>
+      <label className="block text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">{label}</label>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        autoFocus={autoFocus}
+        className="w-full bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-700 dark:focus:border-blue-500"
+      />
+    </div>
+  )
+}
+
+function AddPersonModal({
+  title,
+  onCreated,
+  onClose,
+}: {
+  title: string
+  onCreated: (person: Person) => void
+  onClose: () => void
+}) {
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [address, setAddress] = useState('')
+  const [birthdate, setBirthdate] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function submit() {
+    if (!name.trim()) {
+      setError('Name is required.')
+      return
+    }
+    setSaving(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/cat/deacons/member/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, phone, address, birthdate }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(body?.error ?? 'Failed to add person')
+        setSaving(false)
+        return
+      }
+      if (body.created) onCreated(body.created as Person)
+      else onClose()
+    } catch {
+      setError('Network error')
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-[1px]"
+      onClick={onClose}
+    >
+      <div
+        className="w-full sm:w-96 sm:rounded-2xl rounded-t-2xl bg-white dark:bg-gray-900 border-t-2 sm:border-2 border-gray-200 dark:border-gray-700 shadow-2xl max-h-[85vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+          <div className="font-bold text-gray-900 dark:text-gray-100 text-sm">{title}</div>
+          <button type="button" onClick={onClose} className="p-1 -mr-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+            <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+              <path
+                fillRule="evenodd"
+                d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
+        </div>
+        <div className="p-4 space-y-3 overflow-y-auto">
+          <LabeledInput label="Name" value={name} onChange={setName} autoFocus />
+          <LabeledInput label="Email" type="email" value={email} onChange={setEmail} />
+          <LabeledInput label="Phone" type="tel" value={phone} onChange={setPhone} />
+          <LabeledInput label="Address" value={address} onChange={setAddress} />
+          <LabeledInput label="Birthdate" type="date" value={birthdate} onChange={setBirthdate} />
+          {error && <div className="text-xs text-red-700 dark:text-red-400">{error}</div>}
+        </div>
+        <div className="p-3 border-t border-gray-200 dark:border-gray-700">
+          <button
+            type="button"
+            onClick={submit}
+            disabled={saving}
+            className="w-full py-2.5 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-sm font-bold disabled:opacity-50 active:scale-[0.99] transition"
+          >
+            {saving ? 'Adding…' : 'Add Person'}
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -328,6 +467,7 @@ function FamilySection({
   onMarkChild,
   onAddChild,
   onUnlinkMember,
+  onPersonCreated,
 }: {
   person: Person
   allPeople: Person[]
@@ -335,6 +475,7 @@ function FamilySection({
   onMarkChild: (parentId: number) => Promise<string | null>
   onAddChild: (childId: number) => Promise<string | null>
   onUnlinkMember: (memberId: number) => Promise<string | null>
+  onPersonCreated: (person: Person) => void
 }) {
   const [state, setState] = useState<FamilySaveState>('idle')
   const [error, setError] = useState<string | null>(null)
@@ -465,6 +606,7 @@ function FamilySection({
           excludeIds={excludeIds}
           onPick={handlePick}
           onClose={() => setActiveModal(null)}
+          onPersonCreated={onPersonCreated}
         />
       )}
     </div>
@@ -487,6 +629,7 @@ function PersonCard({
   onMarkChild,
   onAddChild,
   onUnlinkMember,
+  onPersonCreated,
 }: {
   person: Person
   isOpen: boolean
@@ -503,6 +646,7 @@ function PersonCard({
   onMarkChild: (parentId: number) => Promise<string | null>
   onAddChild: (childId: number) => Promise<string | null>
   onUnlinkMember: (memberId: number) => Promise<string | null>
+  onPersonCreated: (person: Person) => void
 }) {
   return (
     <div className="border-2 border-gray-200 dark:border-gray-700 rounded-xl p-4 bg-white dark:bg-gray-900">
@@ -613,6 +757,7 @@ function PersonCard({
             onMarkChild={onMarkChild}
             onAddChild={onAddChild}
             onUnlinkMember={onUnlinkMember}
+            onPersonCreated={onPersonCreated}
           />
 
           {(() => {
@@ -723,7 +868,9 @@ function CollapsedSection({
   )
 }
 
-export default function DeaconBoard() {
+export type DeaconBoardHandle = { openAddPerson: () => void }
+
+const DeaconBoard = forwardRef<DeaconBoardHandle>(function DeaconBoard(_props, ref) {
   const [people, setPeople] = useState<Person[]>([])
   const [deacons, setDeacons] = useState<string[]>([])
   const [statusOptions, setStatusOptions] = useState<string[]>(DEFAULT_STATUS_OPTIONS)
@@ -733,6 +880,13 @@ export default function DeaconBoard() {
   const [deaconFilter, setDeaconFilter] = useState('')
   const [saveState, setSaveState] = useState<Record<number, SaveState>>({})
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
+  const [showGlobalAddPerson, setShowGlobalAddPerson] = useState(false)
+
+  useImperativeHandle(ref, () => ({ openAddPerson: () => setShowGlobalAddPerson(true) }))
+
+  function insertPerson(person: Person) {
+    setPeople((prev) => (prev.some((p) => p.id === person.id) ? prev : [...prev, person]))
+  }
 
   function toggleExpanded(id: number) {
     setExpandedIds((prev) => {
@@ -911,6 +1065,7 @@ export default function DeaconBoard() {
       onMarkChild: (parentId) => markChild(p.id, parentId),
       onAddChild: (childId) => markChild(childId, p.id),
       onUnlinkMember: (memberId) => unlinkMember(memberId),
+      onPersonCreated: insertPerson,
     }
   }
 
@@ -969,6 +1124,22 @@ export default function DeaconBoard() {
           <CollapsedSection title="Inactive" people={inactiveList} cardProps={cardProps} />
         </>
       )}
+
+      {showGlobalAddPerson &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <AddPersonModal
+            title="Add New Person"
+            onClose={() => setShowGlobalAddPerson(false)}
+            onCreated={(person) => {
+              insertPerson(person)
+              setShowGlobalAddPerson(false)
+            }}
+          />,
+          document.body
+        )}
     </div>
   )
-}
+})
+
+export default DeaconBoard

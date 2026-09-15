@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, type ReactNode } from 'react'
-import DeaconBoard from '../deacons/DeaconBoard'
+import { useRef, useState, type ReactNode } from 'react'
+import DeaconBoard, { type DeaconBoardHandle } from '../deacons/DeaconBoard'
 import AttendanceBoard from '../attendance/AttendanceBoard'
 import GroupList from '../shepherdingreport/GroupList'
 import NotesFeed from './NotesFeed'
@@ -80,6 +80,14 @@ function MoonIcon() {
   )
 }
 
+function PlusIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  )
+}
+
 const TABS: { id: Tab; label: string; icon: () => ReactNode }[] = [
   { id: 'deacons', label: 'List', icon: UsersIcon },
   { id: 'shepherding', label: 'Report', icon: LambIcon },
@@ -100,6 +108,7 @@ export default function DeaconAppTabs({
 }) {
   const [tab, setTab] = useState<Tab>('deacons')
   const [theme, toggleTheme] = useDeaconTheme()
+  const boardRef = useRef<DeaconBoardHandle>(null)
 
   return (
     <>
@@ -131,20 +140,31 @@ export default function DeaconAppTabs({
           >
             Log out
           </button>
-          <button
-            type="button"
-            onClick={toggleTheme}
-            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 active:opacity-60"
-          >
-            {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
-          </button>
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => boardRef.current?.openAddPerson()}
+              aria-label="Add new person"
+              title="Add new person"
+              className="text-gray-500 dark:text-gray-400 active:opacity-60"
+            >
+              <PlusIcon />
+            </button>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              className="text-gray-500 dark:text-gray-400 active:opacity-60"
+            >
+              {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-6">
           <div className={tab === 'deacons' ? '' : 'hidden'}>
             <div className="max-w-6xl mx-auto">
-              <DeaconBoard />
+              <DeaconBoard ref={boardRef} />
             </div>
           </div>
 
