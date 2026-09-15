@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 type Bucket = '6wk' | '3-5wk' | '2wk' | null
+type Engagement = 'consistent' | 'active' | 'occasional' | 'lapsed' | null
 
 interface Member {
   id: number
@@ -12,6 +13,7 @@ interface Member {
   last_seen: string
   email: string | null
   phone: string | null
+  engagement: Engagement
 }
 
 interface Group {
@@ -29,6 +31,27 @@ const BUCKET_META: Record<string, { label: string; className: string }> = {
 
 function bucketKey(bucket: Bucket): string {
   return bucket ?? 'current'
+}
+
+// Mirrors jobs/connect_cards/state_of_church.py's weekly engagement tiers
+// (same last-8-service-date visit-count thresholds, computed per-member by
+// jobs/congregation/elder_shepherding_report.py's _member_engagement_tiers).
+// null (no badge) means no attendance in the last 24 service dates either.
+const ENGAGEMENT_META: Record<string, { label: string; className: string }> = {
+  consistent: { label: 'Consistent', className: 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 border-green-300 dark:border-green-800' },
+  active: { label: 'Active', className: 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800' },
+  occasional: { label: 'Occasional', className: 'text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-950/40 border-orange-300 dark:border-orange-800' },
+  lapsed: { label: 'Lapsed', className: 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800' },
+}
+
+function EngagementBadge({ engagement }: { engagement: Engagement }) {
+  if (!engagement) return null
+  const meta = ENGAGEMENT_META[engagement]
+  return (
+    <span className={`inline-block mt-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded border ${meta.className}`}>
+      {meta.label}
+    </span>
+  )
 }
 
 // members.phone is stored formatted, e.g. "(302) 559-3728" -- tel:/sms:
@@ -222,7 +245,10 @@ export default function GroupList({ groups }: { groups: Group[] }) {
                     key={m.id}
                     className="px-4 py-4 flex items-center gap-3 text-sm"
                   >
-                    <span className="flex-1 min-w-0 truncate text-gray-900 dark:text-gray-100">{m.name}</span>
+                    <span className="flex-1 min-w-0">
+                      <span className="block truncate text-gray-900 dark:text-gray-100">{m.name}</span>
+                      <EngagementBadge engagement={m.engagement} />
+                    </span>
                     <ContactIcons member={m} />
                     <LastSeenBadge member={m} className={meta.className} idleLabel={m.bucket === null ? meta.label : undefined} />
                   </li>

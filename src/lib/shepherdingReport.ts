@@ -1,6 +1,7 @@
 import { watsonFetch } from '@/lib/watson'
 
 export type Bucket = '6wk' | '3-5wk' | '2wk' | null
+export type Engagement = 'consistent' | 'active' | 'occasional' | 'lapsed' | null
 
 export interface Member {
   id: number
@@ -10,6 +11,7 @@ export interface Member {
   last_seen: string
   email: string | null
   phone: string | null
+  engagement: Engagement
 }
 
 export interface Group {
