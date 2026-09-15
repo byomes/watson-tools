@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react'
 
 type Platform = 'facebook' | 'instagram' | 'both'
-type PostStatus = 'approved' | 'posted' | 'failed' | 'cancelled'
+type PostStatus = 'approved' | 'processing' | 'posted' | 'failed' | 'cancelled'
 
 interface QueuedPost {
   id: number
   platform: Platform
   text: string
   image_path: string | null
+  video_path: string | null
   status: PostStatus
   scheduled_time: string
   posted_time: string | null
@@ -17,6 +18,19 @@ interface QueuedPost {
   ig_error: string | null
   created_at: string
 }
+
+interface Clip {
+  id: number
+  video_name: string
+  serve_token: string
+  pulled_at: string
+}
+
+// Tailscale Funnel public host — the browser fetches clip video bytes
+// directly from here rather than through the Vercel proxy (files run
+// into the hundreds of MB), same pattern as ServantCareSearch.tsx's
+// PHOTO_BASE.
+const CLIP_BASE = 'https://watson.tail0243ff.ts.net'
 
 interface Status {
   configured: boolean
@@ -67,7 +81,15 @@ function StatusBanner({ status }: { status: Status | null }) {
   )
 }
 
-function ComposeForm({ onCreated }: { onCreated: () => void }) {
+function ComposeForm({
+  onCreated,
+  clip,
+  onClearClip,
+}: {
+  onCreated: () => void
+  clip: Clip | null
+  onClearClip: () => void
+}) {
   const [platform, setPlatform] = useState<Platform>('facebook')
   const [text, setText] = useState('')
   const [scheduledTime, setScheduledTime] = useState('')
@@ -75,7 +97,7 @@ function ComposeForm({ onCreated }: { onCreated: () => void }) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const needsImage = platform !== 'facebook'
+  const needsImage = platform !== 'facebook' && !clip
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -88,11 +110,17 @@ function ComposeForm({ onCreated }: { onCreated: () => void }) {
 
     setSubmitting(true)
     try {
-      const image_base64 = image ? await fileToBase64(image) : undefined
+      const image_base64 = !clip && image ? await fileToBase64(image) : undefined
       const res = await fetch('/api/cat/social/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ platform, text, scheduled_time: scheduledTime, image_base64 }),
+        body: JSON.stringify({
+          platform,
+          text,
+          scheduled_time: scheduledTime,
+          image_base64,
+          clip_id: clip?.id,
+        }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -102,6 +130,7 @@ function ComposeForm({ onCreated }: { onCreated: () => void }) {
       setText('')
       setScheduledTime('')
       setImage(null)
+      onClearClip()
       onCreated()
     } finally {
       setSubmitting(false)
@@ -110,7 +139,22 @@ function ComposeForm({ onCreated }: { onCreated: () => void }) {
 
   return (
     <form onSubmit={submit} className="mb-10 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
-      <h2 className="text-lg font-semibold text-black dark:text-white mb-3">Queue a post</h2>
+      <h2 className="text-lg font-semibold text-black dark:text-white mb-3">
+        {clip ? 'Schedule clip' : 'Queue a post'}
+      </h2>
+
+      {clip && (
+        <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 px-3 py-2">
+          <p className="text-sm text-black dark:text-white truncate">🎬 {clip.video_name}</p>
+          <button
+            type="button"
+            onClick={onClearClip}
+            className="shrink-0 text-xs text-gray-600 dark:text-gray-400 underline"
+          >
+            Use a different post instead
+          </button>
+        </div>
+      )}
 
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Platform</label>
       <select
@@ -123,7 +167,9 @@ function ComposeForm({ onCreated }: { onCreated: () => void }) {
         <option value="both">Both</option>
       </select>
 
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Post text</label>
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        {clip ? 'Caption' : 'Post text'}
+      </label>
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -132,15 +178,19 @@ function ComposeForm({ onCreated }: { onCreated: () => void }) {
         className="w-full mb-3 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-black dark:text-white bg-white dark:bg-gray-800"
       />
 
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-        Image{needsImage ? ' (required for Instagram)' : ' (optional)'}
-      </label>
-      <input
-        type="file"
-        accept="image/png,image/jpeg"
-        onChange={(e) => setImage(e.target.files?.[0] ?? null)}
-        className="w-full mb-3 text-sm text-gray-700 dark:text-gray-300 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-200 dark:file:bg-gray-700 file:px-3 file:py-2 file:text-sm file:font-medium file:text-black dark:file:text-white hover:file:bg-gray-300 dark:hover:file:bg-gray-600"
-      />
+      {!clip && (
+        <>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Image{needsImage ? ' (required for Instagram)' : ' (optional)'}
+          </label>
+          <input
+            type="file"
+            accept="image/png,image/jpeg"
+            onChange={(e) => setImage(e.target.files?.[0] ?? null)}
+            className="w-full mb-3 text-sm text-gray-700 dark:text-gray-300 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-200 dark:file:bg-gray-700 file:px-3 file:py-2 file:text-sm file:font-medium file:text-black dark:file:text-white hover:file:bg-gray-300 dark:hover:file:bg-gray-600"
+          />
+        </>
+      )}
 
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Scheduled time</label>
       <input
@@ -158,14 +208,49 @@ function ComposeForm({ onCreated }: { onCreated: () => void }) {
         disabled={submitting}
         className="rounded-lg px-4 py-2 text-sm font-medium bg-black text-white dark:bg-white dark:text-black disabled:opacity-50"
       >
-        {submitting ? 'Queuing…' : 'Queue post'}
+        {submitting ? 'Queuing…' : clip ? 'Schedule clip' : 'Queue post'}
       </button>
     </form>
   )
 }
 
+function ClipList({ clips, onSchedule }: { clips: Clip[]; onSchedule: (clip: Clip) => void }) {
+  if (clips.length === 0) {
+    return <p className="text-sm text-gray-500 dark:text-gray-400 mb-10">No Sermon Shots clips awaiting review.</p>
+  }
+
+  return (
+    <div className="mb-10">
+      <h2 className="text-lg font-semibold text-black dark:text-white mb-3">Sermon Clips</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {clips.map((c) => (
+          <div key={c.id} className="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
+            <video controls preload="metadata" className="w-full bg-black" style={{ aspectRatio: '9 / 16' }}>
+              <source src={`${CLIP_BASE}/church_social/clip/${c.serve_token}`} type="video/mp4" />
+            </video>
+            <div className="p-3">
+              <p className="text-sm text-black dark:text-white truncate" title={c.video_name}>
+                {c.video_name}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Pulled {c.pulled_at}</p>
+              <button
+                type="button"
+                onClick={() => onSchedule(c)}
+                className="w-full rounded-lg px-3 py-1.5 text-sm font-medium bg-black text-white dark:bg-white dark:text-black"
+              >
+                Schedule…
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 const STATUS_ICON: Record<PostStatus, string> = {
   approved: '📅',
+  processing: '⏳',
   posted: '✅',
   failed: '⚠️',
   cancelled: '❌',
@@ -183,10 +268,16 @@ function QueueList({ posts, onCancel }: { posts: QueuedPost[]; onCancel: (id: nu
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-sm text-black dark:text-white">
-                {STATUS_ICON[p.status]} <span className="font-medium capitalize">{p.platform}</span> —{' '}
+                {STATUS_ICON[p.status]} <span className="font-medium capitalize">{p.platform}</span>
+                {p.video_path ? ' 🎬' : ''} —{' '}
                 {p.status === 'posted' ? p.posted_time : p.scheduled_time}
               </p>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 whitespace-pre-wrap break-words">{p.text}</p>
+              {p.status === 'processing' && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Instagram is still processing this video — it&apos;ll publish automatically once ready.
+                </p>
+              )}
               {p.status === 'failed' && (
                 <p className="text-xs text-red-600 dark:text-red-400 mt-1">
                   {p.fb_error && `FB: ${p.fb_error}`} {p.ig_error && `IG: ${p.ig_error}`}
@@ -212,17 +303,24 @@ function QueueList({ posts, onCancel }: { posts: QueuedPost[]; onCancel: (id: nu
 export default function SocialDashboard() {
   const [status, setStatus] = useState<Status | null>(null)
   const [posts, setPosts] = useState<QueuedPost[]>([])
+  const [clips, setClips] = useState<Clip[]>([])
+  const [selectedClip, setSelectedClip] = useState<Clip | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const load = async () => {
     setError(null)
-    const [statusRes, queueRes] = await Promise.all([fetch('/api/cat/social/status'), fetch('/api/cat/social/queue')])
-    if (!statusRes.ok || !queueRes.ok) {
+    const [statusRes, queueRes, clipsRes] = await Promise.all([
+      fetch('/api/cat/social/status'),
+      fetch('/api/cat/social/queue'),
+      fetch('/api/cat/social/clips'),
+    ])
+    if (!statusRes.ok || !queueRes.ok || !clipsRes.ok) {
       setError('Could not load the dashboard. Try refreshing.')
       return
     }
     setStatus(await statusRes.json())
     setPosts((await queueRes.json()).posts ?? [])
+    setClips((await clipsRes.json()).clips ?? [])
   }
 
   useEffect(() => {
@@ -245,7 +343,8 @@ export default function SocialDashboard() {
   return (
     <div>
       <StatusBanner status={status} />
-      <ComposeForm onCreated={load} />
+      <ClipList clips={clips} onSchedule={setSelectedClip} />
+      <ComposeForm onCreated={load} clip={selectedClip} onClearClip={() => setSelectedClip(null)} />
       {error && <p className="text-red-600 dark:text-red-400 text-sm mb-4">{error}</p>}
       <h2 className="text-lg font-semibold text-black dark:text-white mb-2">Queue</h2>
       <QueueList posts={posts} onCancel={handleCancel} />
