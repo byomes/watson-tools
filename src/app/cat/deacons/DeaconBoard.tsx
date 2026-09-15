@@ -182,15 +182,43 @@ function DeaconNoteForm({ personId, onSubmit }: { personId: number; onSubmit: (n
 // Typeahead over the full roster (hundreds of names -- a plain <select>
 // like EditableSelect's isn't usable at that size). Filters client-side
 // since `people` is already fully loaded; no separate search endpoint.
-function PersonChip({ name, tone }: { name: string; tone: 'blue' | 'purple' | 'emerald' }) {
+function PersonChip({
+  name,
+  tone,
+  onRemove,
+  removeTitle,
+  disabled,
+}: {
+  name: string
+  tone: 'blue' | 'purple' | 'emerald'
+  onRemove: () => void
+  removeTitle: string
+  disabled?: boolean
+}) {
   const toneClasses = {
     blue: 'bg-blue-50 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900',
     purple: 'bg-purple-50 text-purple-800 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-900',
     emerald: 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900',
   }[tone]
   return (
-    <span className={`inline-flex items-center px-3 py-1.5 rounded-full border text-sm font-bold ${toneClasses}`}>
+    <span className={`inline-flex items-center gap-1 pl-3 pr-1.5 py-1.5 rounded-full border text-sm font-bold ${toneClasses}`}>
       {name}
+      <button
+        type="button"
+        onClick={onRemove}
+        disabled={disabled}
+        title={removeTitle}
+        aria-label={removeTitle}
+        className="rounded-full w-4 h-4 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-40 disabled:pointer-events-none"
+      >
+        <svg viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+          <path
+            fillRule="evenodd"
+            d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"
+            clipRule="evenodd"
+          />
+        </svg>
+      </button>
     </span>
   )
 }
@@ -299,12 +327,14 @@ function FamilySection({
   onMarkSpouse,
   onMarkChild,
   onAddChild,
+  onUnlinkMember,
 }: {
   person: Person
   allPeople: Person[]
   onMarkSpouse: (otherId: number) => Promise<string | null>
   onMarkChild: (parentId: number) => Promise<string | null>
   onAddChild: (childId: number) => Promise<string | null>
+  onUnlinkMember: (memberId: number) => Promise<string | null>
 }) {
   const [state, setState] = useState<FamilySaveState>('idle')
   const [error, setError] = useState<string | null>(null)
@@ -363,7 +393,16 @@ function FamilySection({
         </div>
         <div className="flex flex-wrap gap-1.5">
           {spouses.length > 0 ? (
-            spouses.map((s) => <PersonChip key={s.id} name={s.name} tone="blue" />)
+            spouses.map((s) => (
+              <PersonChip
+                key={s.id}
+                name={s.name}
+                tone="blue"
+                disabled={state === 'saving'}
+                removeTitle={`Remove ${s.name} as spouse`}
+                onRemove={() => run(() => onUnlinkMember(s.id))}
+              />
+            ))
           ) : (
             <span className="text-sm text-gray-400 dark:text-gray-500 italic">No spouse on file</span>
           )}
@@ -377,7 +416,16 @@ function FamilySection({
         </div>
         <div className="flex flex-wrap gap-1.5">
           {parents.length > 0 ? (
-            parents.map((s) => <PersonChip key={s.id} name={s.name} tone="purple" />)
+            parents.map((s) => (
+              <PersonChip
+                key={s.id}
+                name={s.name}
+                tone="purple"
+                disabled={state === 'saving'}
+                removeTitle={`Remove ${p.name} as ${s.name}'s child`}
+                onRemove={() => run(() => onUnlinkMember(p.id))}
+              />
+            ))
           ) : (
             <span className="text-sm text-gray-400 dark:text-gray-500 italic">Not marked as anyone’s child</span>
           )}
@@ -391,7 +439,16 @@ function FamilySection({
         </div>
         <div className="flex flex-wrap gap-1.5">
           {children.length > 0 ? (
-            children.map((c) => <PersonChip key={c.id} name={c.name} tone="emerald" />)
+            children.map((c) => (
+              <PersonChip
+                key={c.id}
+                name={c.name}
+                tone="emerald"
+                disabled={state === 'saving'}
+                removeTitle={`Remove ${c.name} as child`}
+                onRemove={() => run(() => onUnlinkMember(c.id))}
+              />
+            ))
           ) : (
             <span className="text-sm text-gray-400 dark:text-gray-500 italic">No children on file</span>
           )}
@@ -429,6 +486,7 @@ function PersonCard({
   onMarkSpouse,
   onMarkChild,
   onAddChild,
+  onUnlinkMember,
 }: {
   person: Person
   isOpen: boolean
@@ -444,6 +502,7 @@ function PersonCard({
   onMarkSpouse: (otherId: number) => Promise<string | null>
   onMarkChild: (parentId: number) => Promise<string | null>
   onAddChild: (childId: number) => Promise<string | null>
+  onUnlinkMember: (memberId: number) => Promise<string | null>
 }) {
   return (
     <div className="border-2 border-gray-200 dark:border-gray-700 rounded-xl p-4 bg-white dark:bg-gray-900">
@@ -553,6 +612,7 @@ function PersonCard({
             onMarkSpouse={onMarkSpouse}
             onMarkChild={onMarkChild}
             onAddChild={onAddChild}
+            onUnlinkMember={onUnlinkMember}
           />
 
           {(() => {
@@ -830,6 +890,10 @@ export default function DeaconBoard() {
     return markFamily('/api/cat/deacons/family/child', { childId, parentId })
   }
 
+  function unlinkMember(memberId: number): Promise<string | null> {
+    return markFamily('/api/cat/deacons/family/unlink', { memberId })
+  }
+
   function cardProps(p: Person): React.ComponentProps<typeof PersonCard> {
     return {
       person: p,
@@ -846,6 +910,7 @@ export default function DeaconBoard() {
       onMarkSpouse: (otherId) => markSpouse(p.id, otherId),
       onMarkChild: (parentId) => markChild(p.id, parentId),
       onAddChild: (childId) => markChild(childId, p.id),
+      onUnlinkMember: (memberId) => unlinkMember(memberId),
     }
   }
 
