@@ -192,6 +192,34 @@ function LastSeenBadge({ member, className, idleLabel }: { member: Member; class
   )
 }
 
+// Small pill matching the real per-member badges (BUCKET_META /
+// ENGAGEMENT_META) so a legend chip and its live counterpart look identical.
+function LegendChip({ label, className }: { label: string; className: string }) {
+  return (
+    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${className}`}>
+      {label}
+    </span>
+  )
+}
+
+function LegendBox({ title, rows }: { title: string; rows: { label: string; className: string; note: string }[] }) {
+  return (
+    <div className="flex-1 min-w-0 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5 text-[11px] leading-relaxed">
+      <p className="font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide text-[10px] mb-1.5">
+        {title}
+      </p>
+      <div className="flex flex-col gap-1">
+        {rows.map((r) => (
+          <span key={r.label} className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
+            <LegendChip label={r.label} className={r.className} />
+            {r.note}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // Bulk expand/collapse remounts each <details> with a fresh defaultOpen via
 // a changed key, instead of trying to drive the native `open` attribute as
 // a controlled prop -- that pattern fights the browser's own `toggle` event
@@ -199,7 +227,7 @@ function LastSeenBadge({ member, className, idleLabel }: { member: Member; class
 // updates race. Remounting sidesteps the race entirely, and a plain
 // uncontrolled <details> still lets a tap on any one summary work natively
 // in between bulk actions.
-export default function GroupList({ groups }: { groups: Group[] }) {
+export default function GroupList({ groups, showLegend }: { groups: Group[]; showLegend?: boolean }) {
   const [bulk, setBulk] = useState<{ open: boolean; gen: number } | null>(null)
 
   const setAll = (open: boolean) => {
@@ -208,6 +236,28 @@ export default function GroupList({ groups }: { groups: Group[] }) {
 
   return (
     <div>
+      {showLegend && (
+        <div className="flex gap-2 mb-4">
+          <LegendBox
+            title="Missed weeks"
+            rows={[
+              { label: '2 wks', className: BUCKET_META['2wk'].className, note: 'missed 2-3wk' },
+              { label: '3-5 wks', className: BUCKET_META['3-5wk'].className, note: 'missed 3-6wk' },
+              { label: '6+ wks', className: BUCKET_META['6wk'].className, note: 'missed 6+wk' },
+            ]}
+          />
+          <LegendBox
+            title="Engagement (8wk)"
+            rows={[
+              { label: 'Consistent', className: ENGAGEMENT_META.consistent.className, note: '6-8' },
+              { label: 'Active', className: ENGAGEMENT_META.active.className, note: '3-5' },
+              { label: 'Occasional', className: ENGAGEMENT_META.occasional.className, note: '1-2' },
+              { label: 'Lapsed', className: ENGAGEMENT_META.lapsed.className, note: '0 of 24' },
+            ]}
+          />
+        </div>
+      )}
+
       <div className="flex gap-2 mb-4 text-xs font-semibold">
         <button
           type="button"

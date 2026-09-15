@@ -170,21 +170,6 @@ export default function DeaconAppTabs({
 
           <div className={tab === 'shepherding' ? '' : 'hidden'}>
             <div className="max-w-md mx-auto">
-              {/* Same consistent/active/occasional/lapsed classification Watson's
-                  weekly State of the Church email uses (last 8 Sunday services),
-                  now shown per-person under each name below. */}
-              <div className="border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5 mb-4 text-[11px] leading-relaxed">
-                <p className="font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide text-[10px] mb-1.5">
-                  Engagement badges (last 8 Sundays)
-                </p>
-                <p className="text-gray-600 dark:text-gray-400">
-                  <span className="font-semibold text-green-700 dark:text-green-400">Consistent</span> 6–8 Sundays ·{' '}
-                  <span className="font-semibold text-amber-700 dark:text-amber-400">Active</span> 3–5 ·{' '}
-                  <span className="font-semibold text-orange-700 dark:text-orange-400">Occasional</span> 1–2 ·{' '}
-                  <span className="font-semibold text-red-700 dark:text-red-400">Lapsed</span> 0, but attended within the last 24 Sundays
-                </p>
-              </div>
-
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
                 {shepherdingDate ? `Generated ${shepherdingDate}` : 'Report unavailable'} — grouped
                 by deacon, most at-risk first in each group.
@@ -228,7 +213,7 @@ export default function DeaconAppTabs({
                 </div>
               )}
 
-              {shepherdingGroups && <GroupList groups={shepherdingGroups} />}
+              {shepherdingGroups && <GroupList groups={shepherdingGroups} showLegend />}
             </div>
           </div>
 
