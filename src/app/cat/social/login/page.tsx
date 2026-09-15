@@ -1,0 +1,29 @@
+import type { Metadata } from 'next'
+import { redirect } from 'next/navigation'
+import { isLoggedIn } from '@/lib/socialAuth'
+import PinPad from './pin-pad'
+
+export const metadata: Metadata = {
+  title: 'Catalyst Social',
+  robots: { index: false, follow: false },
+}
+
+export const dynamic = 'force-dynamic'
+
+export default async function SocialLoginPage() {
+  if (await isLoggedIn()) redirect('/cat/social')
+
+  return (
+    <div className="min-h-screen bg-white dark:bg-gray-950 flex items-center justify-center px-8">
+      <div className="w-full max-w-xs">
+        <h1 className="flex items-center justify-center gap-2 text-xl font-bold text-black dark:text-white text-center mb-1">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/catalyst-c-logo.jpg" alt="" className="h-6 w-6 rounded-md shrink-0" />
+          Catalyst Social
+        </h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-8">Enter your PIN</p>
+        <PinPad />
+      </div>
+    </div>
+  )
+}
