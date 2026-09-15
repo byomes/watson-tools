@@ -139,7 +139,7 @@ function ComposeForm({ onCreated }: { onCreated: () => void }) {
         type="file"
         accept="image/png,image/jpeg"
         onChange={(e) => setImage(e.target.files?.[0] ?? null)}
-        className="w-full mb-3 text-sm text-gray-700 dark:text-gray-300"
+        className="w-full mb-3 text-sm text-gray-700 dark:text-gray-300 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-200 dark:file:bg-gray-700 file:px-3 file:py-2 file:text-sm file:font-medium file:text-black dark:file:text-white hover:file:bg-gray-300 dark:hover:file:bg-gray-600"
       />
 
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Scheduled time</label>
