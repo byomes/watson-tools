@@ -173,6 +173,15 @@ export async function POST(req: NextRequest) {
     localStorageAvailable: Boolean(data.localStorageAvailable),
   }
 
+  // IP + coarse geo, from Vercel's own edge headers -- no client code, no
+  // extra request. Same diagnostic-only treatment as the fields above: log
+  // line only, never the card email or congregation.db.
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+  const geoCity = req.headers.get('x-vercel-ip-city') || ''
+  const geoRegion = req.headers.get('x-vercel-ip-country-region') || ''
+  const geoCountry = req.headers.get('x-vercel-ip-country') || ''
+  const geo = [geoCity, geoRegion, geoCountry].filter(Boolean).join(', ') || 'unknown'
+
   // Diagnostic-only, for troubleshooting "autofill isn't working" reports --
   // deliberately kept out of the card email itself (Donna/Tyler don't need
   // browser noise on a pastoral form). Server log line only; pull via
@@ -180,6 +189,7 @@ export async function POST(req: NextRequest) {
   // email to correlate with the actual submission.
   console.log(
     `[cat/connect] diagnostics name=${firstName} ${lastName} email=${email} ` +
+      `ip=${ip} geo=${geo} ` +
       `autofillLoaded=${payload.autofillLoaded} localStorageAvailable=${payload.localStorageAvailable} ` +
       `userAgent=${JSON.stringify(payload.userAgent)}`,
   )
