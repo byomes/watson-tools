@@ -491,7 +491,17 @@ function FamilySection({
     p.household_role === 'child'
       ? householdMates.filter((m) => m.household_role === 'husband' || m.household_role === 'wife' || m.household_role === 'head')
       : []
-  const excludeIds = useMemo(() => new Set([p.id, ...householdMates.map((m) => m.id)]), [p.id, householdMates])
+  // Only exclude household mates who already HOLD a role (husband/wife/
+  // head/child) -- someone sharing household_id with no role yet (common
+  // after a directory import groups a family before anyone tags who's who,
+  // e.g. the Tabor household, 2026-09-15) is exactly who a picker needs to
+  // surface, not hide. Excluding every household mate unconditionally made
+  // an already-grouped, unroled spouse invisible in their own household's
+  // "Add Husband"/"Add Wife" picker.
+  const excludeIds = useMemo(
+    () => new Set([p.id, ...householdMates.filter((m) => m.household_role).map((m) => m.id)]),
+    [p.id, householdMates]
+  )
 
   async function run(action: () => Promise<string | null>) {
     setState('saving')
