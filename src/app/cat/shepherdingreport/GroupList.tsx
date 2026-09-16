@@ -1,11 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-
-// Neither ever comes back null as of 2026-09-16 -- see
-// shepherdingReportShared.ts's Bucket/Engagement types.
-type Bucket = 'critical' | 'at_risk' | 'current'
-type Engagement = 'consistent' | 'active' | 'occasional' | 'lapsed'
+import { BUCKET_META, ENGAGEMENT_META, weeksLabel, type Bucket, type Engagement } from '@/lib/shepherdingReportShared'
 
 interface Member {
   id: number
@@ -21,24 +17,6 @@ interface Member {
 interface Group {
   name: string
   members: Member[]
-}
-
-// Mirrors jobs/congregation/elder_shepherding_report.py's bucket labels.
-const BUCKET_META: Record<Bucket, { label: string; className: string }> = {
-  critical: { label: '4+ wks', className: 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800' },
-  at_risk: { label: '2-3 wks', className: 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800' },
-  current: { label: '0-1 wk', className: 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-800' },
-}
-
-// last-8-service-date (attendance + connect_cards) visit-count thresholds,
-// computed per-member by jobs/congregation/elder_shepherding_report.py's
-// _member_engagement_tiers() (diverged from state_of_church.py's version
-// 2026-09-16 -- see that function's docstring).
-const ENGAGEMENT_META: Record<Engagement, { label: string; className: string }> = {
-  consistent: { label: 'Consistent', className: 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 border-green-300 dark:border-green-800' },
-  active: { label: 'Active', className: 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800' },
-  occasional: { label: 'Occasional', className: 'text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-950/40 border-orange-300 dark:border-orange-800' },
-  lapsed: { label: 'Lapsed', className: 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800' },
 }
 
 // Same pill chrome as LastSeenBadge's label below (text-[11px] font-semibold
@@ -123,11 +101,6 @@ function ContactIcons({ member }: { member: Member }) {
       )}
     </span>
   )
-}
-
-function weeksLabel(daysSince: number): string {
-  const weeks = Math.floor(daysSince / 7)
-  return `${weeks} wk${weeks === 1 ? '' : 's'}`
 }
 
 const todayIso = () => new Date().toISOString().slice(0, 10)

@@ -3,6 +3,7 @@ import { useEffect, useImperativeHandle, useMemo, useState, forwardRef } from 'r
 import { createPortal } from 'react-dom'
 import { EditableSelect } from './EditableSelect'
 import { formatDeaconNoteDate } from '@/lib/deaconNotes'
+import { BUCKET_META, ENGAGEMENT_META, weeksLabel, type Bucket, type Engagement } from '@/lib/shepherdingReportShared'
 
 interface PrayerRequest {
   request_text: string
@@ -34,6 +35,9 @@ interface Person {
   deacon_status: string | null
   member_status: string | null
   last_seen: string
+  bucket: Bucket | null
+  days_since: number | null
+  engagement: Engagement | null
   prayer_requests: PrayerRequest[]
   next_steps: NextStep[]
   deacon_notes: DeaconNote[]
@@ -47,15 +51,6 @@ const MEMBER_STATUS_LABELS: Record<string, string> = {
   non_local: 'Non-local',
   snowbird: 'Snowbird',
   deceased: 'Deceased',
-}
-
-// Mirrors jobs/congregation/deacon_reports.py's _attendance_line() thresholds.
-function attendanceRisk(lastSeen: string): { label: string; className: string } | null {
-  if (!lastSeen || lastSeen === '1900-01-01') return null
-  const weeks = Math.floor((Date.now() - new Date(`${lastSeen}T00:00:00`).getTime()) / (7 * 24 * 60 * 60 * 1000))
-  if (weeks >= 6) return { label: 'Critical', className: 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800' }
-  if (weeks >= 3) return { label: 'At Risk', className: 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800' }
-  return null
 }
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
@@ -780,22 +775,31 @@ function PersonCard({
 
           {(() => {
             const statusLabel = p.member_status ? MEMBER_STATUS_LABELS[p.member_status] : null
-            const risk = attendanceRisk(p.last_seen)
+            // Same Connected (bucket) + Consistency (engagement) badges as
+            // wtsn.me/cat/shepherdingreport's GroupList, driven by the same
+            // server-computed fields -- see shepherdingReportShared.ts.
+            const bucketMeta = p.bucket ? BUCKET_META[p.bucket] : null
+            const engagementMeta = p.engagement ? ENGAGEMENT_META[p.engagement] : null
             const hasPrayers = p.prayer_requests.length > 0
             const hasSteps = p.next_steps.length > 0
-            if (!statusLabel && !risk && !hasPrayers && !hasSteps) return null
+            if (!statusLabel && !bucketMeta && !engagementMeta && !hasPrayers && !hasSteps) return null
             return (
               <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
-                {(statusLabel || risk) && (
+                {(statusLabel || bucketMeta || engagementMeta) && (
                   <div className="flex items-center gap-2 flex-wrap">
                     {statusLabel && (
                       <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full border bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600">
                         {statusLabel}
                       </span>
                     )}
-                    {risk && (
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${risk.className}`}>
-                        {risk.label}
+                    {bucketMeta && p.days_since !== null && (
+                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${bucketMeta.className}`}>
+                        {weeksLabel(p.days_since)}
+                      </span>
+                    )}
+                    {engagementMeta && (
+                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${engagementMeta.className}`}>
+                        {engagementMeta.label}
                       </span>
                     )}
                   </div>

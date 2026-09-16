@@ -71,3 +71,25 @@ export function computeEngagementTotals(groups: Group[]): EngagementTotals {
     { consistent: 0, active: 0, occasional: 0, lapsed: 0 },
   )
 }
+
+// Single source of truth for the Connected (bucket) and Consistency
+// (engagement) badge text/color so cat/shepherdingreport/GroupList.tsx and
+// cat/deacons/DeaconBoard.tsx's List tab never drift apart -- mirrors
+// jobs/congregation/elder_shepherding_report.py's bucket labels.
+export const BUCKET_META: Record<Bucket, { label: string; className: string }> = {
+  critical: { label: '4+ wks', className: 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800' },
+  at_risk: { label: '2-3 wks', className: 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800' },
+  current: { label: '0-1 wk', className: 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-800' },
+}
+
+export const ENGAGEMENT_META: Record<Engagement, { label: string; className: string }> = {
+  consistent: { label: 'Consistent', className: 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 border-green-300 dark:border-green-800' },
+  active: { label: 'Active', className: 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800' },
+  occasional: { label: 'Occasional', className: 'text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-950/40 border-orange-300 dark:border-orange-800' },
+  lapsed: { label: 'Lapsed', className: 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800' },
+}
+
+export function weeksLabel(daysSince: number): string {
+  const weeks = Math.floor(daysSince / 7)
+  return `${weeks} wk${weeks === 1 ? '' : 's'}`
+}
