@@ -107,7 +107,7 @@ export default function DeaconAppTabs({
   shepherdingTotals: Totals | null
   shepherdingDate: string | null
 }) {
-  const [tab, setTab] = useState<Tab>('deacons')
+  const [tab, setTab] = useState<Tab>('shepherding')
   const [theme, toggleTheme] = useDeaconTheme()
   const boardRef = useRef<DeaconBoardHandle>(null)
 
