@@ -1,41 +1,9 @@
+// Server-only (imports @/lib/watson) -- 'use client' components should
+// import types/compute functions from ./shepherdingReportShared directly.
 import { watsonFetch } from '@/lib/watson'
+import type { ReportState } from '@/lib/shepherdingReportShared'
 
-export type Bucket = 'critical' | 'at_risk' | 'current' | null
-export type Engagement = 'consistent' | 'active' | 'occasional' | 'lapsed' | null
-
-export interface Member {
-  id: number
-  name: string
-  bucket: Bucket
-  days_since: number
-  last_seen: string
-  email: string | null
-  phone: string | null
-  engagement: Engagement
-}
-
-export interface Group {
-  name: string
-  members: Member[]
-}
-
-export interface ReportState {
-  generated_date: string
-  groups: Group[]
-}
-
-export interface Totals {
-  current: number
-  atRisk: number
-  critical: number
-}
-
-export interface EngagementTotals {
-  consistent: number
-  active: number
-  occasional: number
-  lapsed: number
-}
+export * from '@/lib/shepherdingReportShared'
 
 export async function getShepherdingReport(): Promise<ReportState | null> {
   const res = await watsonFetch('/api/cat/shepherdingreport/state', {
@@ -43,33 +11,4 @@ export async function getShepherdingReport(): Promise<ReportState | null> {
   })
   if (!res.ok) return null
   return res.json()
-}
-
-export function computeShepherdingTotals(groups: Group[]): Totals {
-  return groups.reduce(
-    (acc, g) => {
-      for (const m of g.members) {
-        if (m.bucket === 'critical') acc.critical += 1
-        else if (m.bucket === 'at_risk') acc.atRisk += 1
-        else if (m.bucket === 'current') acc.current += 1
-      }
-      return acc
-    },
-    { current: 0, atRisk: 0, critical: 0 },
-  )
-}
-
-export function computeEngagementTotals(groups: Group[]): EngagementTotals {
-  return groups.reduce(
-    (acc, g) => {
-      for (const m of g.members) {
-        if (m.engagement === 'consistent') acc.consistent += 1
-        else if (m.engagement === 'active') acc.active += 1
-        else if (m.engagement === 'occasional') acc.occasional += 1
-        else if (m.engagement === 'lapsed') acc.lapsed += 1
-      }
-      return acc
-    },
-    { consistent: 0, active: 0, occasional: 0, lapsed: 0 },
-  )
 }

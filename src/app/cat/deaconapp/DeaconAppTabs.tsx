@@ -7,7 +7,7 @@ import GroupList from '../shepherdingreport/GroupList'
 import NotesFeed from './NotesFeed'
 import { logoutAction } from './actions'
 import { useDeaconTheme } from '@/lib/deaconTheme'
-import { computeEngagementTotals, type Group, type Totals } from '@/lib/shepherdingReport'
+import { computeEngagementTotals, type Group, type Totals } from '@/lib/shepherdingReportShared'
 
 type Tab = 'deacons' | 'shepherding' | 'attendance' | 'notes'
 
