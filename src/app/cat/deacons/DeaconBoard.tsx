@@ -663,9 +663,10 @@ function PersonCard({
 }) {
   // Same Connected (bucket) + Consistency (engagement) badges as
   // wtsn.me/cat/shepherdingreport's GroupList, driven by the same
-  // server-computed fields -- see shepherdingReportShared.ts. Shown right
-  // next to the name so a deacon sees them without opening the card or
-  // scrolling.
+  // server-computed fields -- see shepherdingReportShared.ts. Shown on
+  // their own line below the name (rather than inline next to it) so
+  // they land in the same spot on every card regardless of name length,
+  // without the card ever needing to be opened or scrolled to see them.
   const bucketMeta = p.bucket ? BUCKET_META[p.bucket] : null
   const engagementMeta = p.engagement ? ENGAGEMENT_META[p.engagement] : null
 
@@ -673,20 +674,22 @@ function PersonCard({
     <div className="border-2 border-gray-200 dark:border-gray-700 rounded-xl p-4 bg-white dark:bg-gray-900">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="font-bold text-gray-900 dark:text-gray-100 text-base leading-tight">{p.name}</span>
-            {bucketMeta && p.days_since !== null && (
-              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${bucketMeta.className}`}>
-                {weeksLabel(p.days_since)}
-              </span>
-            )}
-            {engagementMeta && (
-              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${engagementMeta.className}`}>
-                {engagementMeta.label}
-              </span>
-            )}
-          </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+          <div className="font-bold text-gray-900 dark:text-gray-100 text-base leading-tight">{p.name}</div>
+          {(bucketMeta || engagementMeta) && (
+            <div className="flex items-center gap-1.5 flex-wrap mt-1">
+              {bucketMeta && p.days_since !== null && (
+                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${bucketMeta.className}`}>
+                  {weeksLabel(p.days_since)}
+                </span>
+              )}
+              {engagementMeta && (
+                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${engagementMeta.className}`}>
+                  {engagementMeta.label}
+                </span>
+              )}
+            </div>
+          )}
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             {p.deacon || 'Unassigned'} · Last seen: {formatLastSeen(p.last_seen)}
           </div>
           {(p.phone || p.email || p.address) && (
