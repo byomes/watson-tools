@@ -195,7 +195,7 @@ export default function DeaconAppTabs({
                   </p>
                   <div className="flex gap-2 text-xs font-semibold">
                     <div className="flex-1 flex flex-col gap-1">
-                      <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                      <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">
                         Current
                       </span>
                       <span className="flex flex-col items-center gap-0.5 rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 py-2">
@@ -204,7 +204,7 @@ export default function DeaconAppTabs({
                       </span>
                     </div>
                     <div className="flex-1 flex flex-col gap-1">
-                      <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                      <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">
                         At Risk
                       </span>
                       <span className="flex flex-col items-center gap-0.5 rounded-md border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 py-2">
@@ -213,7 +213,7 @@ export default function DeaconAppTabs({
                       </span>
                     </div>
                     <div className="flex-1 flex flex-col gap-1">
-                      <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                      <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-red-700 dark:text-red-300">
                         Critical
                       </span>
                       <span className="flex flex-col items-center gap-0.5 rounded-md border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 py-2">
@@ -241,7 +241,7 @@ export default function DeaconAppTabs({
                   </p>
                   <div className="flex gap-2 text-xs font-semibold">
                     <div className="flex-1 flex flex-col gap-1">
-                      <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                      <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-green-700 dark:text-green-300">
                         Consistent
                       </span>
                       <span className="flex flex-col items-center gap-0.5 rounded-md border border-green-300 dark:border-green-800 bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 py-2">
@@ -250,7 +250,7 @@ export default function DeaconAppTabs({
                       </span>
                     </div>
                     <div className="flex-1 flex flex-col gap-1">
-                      <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                      <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">
                         Active
                       </span>
                       <span className="flex flex-col items-center gap-0.5 rounded-md border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 py-2">
@@ -259,7 +259,7 @@ export default function DeaconAppTabs({
                       </span>
                     </div>
                     <div className="flex-1 flex flex-col gap-1">
-                      <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                      <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-orange-700 dark:text-orange-300">
                         Occasional
                       </span>
                       <span className="flex flex-col items-center gap-0.5 rounded-md border border-orange-300 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 py-2">
@@ -268,7 +268,7 @@ export default function DeaconAppTabs({
                       </span>
                     </div>
                     <div className="flex-1 flex flex-col gap-1">
-                      <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                      <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-red-700 dark:text-red-300">
                         Lapsed
                       </span>
                       <span className="flex flex-col items-center gap-0.5 rounded-md border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 py-2">
