@@ -213,7 +213,47 @@ export default function DeaconAppTabs({
                 </div>
               )}
 
-              {shepherdingGroups && <GroupList groups={shepherdingGroups} showLegend />}
+              {/* Same consistent/active/occasional/lapsed classification Watson's
+                  weekly State of the Church email uses (last 8 Sunday services),
+                  styled to match the Current/At Risk/Critical boxes above --
+                  shown per-person as a badge under each name's last-seen pill
+                  below. Definitions only (no live counts), so unconditional. */}
+              <div className="flex gap-2 mb-6 text-xs font-semibold">
+                <div className="flex-1 flex flex-col gap-1">
+                  <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                    Consistent
+                  </span>
+                  <span className="text-center rounded-md border border-green-300 dark:border-green-800 bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 py-2">
+                    6-8 Sundays
+                  </span>
+                </div>
+                <div className="flex-1 flex flex-col gap-1">
+                  <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                    Active
+                  </span>
+                  <span className="text-center rounded-md border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 py-2">
+                    3-5 Sundays
+                  </span>
+                </div>
+                <div className="flex-1 flex flex-col gap-1">
+                  <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                    Occasional
+                  </span>
+                  <span className="text-center rounded-md border border-orange-300 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 py-2">
+                    1-2 Sundays
+                  </span>
+                </div>
+                <div className="flex-1 flex flex-col gap-1">
+                  <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                    Lapsed
+                  </span>
+                  <span className="text-center rounded-md border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 py-2">
+                    0, active before
+                  </span>
+                </div>
+              </div>
+
+              {shepherdingGroups && <GroupList groups={shepherdingGroups} />}
             </div>
           </div>
 
