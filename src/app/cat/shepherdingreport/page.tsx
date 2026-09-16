@@ -65,7 +65,7 @@ export default async function ShepherdingReportPage() {
                   Current
                 </span>
                 <span className="text-center rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 py-2">
-                  Missed &lt;2wks: {totals.wk2}
+                  0-1 wk: {totals.current}
                 </span>
               </div>
               <div className="flex-1 flex flex-col gap-1">
@@ -73,7 +73,7 @@ export default async function ShepherdingReportPage() {
                   At Risk
                 </span>
                 <span className="text-center rounded-md border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 py-2">
-                  Missed 3-5wks: {totals.wk35}
+                  2-3 wks: {totals.atRisk}
                 </span>
               </div>
               <div className="flex-1 flex flex-col gap-1">
@@ -81,7 +81,7 @@ export default async function ShepherdingReportPage() {
                   Critical
                 </span>
                 <span className="text-center rounded-md border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 py-2">
-                  Missed 6+wks: {totals.wk6}
+                  4+ wks: {totals.critical}
                 </span>
               </div>
             </div>

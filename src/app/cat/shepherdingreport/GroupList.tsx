@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-type Bucket = '6wk' | '3-5wk' | '2wk' | null
+type Bucket = 'critical' | 'at_risk' | 'current' | null
 type Engagement = 'consistent' | 'active' | 'occasional' | 'lapsed' | null
 
 interface Member {
@@ -22,15 +22,19 @@ interface Group {
 }
 
 // Mirrors jobs/congregation/elder_shepherding_report.py's bucket labels.
+// `unflagged` (bucket === null) is the rare old-first-timer edge case that
+// doesn't clear the critical visit-count gate -- distinct from the real
+// `current` bucket (0-1 wk out), so it gets its own honest, unstyled label
+// rather than reading as recently seen.
 const BUCKET_META: Record<string, { label: string; className: string }> = {
-  '6wk': { label: '6+ wks', className: 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800' },
-  '3-5wk': { label: '3-5 wks', className: 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800' },
-  '2wk': { label: '2 wks', className: 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-800' },
-  current: { label: 'Current', className: 'text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700' },
+  critical: { label: '4+ wks', className: 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800' },
+  at_risk: { label: '2-3 wks', className: 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800' },
+  current: { label: '0-1 wk', className: 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-800' },
+  unflagged: { label: 'Unflagged', className: 'text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700' },
 }
 
 function bucketKey(bucket: Bucket): string {
-  return bucket ?? 'current'
+  return bucket ?? 'unflagged'
 }
 
 // Mirrors jobs/connect_cards/state_of_church.py's weekly engagement tiers
@@ -226,7 +230,7 @@ export default function GroupList({ groups }: { groups: Group[] }) {
       </div>
 
       {groups.map((group) => {
-        const flagged = group.members.filter((m) => m.bucket !== null).length
+        const flagged = group.members.filter((m) => m.bucket === 'at_risk' || m.bucket === 'critical').length
         const initialOpen = bulk ? bulk.open : flagged > 0
         return (
           <details

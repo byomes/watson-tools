@@ -1,6 +1,6 @@
 import { watsonFetch } from '@/lib/watson'
 
-export type Bucket = '6wk' | '3-5wk' | '2wk' | null
+export type Bucket = 'critical' | 'at_risk' | 'current' | null
 export type Engagement = 'consistent' | 'active' | 'occasional' | 'lapsed' | null
 
 export interface Member {
@@ -25,9 +25,16 @@ export interface ReportState {
 }
 
 export interface Totals {
-  wk2: number
-  wk35: number
-  wk6: number
+  current: number
+  atRisk: number
+  critical: number
+}
+
+export interface EngagementTotals {
+  consistent: number
+  active: number
+  occasional: number
+  lapsed: number
 }
 
 export async function getShepherdingReport(): Promise<ReportState | null> {
@@ -42,12 +49,27 @@ export function computeShepherdingTotals(groups: Group[]): Totals {
   return groups.reduce(
     (acc, g) => {
       for (const m of g.members) {
-        if (m.bucket === '6wk') acc.wk6 += 1
-        else if (m.bucket === '3-5wk') acc.wk35 += 1
-        else if (m.bucket === '2wk') acc.wk2 += 1
+        if (m.bucket === 'critical') acc.critical += 1
+        else if (m.bucket === 'at_risk') acc.atRisk += 1
+        else if (m.bucket === 'current') acc.current += 1
       }
       return acc
     },
-    { wk2: 0, wk35: 0, wk6: 0 },
+    { current: 0, atRisk: 0, critical: 0 },
+  )
+}
+
+export function computeEngagementTotals(groups: Group[]): EngagementTotals {
+  return groups.reduce(
+    (acc, g) => {
+      for (const m of g.members) {
+        if (m.engagement === 'consistent') acc.consistent += 1
+        else if (m.engagement === 'active') acc.active += 1
+        else if (m.engagement === 'occasional') acc.occasional += 1
+        else if (m.engagement === 'lapsed') acc.lapsed += 1
+      }
+      return acc
+    },
+    { consistent: 0, active: 0, occasional: 0, lapsed: 0 },
   )
 }
