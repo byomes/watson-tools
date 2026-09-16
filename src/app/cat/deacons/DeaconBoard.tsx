@@ -661,11 +661,31 @@ function PersonCard({
   onUnlinkMember: (memberId: number) => Promise<string | null>
   onPersonCreated: (person: Person) => void
 }) {
+  // Same Connected (bucket) + Consistency (engagement) badges as
+  // wtsn.me/cat/shepherdingreport's GroupList, driven by the same
+  // server-computed fields -- see shepherdingReportShared.ts. Shown right
+  // next to the name so a deacon sees them without opening the card or
+  // scrolling.
+  const bucketMeta = p.bucket ? BUCKET_META[p.bucket] : null
+  const engagementMeta = p.engagement ? ENGAGEMENT_META[p.engagement] : null
+
   return (
     <div className="border-2 border-gray-200 dark:border-gray-700 rounded-xl p-4 bg-white dark:bg-gray-900">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <div className="font-bold text-gray-900 dark:text-gray-100 text-base leading-tight">{p.name}</div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="font-bold text-gray-900 dark:text-gray-100 text-base leading-tight">{p.name}</span>
+            {bucketMeta && p.days_since !== null && (
+              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${bucketMeta.className}`}>
+                {weeksLabel(p.days_since)}
+              </span>
+            )}
+            {engagementMeta && (
+              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${engagementMeta.className}`}>
+                {engagementMeta.label}
+              </span>
+            )}
+          </div>
           <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
             {p.deacon || 'Unassigned'} · Last seen: {formatLastSeen(p.last_seen)}
           </div>
@@ -775,33 +795,16 @@ function PersonCard({
 
           {(() => {
             const statusLabel = p.member_status ? MEMBER_STATUS_LABELS[p.member_status] : null
-            // Same Connected (bucket) + Consistency (engagement) badges as
-            // wtsn.me/cat/shepherdingreport's GroupList, driven by the same
-            // server-computed fields -- see shepherdingReportShared.ts.
-            const bucketMeta = p.bucket ? BUCKET_META[p.bucket] : null
-            const engagementMeta = p.engagement ? ENGAGEMENT_META[p.engagement] : null
             const hasPrayers = p.prayer_requests.length > 0
             const hasSteps = p.next_steps.length > 0
-            if (!statusLabel && !bucketMeta && !engagementMeta && !hasPrayers && !hasSteps) return null
+            if (!statusLabel && !hasPrayers && !hasSteps) return null
             return (
               <div className="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
-                {(statusLabel || bucketMeta || engagementMeta) && (
+                {statusLabel && (
                   <div className="flex items-center gap-2 flex-wrap">
-                    {statusLabel && (
-                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full border bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600">
-                        {statusLabel}
-                      </span>
-                    )}
-                    {bucketMeta && p.days_since !== null && (
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${bucketMeta.className}`}>
-                        {weeksLabel(p.days_since)}
-                      </span>
-                    )}
-                    {engagementMeta && (
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${engagementMeta.className}`}>
-                        {engagementMeta.label}
-                      </span>
-                    )}
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full border bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600">
+                      {statusLabel}
+                    </span>
                   </div>
                 )}
                 {hasPrayers && (
