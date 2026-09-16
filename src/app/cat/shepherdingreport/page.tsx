@@ -3,6 +3,7 @@ import { requireLiveTool } from '@/lib/requireLiveTool'
 import { getShepherdingReport, computeShepherdingTotals } from '@/lib/shepherdingReport'
 import { AutoThemeShell } from './AutoThemeShell'
 import GroupList from './GroupList'
+import ShepherdingStats from './ShepherdingStats'
 
 // statusBarStyle is fixed at 'default' (light/opaque, dark icons) -- iOS
 // reads this once at launch for an installed (Add to Home Screen) icon and
@@ -58,45 +59,7 @@ export default async function ShepherdingReportPage() {
             </p>
           )}
 
-          {totals && (
-            <div className="mb-6">
-              <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                Last Sunday
-              </p>
-              <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-2">
-                Tracks the number of weeks since a person&apos;s last Sunday attendance at church.
-              </p>
-              <div className="flex gap-2 text-xs font-semibold">
-                <div className="flex-1 flex flex-col gap-1">
-                  <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">
-                    Current
-                  </span>
-                  <span className="flex flex-col items-center gap-0.5 rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 py-2">
-                    <span>0-1 wk</span>
-                    <span className="text-sm font-bold">{totals.current}</span>
-                  </span>
-                </div>
-                <div className="flex-1 flex flex-col gap-1">
-                  <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">
-                    At Risk
-                  </span>
-                  <span className="flex flex-col items-center gap-0.5 rounded-md border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 py-2">
-                    <span>2-3 wks</span>
-                    <span className="text-sm font-bold">{totals.atRisk}</span>
-                  </span>
-                </div>
-                <div className="flex-1 flex flex-col gap-1">
-                  <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-red-700 dark:text-red-300">
-                    Critical
-                  </span>
-                  <span className="flex flex-col items-center gap-0.5 rounded-md border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 py-2">
-                    <span>4+ wks</span>
-                    <span className="text-sm font-bold">{totals.critical}</span>
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
+          {totals && data && <ShepherdingStats groups={data.groups} totals={totals} />}
 
           {data && <GroupList groups={data.groups} />}
         </div>

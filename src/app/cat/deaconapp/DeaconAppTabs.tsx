@@ -4,10 +4,11 @@ import { useRef, useState, type ReactNode } from 'react'
 import DeaconBoard, { type DeaconBoardHandle } from '../deacons/DeaconBoard'
 import AttendanceBoard from '../attendance/AttendanceBoard'
 import GroupList from '../shepherdingreport/GroupList'
+import ShepherdingStats from '../shepherdingreport/ShepherdingStats'
 import NotesFeed from './NotesFeed'
 import { logoutAction } from './actions'
 import { useDeaconTheme } from '@/lib/deaconTheme'
-import { computeEngagementTotals, type Group, type Totals } from '@/lib/shepherdingReportShared'
+import type { Group, Totals } from '@/lib/shepherdingReportShared'
 
 type Tab = 'deacons' | 'shepherding' | 'attendance' | 'notes'
 
@@ -109,7 +110,6 @@ export default function DeaconAppTabs({
   const [tab, setTab] = useState<Tab>('deacons')
   const [theme, toggleTheme] = useDeaconTheme()
   const boardRef = useRef<DeaconBoardHandle>(null)
-  const engagementTotals = shepherdingGroups ? computeEngagementTotals(shepherdingGroups) : null
 
   return (
     <>
@@ -185,99 +185,8 @@ export default function DeaconAppTabs({
                 </p>
               )}
 
-              {shepherdingTotals && (
-                <div className="mb-6">
-                  <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Last Sunday
-                  </p>
-                  <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-2">
-                    Tracks the number of weeks since a person&apos;s last Sunday attendance at church.
-                  </p>
-                  <div className="flex gap-2 text-xs font-semibold">
-                    <div className="flex-1 flex flex-col gap-1">
-                      <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">
-                        Current
-                      </span>
-                      <span className="flex flex-col items-center gap-0.5 rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 py-2">
-                        <span>0-1 wk</span>
-                        <span className="text-sm font-bold">{shepherdingTotals.current}</span>
-                      </span>
-                    </div>
-                    <div className="flex-1 flex flex-col gap-1">
-                      <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">
-                        At Risk
-                      </span>
-                      <span className="flex flex-col items-center gap-0.5 rounded-md border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 py-2">
-                        <span>2-3 wks</span>
-                        <span className="text-sm font-bold">{shepherdingTotals.atRisk}</span>
-                      </span>
-                    </div>
-                    <div className="flex-1 flex flex-col gap-1">
-                      <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-red-700 dark:text-red-300">
-                        Critical
-                      </span>
-                      <span className="flex flex-col items-center gap-0.5 rounded-md border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 py-2">
-                        <span>4+ wks</span>
-                        <span className="text-sm font-bold">{shepherdingTotals.critical}</span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Same consistent/active/occasional/lapsed classification Watson's
-                  weekly State of the Church email uses (last 8 Sunday services),
-                  styled to match the Current/At Risk/Critical boxes above --
-                  shown per-person as a badge under each name's last-seen pill
-                  below. Live counts (2026-09-15) computed client-side from the
-                  same per-member `engagement` field via computeEngagementTotals. */}
-              {engagementTotals && (
-                <div className="mb-6">
-                  <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Consistency
-                  </p>
-                  <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-2">
-                    Tracks a person&apos;s attendance over the last 8 weeks.
-                  </p>
-                  <div className="flex gap-2 text-xs font-semibold">
-                    <div className="flex-1 flex flex-col gap-1">
-                      <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-green-700 dark:text-green-300">
-                        Consistent
-                      </span>
-                      <span className="flex flex-col items-center gap-0.5 rounded-md border border-green-300 dark:border-green-800 bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 py-2">
-                        <span>6+ / 8 wks</span>
-                        <span className="text-sm font-bold">{engagementTotals.consistent}</span>
-                      </span>
-                    </div>
-                    <div className="flex-1 flex flex-col gap-1">
-                      <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">
-                        Active
-                      </span>
-                      <span className="flex flex-col items-center gap-0.5 rounded-md border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 py-2">
-                        <span>3-5 / 8 wks</span>
-                        <span className="text-sm font-bold">{engagementTotals.active}</span>
-                      </span>
-                    </div>
-                    <div className="flex-1 flex flex-col gap-1">
-                      <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-orange-700 dark:text-orange-300">
-                        Occasional
-                      </span>
-                      <span className="flex flex-col items-center gap-0.5 rounded-md border border-orange-300 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 py-2">
-                        <span>1-2 / 8 wks</span>
-                        <span className="text-sm font-bold">{engagementTotals.occasional}</span>
-                      </span>
-                    </div>
-                    <div className="flex-1 flex flex-col gap-1">
-                      <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-red-700 dark:text-red-300">
-                        Lapsed
-                      </span>
-                      <span className="flex flex-col items-center gap-0.5 rounded-md border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 py-2">
-                        <span>0 / 8 wks</span>
-                        <span className="text-sm font-bold">{engagementTotals.lapsed}</span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
+              {shepherdingTotals && shepherdingGroups && (
+                <ShepherdingStats groups={shepherdingGroups} totals={shepherdingTotals} />
               )}
 
               {shepherdingGroups && <GroupList groups={shepherdingGroups} />}
