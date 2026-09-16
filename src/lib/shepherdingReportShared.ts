@@ -2,8 +2,12 @@
 // getShepherdingReport() (which needs @/lib/watson, server-only) lives in
 // shepherdingReport.ts instead, which re-exports everything here.
 
-export type Bucket = 'critical' | 'at_risk' | 'current' | null
-export type Engagement = 'consistent' | 'active' | 'occasional' | 'lapsed' | null
+// Neither ever comes back null as of 2026-09-16 -- every member gets an
+// explicit bucket/engagement value so the totals below always sum to the
+// full roster (see elder_shepherding_report.py's _bucket() and
+// _member_engagement_tiers()).
+export type Bucket = 'critical' | 'at_risk' | 'current'
+export type Engagement = 'consistent' | 'active' | 'occasional' | 'lapsed'
 
 export interface Member {
   id: number

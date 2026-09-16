@@ -2,8 +2,10 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-type Bucket = 'critical' | 'at_risk' | 'current' | null
-type Engagement = 'consistent' | 'active' | 'occasional' | 'lapsed' | null
+// Neither ever comes back null as of 2026-09-16 -- see
+// shepherdingReportShared.ts's Bucket/Engagement types.
+type Bucket = 'critical' | 'at_risk' | 'current'
+type Engagement = 'consistent' | 'active' | 'occasional' | 'lapsed'
 
 interface Member {
   id: number
@@ -22,26 +24,17 @@ interface Group {
 }
 
 // Mirrors jobs/congregation/elder_shepherding_report.py's bucket labels.
-// `unflagged` (bucket === null) is the rare old-first-timer edge case that
-// doesn't clear the critical visit-count gate -- distinct from the real
-// `current` bucket (0-1 wk out), so it gets its own honest, unstyled label
-// rather than reading as recently seen.
-const BUCKET_META: Record<string, { label: string; className: string }> = {
+const BUCKET_META: Record<Bucket, { label: string; className: string }> = {
   critical: { label: '4+ wks', className: 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800' },
   at_risk: { label: '2-3 wks', className: 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800' },
   current: { label: '0-1 wk', className: 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-800' },
-  unflagged: { label: 'Unflagged', className: 'text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700' },
 }
 
-function bucketKey(bucket: Bucket): string {
-  return bucket ?? 'unflagged'
-}
-
-// Mirrors jobs/connect_cards/state_of_church.py's weekly engagement tiers
-// (same last-8-service-date visit-count thresholds, computed per-member by
-// jobs/congregation/elder_shepherding_report.py's _member_engagement_tiers).
-// null (no badge) means no attendance in the last 24 service dates either.
-const ENGAGEMENT_META: Record<string, { label: string; className: string }> = {
+// last-8-service-date (attendance + connect_cards) visit-count thresholds,
+// computed per-member by jobs/congregation/elder_shepherding_report.py's
+// _member_engagement_tiers() (diverged from state_of_church.py's version
+// 2026-09-16 -- see that function's docstring).
+const ENGAGEMENT_META: Record<Engagement, { label: string; className: string }> = {
   consistent: { label: 'Consistent', className: 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 border-green-300 dark:border-green-800' },
   active: { label: 'Active', className: 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800' },
   occasional: { label: 'Occasional', className: 'text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-950/40 border-orange-300 dark:border-orange-800' },
@@ -53,7 +46,6 @@ const ENGAGEMENT_META: Record<string, { label: string; className: string }> = {
 // family, minus the cursor-pointer/underline that only make sense on the
 // clickable last-seen badge.
 function EngagementBadge({ engagement }: { engagement: Engagement }) {
-  if (!engagement) return null
   const meta = ENGAGEMENT_META[engagement]
   return (
     <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${meta.className}`}>
@@ -150,7 +142,7 @@ const todayIso = () => new Date().toISOString().slice(0, 10)
 // inserts an attendance row for that date -- "last seen" is derived, not
 // stored) and refreshes the server data so the row's bucket/count reflect
 // the correction immediately.
-function LastSeenBadge({ member, className, idleLabel }: { member: Member; className: string; idleLabel?: string }) {
+function LastSeenBadge({ member, className }: { member: Member; className: string }) {
   const router = useRouter()
   const [status, setStatus] = useState<'idle' | 'saving' | 'error'>('idle')
   const inputId = `lastseen-${member.id}`
@@ -179,7 +171,7 @@ function LastSeenBadge({ member, className, idleLabel }: { member: Member; class
         htmlFor={inputId}
         className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border cursor-pointer underline decoration-dotted underline-offset-2 ${className}`}
       >
-        {status === 'saving' ? 'Saving…' : (idleLabel ?? weeksLabel(member.days_since))}
+        {status === 'saving' ? 'Saving…' : weeksLabel(member.days_since)}
       </label>
       <input
         id={inputId}
@@ -247,7 +239,7 @@ export default function GroupList({ groups }: { groups: Group[] }) {
             </summary>
             <ul className="divide-y divide-gray-100 dark:divide-gray-800">
               {group.members.map((m) => {
-                const meta = BUCKET_META[bucketKey(m.bucket)]
+                const meta = BUCKET_META[m.bucket]
                 return (
                   <li
                     key={m.id}
@@ -256,7 +248,7 @@ export default function GroupList({ groups }: { groups: Group[] }) {
                     <span className="flex-1 min-w-0 truncate text-gray-900 dark:text-gray-100">{m.name}</span>
                     <ContactIcons member={m} />
                     <span className="flex flex-col items-end gap-1 shrink-0">
-                      <LastSeenBadge member={m} className={meta.className} idleLabel={m.bucket === null ? meta.label : undefined} />
+                      <LastSeenBadge member={m} className={meta.className} />
                       <EngagementBadge engagement={m.engagement} />
                     </span>
                   </li>
