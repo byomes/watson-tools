@@ -23,7 +23,7 @@ function membersForLabel(key: LabelKey, allMembers: MemberWithGroup[]): MemberWi
 }
 
 // Full-width panel rendered below whichever stat-box row owns the tapped
-// label -- shared by the bucket row (Last Sunday) and engagement row
+// label -- shared by the bucket row (Connected) and engagement row
 // (Consistency) since both just need name + which deacon's group.
 function LabelPeopleList({ members }: { members: MemberWithGroup[] }) {
   if (members.length === 0) {
@@ -58,10 +58,10 @@ export default function ShepherdingStats({ groups, totals }: { groups: Group[]; 
     <>
       <div className="mb-6">
         <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-          Last Sunday
+          Connected
         </p>
         <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-2">
-          Tracks the number of weeks since a person&apos;s last Sunday attendance at church.
+          Tracks the number of weeks since a person attended a Sunday service.
         </p>
         <div className="flex gap-2 text-xs font-semibold">
           <button
