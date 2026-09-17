@@ -178,18 +178,37 @@ function DeaconNoteForm({ personId, onSubmit }: { personId: number; onSubmit: (n
 // Typeahead over the full roster (hundreds of names -- a plain <select>
 // like EditableSelect's isn't usable at that size). Filters client-side
 // since `people` is already fully loaded; no separate search endpoint.
+// Mirrors jobs/congregation/age_groups.py's kid(<13)/teen(13-17)/adult(18+)
+// thresholds -- computed from birthdate, never stored, so it can't go stale.
+function ageGroupLabel(birthdate: string | null): 'kid' | 'teen' | 'adult' | null {
+  if (!birthdate) return null
+  const born = new Date(birthdate)
+  if (Number.isNaN(born.getTime())) return null
+  const today = new Date()
+  let age = today.getFullYear() - born.getFullYear()
+  const hasHadBirthdayThisYear =
+    today.getMonth() > born.getMonth() ||
+    (today.getMonth() === born.getMonth() && today.getDate() >= born.getDate())
+  if (!hasHadBirthdayThisYear) age -= 1
+  if (age < 13) return 'kid'
+  if (age < 18) return 'teen'
+  return 'adult'
+}
+
 function PersonChip({
   name,
   tone,
   onRemove,
   removeTitle,
   disabled,
+  ageLabel,
 }: {
   name: string
   tone: 'blue' | 'purple' | 'emerald'
   onRemove: () => void
   removeTitle: string
   disabled?: boolean
+  ageLabel?: 'kid' | 'teen' | 'adult' | null
 }) {
   const toneClasses = {
     blue: 'bg-blue-50 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900',
@@ -199,6 +218,7 @@ function PersonChip({
   return (
     <span className={`inline-flex items-center gap-1 pl-3 pr-1.5 py-1.5 rounded-full border text-sm font-bold ${toneClasses}`}>
       {name}
+      {ageLabel && <span className="font-normal opacity-60 text-xs">· {ageLabel}</span>}
       <button
         type="button"
         onClick={onRemove}
@@ -601,6 +621,7 @@ function FamilySection({
                 disabled={state === 'saving'}
                 removeTitle={`Remove ${c.name} as child`}
                 onRemove={() => run(() => onUnlinkMember(c.id))}
+                ageLabel={ageGroupLabel(c.birthdate)}
               />
             ))
           ) : (
