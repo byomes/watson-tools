@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server'
 import { isToolLive } from '@/lib/requireLiveTool'
 import { watsonFetch } from '@/lib/watson'
+import { getSession } from '@/lib/deaconAuth'
 
 export async function GET() {
   if (!(await isToolLive('cat', 'deacons'))) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
+  if (!(await getSession())) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
   const res = await watsonFetch('/api/cat/deacons/list', {
