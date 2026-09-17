@@ -38,16 +38,22 @@ function verifySignature(payload: string, sig: string): boolean {
 }
 
 /** Asks the Watson backend which deacon(s) this PIN belongs to. Empty
- * array means wrong PIN; more than one means the caller must disambiguate. */
-export async function verifyPin(pin: string): Promise<string[]> {
+ * matches means wrong PIN; more than one means the caller must
+ * disambiguate. `locked` means clientIp has hit 5 consecutive wrong PINs
+ * (jobs/congregation/deacon_login_lockout.py) -- matches is always empty
+ * in that case, and no PIN was even checked. */
+export async function verifyPin(pin: string, clientIp: string): Promise<{ matches: string[]; locked: boolean }> {
   const res = await watsonFetch('/api/cat/deacons/verify_pin', {
     method: 'POST',
     headers: { 'X-Watson-Key': process.env.DEACONS_API_KEY ?? '' },
-    body: JSON.stringify({ pin }),
+    body: JSON.stringify({ pin, client_ip: clientIp }),
   })
-  if (!res.ok) return []
+  if (!res.ok) return { matches: [], locked: false }
   const data = await res.json().catch(() => null)
-  return Array.isArray(data?.matches) ? data.matches : []
+  return {
+    matches: Array.isArray(data?.matches) ? data.matches : [],
+    locked: Boolean(data?.locked),
+  }
 }
 
 function makeToken(name: string): string {

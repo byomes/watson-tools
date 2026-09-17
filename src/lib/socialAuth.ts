@@ -31,10 +31,12 @@ function verifySignature(payload: string, sig: string): boolean {
   return sigBuf.length === expectedBuf.length && timingSafeEqual(sigBuf, expectedBuf)
 }
 
-/** Checks the PIN against the same deacon_pins table deaconapp uses. */
-export async function checkPin(pin: string): Promise<boolean> {
-  const matches = await verifyPin(pin)
-  return matches.length > 0
+/** Checks the PIN against the same deacon_pins table deaconapp uses --
+ * and so shares its per-IP lockout too (deacon_login_lockout.py), which
+ * matters more here than there given this tool's larger blast radius. */
+export async function checkPin(pin: string, clientIp: string): Promise<{ ok: boolean; locked: boolean }> {
+  const { matches, locked } = await verifyPin(pin, clientIp)
+  return { ok: matches.length > 0, locked }
 }
 
 function makeToken(): string {

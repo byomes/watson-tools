@@ -8,6 +8,7 @@ import {
   destroySession,
   verifyPin,
 } from '@/lib/deaconAuth'
+import { serverClientIp } from '@/lib/clientIp'
 
 type LoginState = { error: string } | { choices: string[] } | undefined
 
@@ -16,8 +17,12 @@ export async function loginAction(
   formData: FormData,
 ): Promise<LoginState> {
   const pin = String(formData.get('pin') ?? '')
-  const matches = await verifyPin(pin)
+  const ip = await serverClientIp()
+  const { matches, locked } = await verifyPin(pin, ip)
 
+  if (locked) {
+    return { error: 'Too many attempts. Ask a leader to unlock it via Telegram, then try again.' }
+  }
   if (matches.length === 0) {
     return { error: 'Wrong PIN' }
   }
