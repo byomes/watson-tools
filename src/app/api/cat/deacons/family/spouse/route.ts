@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isToolLive } from '@/lib/requireLiveTool'
 import { watsonFetch } from '@/lib/watson'
-import { getSession } from '@/lib/deaconAuth'
+import { getSession, getSessionToken } from '@/lib/deaconAuth'
 
 export async function POST(req: NextRequest) {
   if (!(await isToolLive('cat', 'deacons'))) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
-  // Sender comes from the signed session, never from the request body --
-  // same reasoning as member/[id]/note/route.ts's author_deacon.
-  const deaconName = await getSession()
-  if (!deaconName) {
+  // Sender is resolved by Watson itself from X-Deacon-Session, never from
+  // the request body -- same reasoning as member/[id]/note/route.ts.
+  const sessionToken = await getSessionToken()
+  if (!(await getSession()) || !sessionToken) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
@@ -28,8 +28,8 @@ export async function POST(req: NextRequest) {
 
   const res = await watsonFetch('/api/cat/deacons/family/spouse', {
     method: 'POST',
-    headers: { 'X-Watson-Key': process.env.DEACONS_API_KEY ?? '' },
-    body: JSON.stringify({ member_id: memberId, spouse_id: spouseId, spouse_role: spouseRole, sender: deaconName }),
+    headers: { 'X-Watson-Key': process.env.DEACONS_API_KEY ?? '', 'X-Deacon-Session': sessionToken },
+    body: JSON.stringify({ member_id: memberId, spouse_id: spouseId, spouse_role: spouseRole }),
   })
 
   const resBody = await res.json().catch(() => ({}))

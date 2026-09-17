@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isToolLive } from '@/lib/requireLiveTool'
 import { watsonFetch } from '@/lib/watson'
-import { getSession } from '@/lib/deaconAuth'
+import { getSession, getSessionToken } from '@/lib/deaconAuth'
 
 export async function POST(req: NextRequest) {
   if (!(await isToolLive('cat', 'deacons'))) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
-  const deaconName = await getSession()
-  if (!deaconName) {
+  const sessionToken = await getSessionToken()
+  if (!(await getSession()) || !sessionToken) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
@@ -21,8 +21,8 @@ export async function POST(req: NextRequest) {
 
   const res = await watsonFetch('/api/cat/deacons/family/unlink', {
     method: 'POST',
-    headers: { 'X-Watson-Key': process.env.DEACONS_API_KEY ?? '' },
-    body: JSON.stringify({ member_id: memberId, sender: deaconName }),
+    headers: { 'X-Watson-Key': process.env.DEACONS_API_KEY ?? '', 'X-Deacon-Session': sessionToken },
+    body: JSON.stringify({ member_id: memberId }),
   })
 
   const resBody = await res.json().catch(() => ({}))

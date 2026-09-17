@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isToolLive } from '@/lib/requireLiveTool'
 import { watsonFetch } from '@/lib/watson'
-import { getSession } from '@/lib/deaconAuth'
+import { getSession, getSessionToken } from '@/lib/deaconAuth'
 
 // Edit/delete a deacon note. Per Bill's 2026-09-08 request, any logged-in
 // deacon-app user can edit or delete any note -- same "unified roster, not
@@ -13,8 +13,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (!(await isToolLive('cat', 'deacons'))) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
-  const deaconName = await getSession()
-  if (!deaconName) {
+  const sessionToken = await getSessionToken()
+  if (!(await getSession()) || !sessionToken) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
@@ -29,7 +29,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     `/api/cat/deacons/member/${encodeURIComponent(id)}/note/${encodeURIComponent(noteId)}`,
     {
       method: 'PATCH',
-      headers: { 'X-Watson-Key': process.env.DEACONS_API_KEY ?? '' },
+      headers: { 'X-Watson-Key': process.env.DEACONS_API_KEY ?? '', 'X-Deacon-Session': sessionToken },
       body: JSON.stringify({ note }),
     },
   )
@@ -42,8 +42,8 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   if (!(await isToolLive('cat', 'deacons'))) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
-  const deaconName = await getSession()
-  if (!deaconName) {
+  const sessionToken = await getSessionToken()
+  if (!(await getSession()) || !sessionToken) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
@@ -53,7 +53,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     `/api/cat/deacons/member/${encodeURIComponent(id)}/note/${encodeURIComponent(noteId)}`,
     {
       method: 'DELETE',
-      headers: { 'X-Watson-Key': process.env.DEACONS_API_KEY ?? '' },
+      headers: { 'X-Watson-Key': process.env.DEACONS_API_KEY ?? '', 'X-Deacon-Session': sessionToken },
     },
   )
 

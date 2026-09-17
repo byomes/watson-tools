@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isToolLive } from '@/lib/requireLiveTool'
 import { watsonFetch } from '@/lib/watson'
-import { getSession } from '@/lib/deaconAuth'
+import { getSession, getSessionToken } from '@/lib/deaconAuth'
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!(await isToolLive('cat', 'deacons'))) {
@@ -13,7 +13,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   // address/birthdate could be edited by anyone who found the URL, no PIN
   // needed. The standalone /cat/deacons page this predated (no PIN gate of
   // its own) is gone now, replaced by /cat/deaconapp -- see its login flow.
-  if (!(await getSession())) {
+  const sessionToken = await getSessionToken()
+  if (!(await getSession()) || !sessionToken) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
@@ -23,7 +24,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const res = await watsonFetch(`/api/cat/deacons/member/${encodeURIComponent(id)}`, {
     method: 'PATCH',
-    headers: { 'X-Watson-Key': process.env.DEACONS_API_KEY ?? '' },
+    headers: { 'X-Watson-Key': process.env.DEACONS_API_KEY ?? '', 'X-Deacon-Session': sessionToken },
     body: JSON.stringify(body),
   })
 
