@@ -3,7 +3,7 @@ import { requireLiveTool } from '@/lib/requireLiveTool'
 import ServantsBoard from './ServantsBoard'
 
 export const metadata: Metadata = {
-  title: 'Servant Teams',
+  title: 'Catalyst Servant Leaders',
   robots: { index: false, follow: false },
 }
 
@@ -17,7 +17,7 @@ export default async function ServantsPage() {
   return (
     <div className="min-h-screen bg-white py-10 px-4">
       <div className="max-w-md mx-auto">
-        <h1 className="text-2xl font-bold text-black mb-1">Servant Teams</h1>
+        <h1 className="text-2xl font-bold text-black mb-1">Catalyst Servant Leaders</h1>
         <p className="text-sm text-gray-500 mb-6">
           Please review your team below and confirm everyone&apos;s role and serving start date are correct.
           If someone&apos;s missing, use Add Person to add them.

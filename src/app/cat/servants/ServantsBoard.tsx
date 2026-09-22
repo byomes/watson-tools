@@ -35,18 +35,156 @@ function formatDate(iso: string | null): string {
   })
 }
 
-function ServantRow({ member }: { member: Servant }) {
+function isLeader(position: string | null): boolean {
+  return (position ?? '').toLowerCase().includes('leader')
+}
+
+// Inline edit form for one existing roster row — reuses the same
+// /api/cat/servants/add endpoint the "Add Person" flow uses: passing an
+// already-known member_id skips that endpoint's name-resolution entirely,
+// so it's a plain upsert of position/started_serving_date for this one
+// team_memberships row. Leaving the date field blank means "don't change
+// it" (same convention the backend already applies for Add).
+function EditServantForm({
+  member,
+  teamName,
+  onDone,
+  onCancel,
+}: {
+  member: Servant
+  teamName: string
+  onDone: () => void
+  onCancel: () => void
+}) {
+  const [position, setPosition] = useState(member.position ?? '')
+  const [date, setDate] = useState(member.started_serving_date ?? '')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const save = async () => {
+    setSubmitting(true)
+    setError(null)
+    const res = await fetch('/api/cat/servants/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: member.name,
+        team_name: teamName,
+        member_id: member.id,
+        position: position.trim() || undefined,
+        started_serving_date: date || undefined,
+      }),
+    })
+    if (res.ok) {
+      onDone()
+      return
+    }
+    const body = await res.json().catch(() => ({}))
+    setSubmitting(false)
+    setError(body.error || 'Could not save. Try again.')
+  }
+
   return (
-    <li className="flex items-center justify-between py-2.5 gap-3">
-      <div>
-        <span className="text-black dark:text-white text-[15px]">{member.name}</span>
-        {member.position && (
-          <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">{member.position}</span>
-        )}
+    <li className="py-3 px-3 my-1 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+      <p className="text-sm font-medium text-black dark:text-white mb-2">Edit {member.name}</p>
+      <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Role</label>
+      <input
+        type="text"
+        value={position}
+        onChange={(e) => setPosition(e.target.value)}
+        className="w-full mb-2 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-black dark:text-white bg-white dark:bg-gray-800"
+      />
+      <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Started serving</label>
+      <input
+        type="date"
+        value={date}
+        onChange={(e) => setDate(e.target.value)}
+        className="w-full mb-3 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-black dark:text-white bg-white dark:bg-gray-800"
+      />
+      {error && <p className="text-red-600 dark:text-red-400 text-xs mb-2">{error}</p>}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={save}
+          disabled={submitting}
+          className="px-3 py-2 rounded-lg bg-black text-white dark:bg-white dark:text-black text-sm font-medium disabled:opacity-50"
+        >
+          {submitting ? 'Saving…' : 'Save'}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-black dark:text-white text-sm"
+        >
+          Cancel
+        </button>
       </div>
-      <span className="shrink-0 text-xs text-gray-500 dark:text-gray-400">
-        {formatDate(member.started_serving_date)}
+    </li>
+  )
+}
+
+function ServantRow({
+  member,
+  teamName,
+  editing,
+  onStartEdit,
+  onDoneEdit,
+  onRemoved,
+}: {
+  member: Servant
+  teamName: string
+  editing: boolean
+  onStartEdit: () => void
+  onDoneEdit: () => void
+  onRemoved: () => void
+}) {
+  const [removing, setRemoving] = useState(false)
+
+  if (editing) {
+    return <EditServantForm member={member} teamName={teamName} onDone={onDoneEdit} onCancel={onDoneEdit} />
+  }
+
+  const handleRemove = async () => {
+    if (!confirm(`Mark ${member.name} as no longer serving on ${teamName}?`)) return
+    setRemoving(true)
+    const res = await fetch('/api/cat/servants/remove', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ member_id: member.id, team_name: teamName }),
+    })
+    if (res.ok) {
+      onRemoved()
+      return
+    }
+    setRemoving(false)
+  }
+
+  return (
+    <li className="grid grid-cols-[1fr_1fr_auto] items-center gap-2 py-2.5">
+      <span className={`text-black dark:text-white text-[15px] ${isLeader(member.position) ? 'font-semibold' : ''}`}>
+        {member.name}
       </span>
+      <span className="text-sm text-gray-600 dark:text-gray-300">{member.position || '—'}</span>
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+          {formatDate(member.started_serving_date)}
+        </span>
+        <button
+          type="button"
+          onClick={onStartEdit}
+          className="text-xs text-blue-600 dark:text-blue-400 font-medium whitespace-nowrap"
+        >
+          Edit
+        </button>
+        <button
+          type="button"
+          onClick={handleRemove}
+          disabled={removing}
+          className="text-xs text-red-600 dark:text-red-400 font-medium whitespace-nowrap disabled:opacity-50"
+        >
+          {removing ? '…' : 'No longer serving'}
+        </button>
+      </div>
     </li>
   )
 }
@@ -215,34 +353,50 @@ function AddPersonForm({
 
 function TeamSection({
   team,
-  filter,
   addingTeam,
+  editingId,
   onStartAdd,
   onDoneAdd,
+  onStartEdit,
+  onDoneEdit,
 }: {
   team: Team
-  filter: string
   addingTeam: string | null
+  editingId: number | null
   onStartAdd: (team: string) => void
   onDoneAdd: () => void
+  onStartEdit: (id: number) => void
+  onDoneEdit: () => void
 }) {
-  const visible = team.members.filter((m) => m.name.toLowerCase().includes(filter.toLowerCase()))
   const isAdding = addingTeam === team.team_name
 
   return (
     <section className="mb-6">
-      <details open={filter.length > 0 || isAdding}>
+      <details open={isAdding}>
         <summary className="text-lg font-semibold text-black dark:text-white mb-2 cursor-pointer select-none">
           {team.team_name}{' '}
           <span className="text-sm font-normal text-gray-500 dark:text-gray-400">({team.members.length})</span>
         </summary>
-        <ul className="divide-y divide-gray-200 dark:divide-gray-800 border-y border-gray-200 dark:border-gray-800 mt-2">
-          {visible.map((m) => (
-            <ServantRow key={m.id} member={m} />
+
+        {team.members.length > 0 && (
+          <div className="grid grid-cols-[1fr_1fr_auto] gap-2 border-b border-gray-300 dark:border-gray-700 pb-1.5 mt-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            <span>Name</span>
+            <span>Role</span>
+            <span>Started Serving</span>
+          </div>
+        )}
+        <ul className="divide-y divide-gray-200 dark:divide-gray-800 border-b border-gray-200 dark:border-gray-800">
+          {team.members.map((m) => (
+            <ServantRow
+              key={m.id}
+              member={m}
+              teamName={team.team_name}
+              editing={editingId === m.id}
+              onStartEdit={() => onStartEdit(m.id)}
+              onDoneEdit={onDoneEdit}
+              onRemoved={onDoneEdit}
+            />
           ))}
-          {visible.length === 0 && filter && (
-            <li className="py-3 text-sm text-gray-400 dark:text-gray-500">No matching names.</li>
-          )}
           {isAdding && <AddPersonForm teamName={team.team_name} onDone={onDoneAdd} onCancel={onDoneAdd} />}
         </ul>
         {!isAdding && (
@@ -261,9 +415,9 @@ function TeamSection({
 
 export default function ServantsBoard() {
   const [data, setData] = useState<StateResponse | null>(null)
-  const [filter, setFilter] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [addingTeam, setAddingTeam] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<number | null>(null)
 
   const fetchState = async () => {
     setError(null)
@@ -289,6 +443,11 @@ export default function ServantsBoard() {
     fetchState()
   }
 
+  const handleDoneEdit = () => {
+    setEditingId(null)
+    fetchState()
+  }
+
   if (!data) {
     return <p className="text-gray-500 dark:text-gray-400">{error ?? 'Loading…'}</p>
   }
@@ -299,24 +458,18 @@ export default function ServantsBoard() {
         {totalPeople} people across {data.teams.length} teams.
       </p>
 
-      <input
-        type="text"
-        placeholder="Filter names…"
-        value={filter}
-        onChange={(e) => setFilter(e.target.value)}
-        className="w-full mb-6 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-black dark:text-white bg-white dark:bg-gray-800 placeholder-gray-400 dark:placeholder-gray-500"
-      />
-
       {error && <p className="text-red-600 dark:text-red-400 text-sm mb-4">{error}</p>}
 
       {data.teams.map((team) => (
         <TeamSection
           key={team.team_name}
           team={team}
-          filter={filter}
           addingTeam={addingTeam}
+          editingId={editingId}
           onStartAdd={setAddingTeam}
           onDoneAdd={handleDoneAdd}
+          onStartEdit={setEditingId}
+          onDoneEdit={handleDoneEdit}
         />
       ))}
     </div>
