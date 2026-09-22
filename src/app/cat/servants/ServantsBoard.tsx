@@ -180,9 +180,11 @@ function ServantRow({
           type="button"
           onClick={handleRemove}
           disabled={removing}
-          className="text-xs text-red-600 dark:text-red-400 font-medium whitespace-nowrap disabled:opacity-50"
+          title="No longer serving"
+          aria-label={`Mark ${member.name} as no longer serving on ${teamName}`}
+          className="shrink-0 flex items-center justify-center w-7 h-7 rounded bg-red-600 hover:bg-red-700 text-white text-sm font-bold leading-none disabled:opacity-50"
         >
-          {removing ? '…' : 'No longer serving'}
+          {removing ? '…' : '✕'}
         </button>
       </div>
     </li>
