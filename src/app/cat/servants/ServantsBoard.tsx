@@ -161,9 +161,14 @@ function ServantRow({
 
   return (
     <li className="grid grid-cols-[1fr_1fr_auto] items-center gap-2 py-2.5">
-      <span className={`text-black dark:text-white text-[15px] ${isLeader(member.position) ? 'font-semibold' : ''}`}>
+      <button
+        type="button"
+        onClick={onStartEdit}
+        title="Tap to edit"
+        className={`text-left text-black dark:text-white text-[15px] underline decoration-dotted decoration-gray-400 hover:decoration-solid ${isLeader(member.position) ? 'font-semibold' : ''}`}
+      >
         {member.name}
-      </span>
+      </button>
       <span className="text-sm text-gray-600 dark:text-gray-300">{member.position || '—'}</span>
       <div className="flex items-center gap-2">
         <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
@@ -171,18 +176,11 @@ function ServantRow({
         </span>
         <button
           type="button"
-          onClick={onStartEdit}
-          className="text-xs text-blue-600 dark:text-blue-400 font-medium whitespace-nowrap"
-        >
-          Edit
-        </button>
-        <button
-          type="button"
           onClick={handleRemove}
           disabled={removing}
           title="No longer serving"
           aria-label={`Mark ${member.name} as no longer serving on ${teamName}`}
-          className="shrink-0 flex items-center justify-center w-7 h-7 rounded bg-red-600 hover:bg-red-700 text-white text-sm font-bold leading-none disabled:opacity-50"
+          className="shrink-0 flex items-center justify-center w-6 h-6 rounded border-2 border-red-600 bg-white dark:bg-gray-950 text-red-600 text-xs font-bold leading-none disabled:opacity-50"
         >
           {removing ? '…' : '✕'}
         </button>
