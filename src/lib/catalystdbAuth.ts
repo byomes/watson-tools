@@ -1,27 +1,27 @@
 import { cookies } from 'next/headers'
 import { createHmac, timingSafeEqual } from 'node:crypto'
+import { watsonFetch } from '@/lib/watson'
 
-// PIN gate for /cat/catalystdb -- full members-database admin screen (Bill's
-// 2026-09-23 request). Own PIN (CATALYSTDB_PIN, 6 digits -- longer than the
-// 4-digit scratch/deacon PINs since this one can edit every member field,
-// not review a throwaway draft), same HMAC-signed-cookie pattern as
-// scratchAuth.ts. Every API route under src/app/api/cat/catalystdb/* must
-// call requireCatalystDBSession() itself -- the page-level gate in
+// Per-person PIN gate for /cat/catalystdb (2026-09-23, replacing the
+// original single shared PIN at Bill's request -- he and Donna each use
+// their own PIN now). PINs themselves live in catalystdb_pins on the
+// Watson side (catalystdb_web.py verify_pin); this file turns a verified
+// person name into a signed session cookie, mirroring deaconAuth.ts's
+// pattern but WITHOUT that app's extra session-token layer -- catalystdb
+// has exactly two known users, not a whole deacon roster, so a signed
+// cookie naming who logged in is enough on its own.
+//
+// Every API route under src/app/api/cat/catalystdb/* must call
+// requireCatalystDBSession() itself -- the page-level gate in
 // (gated)/layout.tsx does not protect API routes.
 
 const COOKIE_NAME = 'catalystdb_session'
-const SESSION_TTL_MS = 12 * 60 * 60 * 1000 // 12 hours -- shorter than scratch's 30 days given the blast radius here
+const SESSION_TTL_MS = 12 * 60 * 60 * 1000 // 12 hours -- shorter than deacon/scratch given the edit blast radius here
 
 function authSecret(): string {
   const secret = process.env.AUTH_SECRET
   if (!secret) throw new Error('AUTH_SECRET is not set')
   return secret
-}
-
-function catalystdbPin(): string {
-  const pin = process.env.CATALYSTDB_PIN
-  if (!pin) throw new Error('CATALYSTDB_PIN is not set')
-  return pin
 }
 
 function sign(payload: string): string {
@@ -35,32 +35,50 @@ function verifySignature(payload: string, sig: string): boolean {
   return sigBuf.length === expectedBuf.length && timingSafeEqual(sigBuf, expectedBuf)
 }
 
-export function checkPin(pin: string): boolean {
-  const expected = catalystdbPin()
-  const pinBuf = Buffer.from(pin)
-  const expectedBuf = Buffer.from(expected)
-  return pinBuf.length === expectedBuf.length && timingSafeEqual(pinBuf, expectedBuf)
+/** Asks the Watson backend which person this PIN belongs to. Empty matches
+ * means wrong PIN; `locked` means clientIp has hit
+ * catalystdb_login_lockout.MAX_FAILED_ATTEMPTS (3) consecutive wrong
+ * PINs -- matches is always empty in that case, and no PIN was even
+ * checked. */
+export async function verifyPin(pin: string, clientIp: string): Promise<{ matches: string[]; locked: boolean }> {
+  const res = await watsonFetch('/api/cat/catalystdb/verify_pin', {
+    method: 'POST',
+    headers: { 'X-Watson-Key': process.env.CATALYSTDB_API_KEY ?? '' },
+    body: JSON.stringify({ pin, client_ip: clientIp }),
+  })
+  if (!res.ok) return { matches: [], locked: false }
+  const data = await res.json().catch(() => null)
+  return {
+    matches: Array.isArray(data?.matches) ? data.matches : [],
+    locked: Boolean(data?.locked),
+  }
 }
 
-function makeToken(): string {
+function makeToken(name: string): string {
   const expires = Date.now() + SESSION_TTL_MS
-  const payload = `catalystdb.${expires}`
+  const encodedName = Buffer.from(name, 'utf8').toString('base64url')
+  const payload = `catalystdb.${encodedName}.${expires}`
   return `${payload}.${sign(payload)}`
 }
 
-function tokenValid(token: string): boolean {
+function tokenValid(token: string): string | null {
   const parts = token.split('.')
-  if (parts.length !== 3) return false
-  const [subject, expiresStr, sig] = parts
-  if (subject !== 'catalystdb') return false
-  if (!verifySignature(`${subject}.${expiresStr}`, sig)) return false
+  if (parts.length !== 4) return null
+  const [subject, encodedName, expiresStr, sig] = parts
+  if (subject !== 'catalystdb') return null
+  if (!verifySignature(`${subject}.${encodedName}.${expiresStr}`, sig)) return null
   const expires = Number(expiresStr)
-  return Number.isFinite(expires) && Date.now() <= expires
+  if (!Number.isFinite(expires) || Date.now() > expires) return null
+  try {
+    return Buffer.from(encodedName, 'base64url').toString('utf8')
+  } catch {
+    return null
+  }
 }
 
-export async function createSession() {
+export async function createSession(name: string) {
   const store = await cookies()
-  store.set(COOKIE_NAME, makeToken(), {
+  store.set(COOKIE_NAME, makeToken(name), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
@@ -74,10 +92,16 @@ export async function destroySession() {
   store.delete(COOKIE_NAME)
 }
 
-export async function isLoggedIn(): Promise<boolean> {
+/** Returns the logged-in person's name, or null if not logged in. */
+export async function getSession(): Promise<string | null> {
   const store = await cookies()
   const token = store.get(COOKIE_NAME)?.value
-  return !!token && tokenValid(token)
+  if (!token) return null
+  return tokenValid(token)
+}
+
+export async function isLoggedIn(): Promise<boolean> {
+  return (await getSession()) !== null
 }
 
 export async function requireCatalystDBSession(): Promise<boolean> {
