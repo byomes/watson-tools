@@ -17,11 +17,11 @@ export default async function CatalystDBPage() {
     <div className="flex flex-col h-screen">
       <div className="flex items-center justify-between gap-3 px-4 py-5 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 shrink-0">
         <div className="flex items-center gap-3">
-          <span className="text-xs text-slate-500 dark:text-slate-400">{name}</span>
+          <span className="text-sm text-slate-500 dark:text-slate-400">{name}</span>
           <form action={logoutAction}>
             <button
               type="submit"
-              className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white underline"
+              className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white underline"
             >
               Log out
             </button>
