@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { COLUMNS, FILTERABLE, type Col } from './columns'
+import MemberDetail from './MemberDetail'
 
 type Member = Record<string, string | number | null>
 
@@ -60,6 +61,7 @@ export default function CatalystDBBoard() {
   const [newName, setNewName] = useState('')
   const [newEmail, setNewEmail] = useState('')
   const [newPhone, setNewPhone] = useState('')
+  const [openId, setOpenId] = useState<number | null>(null)
 
   useEffect(() => {
     api('state')
@@ -160,6 +162,31 @@ export default function CatalystDBBoard() {
     }
   }
 
+  // The single-field /update endpoint already handles one row + one field;
+  // a multi-field save from the detail card just fires one call per
+  // changed field (there are only ever a handful at once) rather than
+  // needing a new batch-fields backend route.
+  async function saveDetail(id: number, changes: Record<string, string | number>) {
+    setMembers((m) => m && m.map((row) => (row.id === id ? { ...row, ...changes } : row)))
+    try {
+      await Promise.all(Object.entries(changes).map(([field, value]) => api('update', { ids: [id], field, value })))
+      setOpenId(null)
+    } catch (e) {
+      setError(String((e as Error).message ?? e))
+    }
+  }
+
+  async function deactivateOne(id: number) {
+    if (!confirm('Deactivate this member? This can be undone by re-activating.')) return
+    setMembers((m) => m && m.map((row) => (row.id === id ? { ...row, active: 0 } : row)))
+    try {
+      await api('deactivate', { ids: [id] })
+      setOpenId(null)
+    } catch (e) {
+      setError(String((e as Error).message ?? e))
+    }
+  }
+
   async function addMember() {
     if (!newName.trim()) return
     try {
@@ -183,6 +210,18 @@ export default function CatalystDBBoard() {
         {error ? <span className="text-red-600 dark:text-red-400">{error}</span> : 'Loading…'}
       </div>
     )
+
+  const openMember = openId != null ? members.find((m) => m.id === openId) : null
+  if (openMember) {
+    return (
+      <MemberDetail
+        member={openMember}
+        onClose={() => setOpenId(null)}
+        onSave={(changes) => saveDetail(openId as number, changes)}
+        onDeactivate={() => deactivateOne(openId as number)}
+      />
+    )
+  }
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950">
@@ -264,7 +303,7 @@ export default function CatalystDBBoard() {
         <table className="min-w-full text-sm border-collapse">
           <thead className="sticky top-0 z-10">
             <tr className="bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-              <th className="sticky left-0 z-20 bg-slate-100 dark:bg-slate-900 px-3 py-2 w-9">
+              <th className="sticky left-0 z-20 bg-slate-100 dark:bg-slate-900 px-3 py-2 w-14">
                 <input type="checkbox" checked={selected.size > 0 && selected.size === filtered.length} onChange={toggleSelectAll} />
               </th>
               {visibleCols.map((c) => (
@@ -286,7 +325,16 @@ export default function CatalystDBBoard() {
               return (
                 <tr key={id} className={`border-b border-slate-100 dark:border-slate-800 ${isSelected ? 'bg-blue-50 dark:bg-blue-950/40' : 'hover:bg-slate-50 dark:hover:bg-slate-900'}`}>
                   <td className={`sticky left-0 z-10 px-3 py-1.5 ${isSelected ? 'bg-blue-50 dark:bg-blue-950/40' : 'bg-white dark:bg-slate-950'}`}>
-                    <input type="checkbox" checked={isSelected} onChange={() => toggleSelectRow(id)} />
+                    <div className="flex items-center gap-2">
+                      <input type="checkbox" checked={isSelected} onChange={() => toggleSelectRow(id)} />
+                      <button
+                        onClick={() => setOpenId(id)}
+                        title="Open full record"
+                        className="text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                      >
+                        ⤢
+                      </button>
+                    </div>
                   </td>
                   {visibleCols.map((c) => {
                     const value = m[c.key]
