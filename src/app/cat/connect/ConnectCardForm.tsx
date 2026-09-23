@@ -12,6 +12,16 @@ interface StoredProfile {
   phone: string
 }
 
+interface BirthdayEntry {
+  name: string
+  date: string
+}
+
+interface AnniversaryEntry {
+  names: string
+  date: string
+}
+
 const STORAGE_KEY = 'catalyst_connect_card_profile'
 const CHAR_LIMIT = 3000
 
@@ -115,6 +125,9 @@ export default function ConnectCardForm() {
   const [restrictToLeadership, setRestrictToLeadership] = useState(false)
   const [prayerRequest, setPrayerRequest] = useState('')
 
+  const [birthdays, setBirthdays] = useState<BirthdayEntry[]>([])
+  const [anniversaries, setAnniversaries] = useState<AnniversaryEntry[]>([])
+
   const [hasStoredProfile, setHasStoredProfile] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -180,6 +193,30 @@ export default function ConnectCardForm() {
     )
   }
 
+  function addBirthday() {
+    setBirthdays(prev => [...prev, { name: '', date: '' }])
+  }
+
+  function updateBirthday(index: number, field: keyof BirthdayEntry, value: string) {
+    setBirthdays(prev => prev.map((b, i) => (i === index ? { ...b, [field]: value } : b)))
+  }
+
+  function removeBirthday(index: number) {
+    setBirthdays(prev => prev.filter((_, i) => i !== index))
+  }
+
+  function addAnniversary() {
+    setAnniversaries(prev => [...prev, { names: '', date: '' }])
+  }
+
+  function updateAnniversary(index: number, field: keyof AnniversaryEntry, value: string) {
+    setAnniversaries(prev => prev.map((a, i) => (i === index ? { ...a, [field]: value } : a)))
+  }
+
+  function removeAnniversary(index: number) {
+    setAnniversaries(prev => prev.filter((_, i) => i !== index))
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
@@ -201,6 +238,8 @@ export default function ConnectCardForm() {
           howHeard: howHeard || null,
           restrictToLeadership,
           prayerRequest: prayerRequest || null,
+          birthdays: birthdays.filter(b => b.name.trim() || b.date.trim()),
+          anniversaries: anniversaries.filter(a => a.names.trim() || a.date.trim()),
           website,
           renderedAt: renderedAtRef.current,
           userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
@@ -232,6 +271,8 @@ export default function ConnectCardForm() {
       setHowHeard('')
       setRestrictToLeadership(false)
       setPrayerRequest('')
+      setBirthdays([])
+      setAnniversaries([])
 
       setSuccess(true)
       if (successTimeout.current) clearTimeout(successTimeout.current)
@@ -496,6 +537,111 @@ export default function ConnectCardForm() {
             />
             <CharCounter value={prayerRequest} />
           </div>
+
+          <fieldset className="space-y-3">
+            <legend className={labelClass}>
+              Family Birthdays &amp; Anniversaries
+            </legend>
+            <p className={`text-black font-normal text-[15px] leading-relaxed ${HEADING_FONT}`}>
+              We&apos;re striving to have birthdates on file for everyone in our
+              church family. Please help us by adding all the birthdays in
+              your family below, and your anniversary if you&apos;re married.
+            </p>
+
+            <div className="space-y-3">
+              {birthdays.map((b, i) => (
+                <div key={i} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 items-start">
+                  <div>
+                    {i === 0 && (
+                      <label className="block text-black font-bold text-xs mb-1">Name</label>
+                    )}
+                    <input
+                      type="text"
+                      placeholder="Name"
+                      value={b.name}
+                      onChange={e => updateBirthday(i, 'name', e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    {i === 0 && (
+                      <label className="block text-black font-bold text-xs mb-1">Birthdate</label>
+                    )}
+                    <input
+                      type="date"
+                      value={b.date}
+                      onChange={e => updateBirthday(i, 'date', e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div className={i === 0 ? 'sm:pt-[26px]' : ''}>
+                    <button
+                      type="button"
+                      onClick={() => removeBirthday(i)}
+                      aria-label="Remove birthday"
+                      className="w-full sm:w-auto text-red-600 text-sm px-3 py-3 hover:text-red-800"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addBirthday}
+                className={`text-sm font-medium text-[#131313] underline underline-offset-2 hover:text-black ${HEADING_FONT}`}
+              >
+                + Add a Birthday
+              </button>
+            </div>
+
+            <div className="space-y-3 pt-2">
+              {anniversaries.map((a, i) => (
+                <div key={i} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 items-start">
+                  <div>
+                    {i === 0 && (
+                      <label className="block text-black font-bold text-xs mb-1">Couple&apos;s Names</label>
+                    )}
+                    <input
+                      type="text"
+                      placeholder="e.g. John & Jane Smith"
+                      value={a.names}
+                      onChange={e => updateAnniversary(i, 'names', e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    {i === 0 && (
+                      <label className="block text-black font-bold text-xs mb-1">Anniversary Date</label>
+                    )}
+                    <input
+                      type="date"
+                      value={a.date}
+                      onChange={e => updateAnniversary(i, 'date', e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div className={i === 0 ? 'sm:pt-[26px]' : ''}>
+                    <button
+                      type="button"
+                      onClick={() => removeAnniversary(i)}
+                      aria-label="Remove anniversary"
+                      className="w-full sm:w-auto text-red-600 text-sm px-3 py-3 hover:text-red-800"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addAnniversary}
+                className={`text-sm font-medium text-[#131313] underline underline-offset-2 hover:text-black ${HEADING_FONT}`}
+              >
+                + Add an Anniversary
+              </button>
+            </div>
+          </fieldset>
         </div>
       )}
 

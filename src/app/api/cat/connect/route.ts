@@ -5,6 +5,16 @@ const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email'
 const SENDER_EMAIL = 'watson@williamckyomes.com'
 const SENDER_NAME = 'Watson'
 
+interface BirthdayEntry {
+  name: string
+  date: string
+}
+
+interface AnniversaryEntry {
+  names: string
+  date: string
+}
+
 interface ConnectCardPayload {
   campus: 'wilmington' | 'online'
   firstName: string
@@ -17,6 +27,8 @@ interface ConnectCardPayload {
   howHeard: string | null
   restrictToLeadership: boolean
   prayerRequest: string | null
+  birthdays: BirthdayEntry[]
+  anniversaries: AnniversaryEntry[]
   userAgent: string
   autofillLoaded: boolean
   localStorageAvailable: boolean
@@ -63,6 +75,26 @@ function escapeHtmlMultiline(value: string): string {
   return escapeHtml(value).replace(/\n/g, '<br>\n')
 }
 
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
+
+// Formats an <input type="date"> value ("YYYY-MM-DD") for the email body.
+// Parsed manually rather than via `new Date(value)` -- that constructor
+// treats a date-only string as UTC midnight, which shifts a day backward
+// in any timezone west of UTC (exactly the bug that bit the giving
+// redirect's date math before). Falls back to the raw value if it isn't
+// in the expected shape, so a malformed submission never throws here.
+function formatDateDisplay(value: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) return value
+  const [, year, month, day] = match
+  const monthName = MONTH_NAMES[Number(month) - 1]
+  if (!monthName) return value
+  return `${monthName} ${Number(day)}, ${year}`
+}
+
 // Matches Bill's existing inbox convention (see ConnectCardSample.png):
 // <b>Field Label</b><br>Value<br><br> per field, omitted entirely when empty.
 function field(label: string, valueHtml: string): string {
@@ -103,6 +135,20 @@ function buildHtmlBody(data: ConnectCardPayload): string {
 
   if (data.prayerRequest && data.prayerRequest.trim()) {
     parts.push(field('How can we pray for you this week?', escapeHtmlMultiline(data.prayerRequest)))
+  }
+
+  if (data.birthdays.length > 0) {
+    const birthdaysHtml = data.birthdays
+      .map(b => `${escapeHtml(b.name || '(no name given)')}, ${formatDateDisplay(b.date)}`)
+      .join('<br>\n')
+    parts.push(field('Family Birthdays', birthdaysHtml))
+  }
+
+  if (data.anniversaries.length > 0) {
+    const anniversariesHtml = data.anniversaries
+      .map(a => `${escapeHtml(a.names || '(no names given)')}, ${formatDateDisplay(a.date)}`)
+      .join('<br>\n')
+    parts.push(field('Anniversaries', anniversariesHtml))
   }
 
   return parts.join('')
@@ -166,6 +212,24 @@ export async function POST(req: NextRequest) {
     howHeard: (data.howHeard ?? '').trim() || null,
     restrictToLeadership: Boolean(data.restrictToLeadership),
     prayerRequest: (data.prayerRequest ?? '').trim() || null,
+    birthdays: Array.isArray(data.birthdays)
+      ? data.birthdays
+          .filter((b: unknown): b is { name?: unknown; date?: unknown } => typeof b === 'object' && b !== null)
+          .map((b: { name?: unknown; date?: unknown }) => ({
+            name: typeof b.name === 'string' ? b.name.trim().slice(0, 200) : '',
+            date: typeof b.date === 'string' ? b.date.trim().slice(0, 20) : '',
+          }))
+          .filter((b: BirthdayEntry) => b.name || b.date)
+      : [],
+    anniversaries: Array.isArray(data.anniversaries)
+      ? data.anniversaries
+          .filter((a: unknown): a is { names?: unknown; date?: unknown } => typeof a === 'object' && a !== null)
+          .map((a: { names?: unknown; date?: unknown }) => ({
+            names: typeof a.names === 'string' ? a.names.trim().slice(0, 200) : '',
+            date: typeof a.date === 'string' ? a.date.trim().slice(0, 20) : '',
+          }))
+          .filter((a: AnniversaryEntry) => a.names || a.date)
+      : [],
     // Truncated -- a User-Agent string is never legitimately this long, and
     // this field is diagnostic-only, not something to let grow unbounded.
     userAgent: typeof data.userAgent === 'string' ? data.userAgent.trim().slice(0, 500) : '',
