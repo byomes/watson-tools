@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { COLUMNS, FILTERABLE, type Col } from './columns'
 import MemberDetail from './MemberDetail'
 
@@ -60,6 +60,7 @@ export default function CatalystDBBoard() {
   const [sort, setSort] = useState<{ key: string; dir: 1 | -1 }>({ key: 'name', dir: 1 })
   const [visible, setVisible] = useState(DEFAULT_VISIBLE)
   const [showColPicker, setShowColPicker] = useState(false)
+  const colPickerRef = useRef<HTMLDivElement>(null)
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [editing, setEditing] = useState<{ id: number; key: string } | null>(null)
   const [bulkField, setBulkField] = useState(COLUMNS[0].key)
@@ -77,6 +78,17 @@ export default function CatalystDBBoard() {
       .then((d) => setMembers(d.members))
       .catch((e) => setError(String(e.message ?? e)))
   }, [])
+
+  useEffect(() => {
+    if (!showColPicker) return
+    function onPointerDown(e: MouseEvent) {
+      if (colPickerRef.current && !colPickerRef.current.contains(e.target as Node)) {
+        setShowColPicker(false)
+      }
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    return () => document.removeEventListener('mousedown', onPointerDown)
+  }, [showColPicker])
 
   const filtered = useMemo(() => {
     if (!members) return []
@@ -245,7 +257,7 @@ export default function CatalystDBBoard() {
           placeholder="Search name, email, phone, notes…"
           className="flex-1 min-w-[180px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400"
         />
-        <div className="relative">
+        <div className="relative" ref={colPickerRef}>
           <button
             onClick={() => setShowColPicker((s) => !s)}
             className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
