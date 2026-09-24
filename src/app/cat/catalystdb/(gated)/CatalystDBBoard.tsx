@@ -263,6 +263,13 @@ export default function CatalystDBBoard() {
             </div>
           )}
         </div>
+        <button
+          onClick={() => setFilters({})}
+          disabled={!Object.values(filters).some((v) => v)}
+          className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Reset Filters
+        </button>
         {FILTERABLE.map((c) => (
           <select
             key={c.key}
@@ -326,13 +333,20 @@ export default function CatalystDBBoard() {
         </div>
         {mobileFiltersOpen && (
           <div className="px-4 pb-3 flex flex-col gap-2 border-t border-slate-100 dark:border-slate-800 pt-3">
+            <button
+              onClick={() => setFilters({})}
+              disabled={!Object.values(filters).some((v) => v)}
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Reset Filters
+            </button>
             <div className="flex items-center gap-2">
               <select
                 value={sort.key}
                 onChange={(e) => setSort((s) => ({ ...s, key: e.target.value }))}
                 className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-2 text-sm text-slate-700 dark:text-slate-300"
               >
-                {['name', 'partner', 'connected', 'active_v2', 'campus_preference', 'deacon'].map((k) => (
+                {['name', 'partner', 'connected', 'active', 'campus_preference', 'deacon'].map((k) => (
                   <option key={k} value={k}>
                     Sort: {COLUMNS.find((c) => c.key === k)?.label}
                   </option>
