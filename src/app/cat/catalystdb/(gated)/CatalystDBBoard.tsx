@@ -523,7 +523,7 @@ export default function CatalystDBBoard() {
         {filtered.map((m) => {
           const id = m.id as number
           const isSelected = selected.has(id)
-          const pills = [m.partner, m.connected, m.active_v2, m.campus_preference].filter(Boolean) as string[]
+          const pills = [m.partner, m.connected, m.active, m.campus_preference].filter(Boolean) as string[]
           return (
             <div
               key={id}
@@ -540,7 +540,7 @@ export default function CatalystDBBoard() {
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-slate-900 dark:text-white truncate">
                   {String(m.name ?? '')}
-                  {(m.active_v2 === 'disconnected' || m.active_v2 === 'deceased') && (
+                  {(m.active === 'disconnected' || m.active === 'deceased') && (
                     <span className="ml-2 text-xs font-normal text-red-600 dark:text-red-400">Inactive</span>
                   )}
                 </div>

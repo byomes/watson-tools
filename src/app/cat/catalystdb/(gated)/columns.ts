@@ -68,7 +68,7 @@ export const COLUMNS: Col[] = [
     defaultVisible: true,
   },
   {
-    key: 'active_v2',
+    key: 'active',
     label: 'Active',
     type: 'select',
     options: ['active', 'non-active', 'disconnected', 'deceased', '--'],
