@@ -526,7 +526,7 @@ export default function CatalystDBBoard() {
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-slate-900 dark:text-white truncate">
                   {String(m.name ?? '')}
-                  {!m.active && (
+                  {(m.active_v2 === 'disconnected' || m.active_v2 === 'deceased') && (
                     <span className="ml-2 text-xs font-normal text-red-600 dark:text-red-400">Inactive</span>
                   )}
                 </div>

@@ -1,7 +1,18 @@
 // Single source of truth for every editable members column -- drives the
 // table, the inline cell editor, the filter bar, and the bulk-edit field
 // picker in CatalystDBBoard.tsx. Keeping this as data (not per-column JSX)
-// is what lets one grid component handle all 25 fields.
+// is what lets one grid component handle all fields.
+//
+// 2026-09-24: all legacy status/member_status/partnership_status/
+// deacon_status/status_reason/status_since/status_note/snowbird_return
+// columns (and the legacy boolean `active`) removed from the grid entirely
+// -- Partner/Connected/Active/Residency/Deacon are now the only source of
+// truth here. carrier and shepherding_exempt columns dropped from the DB
+// itself (see jobs/congregation/migrate_catalystdb_grid_cleanup.py on the
+// Beelink) and removed here too. anniversary/unsubscribed added. Every
+// select-type column now carries '--' as an explicit option (even ones
+// that are always populated today) so any future gap is visible and
+// filterable rather than silently blank.
 export type ColType = 'text' | 'select' | 'date' | 'bool'
 
 export interface Col {
@@ -36,31 +47,18 @@ export const COLUMNS: Col[] = [
   { key: 'name', label: 'Name', type: 'text', defaultVisible: true },
   { key: 'email', label: 'Email', type: 'text', defaultVisible: true },
   { key: 'phone', label: 'Phone', type: 'text', defaultVisible: true },
-  { key: 'status', label: 'Status (legacy)', type: 'select', options: ['visitor', 'member', 'active'] },
-  {
-    key: 'member_status',
-    label: 'Member Status (legacy)',
-    type: 'select',
-    options: ['active', 'non_local', 'disconnected'],
-  },
-  {
-    key: 'partnership_status',
-    label: 'Partnership (legacy)',
-    type: 'select',
-    options: ['Partner', 'Regular Attender', 'Guest'],
-  },
   {
     key: 'partner',
     label: 'Partner',
     type: 'select',
-    options: ['partner', 'np'],
+    options: ['partner', 'np', '--'],
     defaultVisible: true,
   },
   {
     key: 'connected',
     label: 'Connected',
     type: 'select',
-    options: ['1st time', '2nd time', 'guest', 'regular', 'at risk', 'critical', '--'],
+    options: ['1st time', '2nd time', 'guest', 'regular', 'at risk', 'critical', 'neighbor'],
     defaultVisible: true,
     readOnly: true,
   },
@@ -68,14 +66,14 @@ export const COLUMNS: Col[] = [
     key: 'active_v2',
     label: 'Active',
     type: 'select',
-    options: ['active', 'non-active', 'disconnected', 'deceased'],
+    options: ['active', 'non-active', 'disconnected', 'deceased', '--'],
     defaultVisible: true,
   },
   {
     key: 'residency',
     label: 'Residency',
     type: 'select',
-    options: ['local', 'non-local', 'snowbird'],
+    options: ['local', 'non-local', 'snowbird', '--'],
     defaultVisible: true,
   },
   {
@@ -92,7 +90,6 @@ export const COLUMNS: Col[] = [
     options: DEACON_OPTIONS,
     defaultVisible: true,
   },
-  { key: 'active', label: 'Active (legacy)', type: 'bool' },
   { key: 'gender', label: 'Gender', type: 'select', options: ['male', 'female', '--'] },
   {
     key: 'household_role',
@@ -103,16 +100,11 @@ export const COLUMNS: Col[] = [
   { key: 'household_id', label: 'Household ID', type: 'text' },
   { key: 'address', label: 'Address', type: 'text' },
   { key: 'birthdate', label: 'Birthdate', type: 'date' },
+  { key: 'anniversary', label: 'Anniversary', type: 'date', defaultVisible: true },
   { key: 'first_visit_date', label: 'First Visit', type: 'date' },
   { key: 'started_serving_date', label: 'Serving Since', type: 'date' },
   { key: 'service_pin_notes', label: 'Service Pin Notes', type: 'text' },
-  { key: 'deacon_status', label: 'Deacon Status (legacy)', type: 'text' },
-  { key: 'status_reason', label: 'Status Reason (legacy)', type: 'text' },
-  { key: 'status_since', label: 'Status Since (legacy)', type: 'date' },
-  { key: 'status_note', label: 'Status Note (legacy)', type: 'text' },
-  { key: 'snowbird_return', label: 'Snowbird Return (legacy)', type: 'text' },
-  { key: 'shepherding_exempt', label: 'Shepherding Exempt', type: 'bool' },
-  { key: 'carrier', label: 'Carrier', type: 'text' },
+  { key: 'unsubscribed', label: 'Unsubscribed', type: 'bool', defaultVisible: true },
   { key: 'notes', label: 'Notes', type: 'text' },
   { key: 'created_at', label: 'Created', type: 'text', readOnly: true },
   { key: 'updated_at', label: 'Updated', type: 'text', readOnly: true },
