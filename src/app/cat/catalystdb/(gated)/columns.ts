@@ -55,12 +55,17 @@ export const COLUMNS: Col[] = [
     defaultVisible: true,
   },
   {
+    // Computed live from attendance by default (Watson's own logic, e.g.
+    // an anniversary-service one-off still shows '1st time'/'guest' the
+    // normal way) -- editable as of 2026-09-24 so a permanent
+    // reclassification (someone we know isn't coming back) can be pinned
+    // manually. '--' clears a manual pin and hands the member back to the
+    // live computation.
     key: 'connected',
     label: 'Connected',
     type: 'select',
-    options: ['1st time', '2nd time', 'guest', 'regular', 'at risk', 'critical', 'neighbor'],
+    options: ['1st time', '2nd time', 'guest', 'regular', 'at risk', 'critical', 'neighbor', '--'],
     defaultVisible: true,
-    readOnly: true,
   },
   {
     key: 'active_v2',
