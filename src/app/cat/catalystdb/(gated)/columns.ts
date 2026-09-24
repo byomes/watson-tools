@@ -29,7 +29,7 @@ const DEACON_OPTIONS = [
   'Tom Smith',
   'Elders & Deacons',
   'P Bill Yomes',
-  'Unassigned',
+  '--',
 ]
 
 export const COLUMNS: Col[] = [
