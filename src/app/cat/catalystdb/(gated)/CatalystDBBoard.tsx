@@ -245,6 +245,24 @@ export default function CatalystDBBoard() {
           placeholder="Search name, email, phone, notes…"
           className="flex-1 min-w-[180px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400"
         />
+        <div className="relative">
+          <button
+            onClick={() => setShowColPicker((s) => !s)}
+            className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+          >
+            Columns
+          </button>
+          {showColPicker && (
+            <div className="absolute left-0 mt-1 w-56 max-h-80 overflow-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg z-20 p-2">
+              {COLUMNS.map((c) => (
+                <label key={c.key} className="flex items-center gap-2 px-2 py-1 text-xs text-slate-700 dark:text-slate-300 rounded hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer">
+                  <input type="checkbox" checked={visible.has(c.key)} onChange={() => toggleCol(c.key)} />
+                  {c.label}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
         {FILTERABLE.map((c) => (
           <select
             key={c.key}
@@ -265,24 +283,6 @@ export default function CatalystDBBoard() {
                 ))}
           </select>
         ))}
-        <div className="relative">
-          <button
-            onClick={() => setShowColPicker((s) => !s)}
-            className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-          >
-            Columns
-          </button>
-          {showColPicker && (
-            <div className="absolute right-0 mt-1 w-56 max-h-80 overflow-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg z-20 p-2">
-              {COLUMNS.map((c) => (
-                <label key={c.key} className="flex items-center gap-2 px-2 py-1 text-xs text-slate-700 dark:text-slate-300 rounded hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer">
-                  <input type="checkbox" checked={visible.has(c.key)} onChange={() => toggleCol(c.key)} />
-                  {c.label}
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
         <button
           onClick={() => setAdding(true)}
           className="rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-3 py-1.5 text-xs font-semibold hover:opacity-90 shrink-0"
