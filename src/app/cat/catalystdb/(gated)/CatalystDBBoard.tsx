@@ -332,7 +332,7 @@ export default function CatalystDBBoard() {
                 onChange={(e) => setSort((s) => ({ ...s, key: e.target.value }))}
                 className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-2 text-sm text-slate-700 dark:text-slate-300"
               >
-                {['name', 'status', 'member_status', 'partnership_status', 'campus_preference', 'deacon'].map((k) => (
+                {['name', 'partner', 'connected', 'active_v2', 'campus_preference', 'deacon'].map((k) => (
                   <option key={k} value={k}>
                     Sort: {COLUMNS.find((c) => c.key === k)?.label}
                   </option>
@@ -509,7 +509,7 @@ export default function CatalystDBBoard() {
         {filtered.map((m) => {
           const id = m.id as number
           const isSelected = selected.has(id)
-          const pills = [m.status, m.member_status, m.campus_preference].filter(Boolean) as string[]
+          const pills = [m.partner, m.connected, m.active_v2, m.campus_preference].filter(Boolean) as string[]
           return (
             <div
               key={id}
