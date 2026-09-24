@@ -43,7 +43,6 @@ interface Person {
   deacon_notes: DeaconNote[]
 }
 
-const DEFAULT_STATUS_OPTIONS = ['Partner', 'Remote Partner', 'Unassigned Partner', 'Inactive Partner']
 const UNASSIGNED = '__unassigned__'
 
 const MEMBER_STATUS_LABELS: Record<string, string> = {
@@ -653,11 +652,9 @@ function PersonCard({
   onToggle,
   saveState,
   deaconOptions,
-  statusOptions,
   allPeople,
   onUpdateField,
   onAddDeaconOption,
-  onAddStatusOption,
   onSubmitDeaconNote,
   onMarkSpouse,
   onMarkChild,
@@ -670,11 +667,9 @@ function PersonCard({
   onToggle: () => void
   saveState: SaveState | undefined
   deaconOptions: string[]
-  statusOptions: string[]
   allPeople: Person[]
   onUpdateField: (field: keyof Person, value: string) => void
   onAddDeaconOption: (name: string) => void
-  onAddStatusOption: (status: string) => void
   onSubmitDeaconNote: (note: string) => Promise<boolean>
   onMarkSpouse: (otherId: number, otherRole: 'husband' | 'wife') => Promise<string | null>
   onMarkChild: (parentId: number) => Promise<string | null>
@@ -774,27 +769,15 @@ function PersonCard({
             )
           })()}
 
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Deacon</label>
-              <EditableSelect
-                value={p.deacon ?? ''}
-                options={deaconOptions}
-                placeholder="Unassigned"
-                onChange={(v) => onUpdateField('deacon', v)}
-                onAddOption={onAddDeaconOption}
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Status</label>
-              <EditableSelect
-                value={p.deacon_status ?? ''}
-                options={statusOptions}
-                placeholder="—"
-                onChange={(v) => onUpdateField('deacon_status', v)}
-                onAddOption={onAddStatusOption}
-              />
-            </div>
+          <div>
+            <label className="block text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Deacon</label>
+            <EditableSelect
+              value={p.deacon ?? ''}
+              options={deaconOptions}
+              placeholder="--"
+              onChange={(v) => onUpdateField('deacon', v)}
+              onAddOption={onAddDeaconOption}
+            />
           </div>
 
           <Field label="Email" value={p.email ?? ''} onCommit={(v) => onUpdateField('email', v)} />
@@ -922,7 +905,6 @@ export type DeaconBoardHandle = { openAddPerson: () => void }
 const DeaconBoard = forwardRef<DeaconBoardHandle>(function DeaconBoard(_props, ref) {
   const [people, setPeople] = useState<Person[]>([])
   const [deacons, setDeacons] = useState<string[]>([])
-  const [statusOptions, setStatusOptions] = useState<string[]>(DEFAULT_STATUS_OPTIONS)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
@@ -964,10 +946,6 @@ const DeaconBoard = forwardRef<DeaconBoardHandle>(function DeaconBoard(_props, r
       const deaconsData: string[] = await deaconsRes.json()
       setPeople(peopleData)
       setDeacons(deaconsData)
-      setStatusOptions((prev) => {
-        const extra = peopleData.map((p) => p.deacon_status).filter((s): s is string => !!s && !prev.includes(s))
-        return extra.length ? [...prev, ...Array.from(new Set(extra))] : prev
-      })
     } catch (err) {
       const detail = err instanceof Error ? err.message : 'Unknown error'
       setLoadError(detail)
@@ -984,7 +962,7 @@ const DeaconBoard = forwardRef<DeaconBoardHandle>(function DeaconBoard(_props, r
   // excludes it from the fetched deacon list (list_deacons()) so it never
   // gets its own Master Report section, but it must still be selectable
   // right here, on a person's own card.
-  const deaconOptions = useMemo(() => [...deacons, 'Inactive'], [deacons])
+  const deaconOptions = useMemo(() => [...deacons, 'Inactive', '--'], [deacons])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -1060,10 +1038,6 @@ const DeaconBoard = forwardRef<DeaconBoardHandle>(function DeaconBoard(_props, r
     setDeacons((prev) => (prev.includes(name) ? prev : [...prev, name].sort((a, b) => a.localeCompare(b))))
   }
 
-  function addStatusOption(status: string) {
-    setStatusOptions((prev) => (prev.includes(status) ? prev : [...prev, status]))
-  }
-
   // Both family routes change TWO people's household_id/household_role at
   // once, so the response carries both updated rows (see
   // deacons_web.py::_roster_rows) -- patched into `people` here rather than
@@ -1104,11 +1078,9 @@ const DeaconBoard = forwardRef<DeaconBoardHandle>(function DeaconBoard(_props, r
       onToggle: () => toggleExpanded(p.id),
       saveState: saveState[p.id],
       deaconOptions,
-      statusOptions,
       allPeople: people,
       onUpdateField: (field, value) => updateField(p.id, field, value),
       onAddDeaconOption: addDeaconOption,
-      onAddStatusOption: addStatusOption,
       onSubmitDeaconNote: (note) => submitDeaconNote(p.id, note),
       onMarkSpouse: (otherId, otherRole) => markSpouse(p.id, otherId, otherRole),
       onMarkChild: (parentId) => markChild(p.id, parentId),
