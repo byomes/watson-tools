@@ -1,0 +1,13 @@
+{
+  "name": "Watson SMS",
+  "short_name": "Watson SMS",
+  "start_url": "/sms",
+  "scope": "/sms",
+  "display": "standalone",
+  "background_color": "#F7F9F5",
+  "theme_color": "#3B6A4C",
+  "icons": [
+    { "src": "/sms-icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/sms-icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
