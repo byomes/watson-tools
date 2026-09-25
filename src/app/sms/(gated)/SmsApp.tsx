@@ -81,6 +81,7 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
   const [injectPhone, setInjectPhone] = useState('')
   const [injectName, setInjectName] = useState('')
   const [injectText, setInjectText] = useState('')
+  const [addingTemplate, setAddingTemplate] = useState(false)
 
   const isDev = process.env.NODE_ENV !== 'production'
 
@@ -142,6 +143,14 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
     setTemplates((prev) => prev.map((t) => (t.id === id ? data : t)))
   }
 
+  async function createTemplate(label: string, body: string) {
+    const data = await api<Template>('/api/sms/templates', {
+      method: 'POST',
+      body: JSON.stringify({ label, body }),
+    })
+    setTemplates((prev) => [...prev, data])
+  }
+
   async function runInject() {
     if (!injectPhone.trim() || !injectText.trim()) return
     await api('/api/sms/mock/inject', {
@@ -182,11 +191,11 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
                 onClick={() => {
                   setView('templates')
                 }}
-                aria-label="Saved templates"
-                className="w-9 h-9 rounded-lg border flex items-center justify-center"
+                aria-label="Add and edit templates"
+                className="text-xs font-medium px-3 py-2 rounded-lg border flex items-center gap-1.5"
                 style={{ borderColor: COLORS.line, color: COLORS.inkSoft }}
               >
-                ☰
+                ✎ Templates
               </button>
               <form action={logoutAction}>
                 <button type="submit" className="text-xs underline" style={{ color: COLORS.inkSoft }}>
@@ -340,16 +349,39 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
       {view === 'templates' && (
         <div className="flex flex-col min-h-screen">
           <div className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: COLORS.line }}>
-            <button onClick={() => setView('list')} style={{ color: COLORS.moss }} className="font-medium text-sm">
+            <button
+              onClick={() => {
+                setView('list')
+                setAddingTemplate(false)
+              }}
+              style={{ color: COLORS.moss }}
+              className="font-medium text-sm"
+            >
               ← Messages
             </button>
             <h2 className={fraunces('flex-1 text-center text-sm font-semibold')}>Saved templates</h2>
-            <div className="w-16" />
+            <button
+              onClick={() => setAddingTemplate((s) => !s)}
+              aria-label="Add a new template"
+              className="text-xs font-medium px-2.5 py-1.5 rounded-lg border"
+              style={{ borderColor: COLORS.moss, color: COLORS.moss }}
+            >
+              + New
+            </button>
           </div>
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
             <p className="text-xs" style={{ color: COLORS.inkSoft }}>
               These are your words. Watson only merges a name into them when you choose to use one — it never writes new phrasing.
             </p>
+            {addingTemplate && (
+              <NewTemplateCard
+                onCreate={async (label, body) => {
+                  await createTemplate(label, body)
+                  setAddingTemplate(false)
+                }}
+                onCancel={() => setAddingTemplate(false)}
+              />
+            )}
             {templates.map((t) => (
               <TemplateCard key={t.id} template={t} onSave={(body) => saveTemplate(t.id, body)} />
             ))}
@@ -399,6 +431,59 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function NewTemplateCard({
+  onCreate,
+  onCancel,
+}: {
+  onCreate: (label: string, body: string) => Promise<void>
+  onCancel: () => void
+}) {
+  const [label, setLabel] = useState('')
+  const [body, setBody] = useState('')
+  const [saving, setSaving] = useState(false)
+  const canCreate = label.trim().length > 0 && body.trim().length > 0
+
+  return (
+    <div className="rounded-xl border p-3 flex flex-col gap-2" style={{ borderColor: COLORS.moss }}>
+      <input
+        value={label}
+        onChange={(e) => setLabel(e.target.value)}
+        placeholder="Name this template (e.g. Follow-up after a hospital visit)"
+        className="text-sm border rounded-lg px-3 py-2 outline-none font-semibold"
+        style={{ borderColor: COLORS.line }}
+      />
+      <textarea
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        placeholder="Write the message — use {first_name} anywhere you want their name merged in"
+        rows={4}
+        className="text-sm border rounded-lg px-3 py-2 outline-none"
+        style={{ borderColor: COLORS.line }}
+      />
+      <div className="flex items-center justify-end gap-2">
+        <button onClick={onCancel} className="text-xs px-3 py-1.5" style={{ color: COLORS.inkSoft }}>
+          Cancel
+        </button>
+        <button
+          onClick={async () => {
+            setSaving(true)
+            try {
+              await onCreate(label.trim(), body.trim())
+            } finally {
+              setSaving(false)
+            }
+          }}
+          disabled={!canCreate || saving}
+          className="text-xs px-3 py-1.5 rounded-lg text-white disabled:opacity-40"
+          style={{ background: COLORS.moss }}
+        >
+          Create
+        </button>
+      </div>
     </div>
   )
 }
