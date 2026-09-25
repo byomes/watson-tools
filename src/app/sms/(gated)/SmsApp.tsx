@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useSmsTheme } from '@/lib/useSmsTheme'
 
 type Thread = {
   id: number
@@ -15,7 +16,7 @@ type Template = { id: string; label: string; body: string; updated_at: string }
 
 type View = 'list' | 'thread' | 'templates'
 
-const COLORS = {
+const LIGHT_COLORS = {
   moss: '#3B6A4C',
   mossStrong: '#2A4E37',
   clay: '#AD5F1B',
@@ -25,11 +26,31 @@ const COLORS = {
   neutral: '#5C6D63',
   neutralSoft: '#E3E7E0',
   line: '#D6DCD1',
+  surface: '#FFFFFF',
   surfaceAlt: '#EBEFE7',
   bg: '#F7F9F5',
   ink: '#1C2420',
   inkSoft: '#5A665C',
 }
+
+const DARK_COLORS = {
+  moss: '#6EA47C',
+  mossStrong: '#8BC299',
+  clay: '#DE8F41',
+  claySoft: '#31240F',
+  tagblue: '#7FA1D4',
+  tagblueSoft: '#1B2739',
+  neutral: '#9CA89D',
+  neutralSoft: '#212A22',
+  line: '#2C362D',
+  surface: '#181F19',
+  surfaceAlt: '#212A22',
+  bg: '#0F130F',
+  ink: '#E7ECE3',
+  inkSoft: '#9BA89C',
+}
+
+type Palette = typeof LIGHT_COLORS
 
 function fraunces(extra = '') {
   return `font-[family-name:var(--font-fraunces)] ${extra}`
@@ -67,6 +88,8 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
+  const [theme, toggleTheme] = useSmsTheme()
+  const COLORS: Palette = theme === 'dark' ? DARK_COLORS : LIGHT_COLORS
   const [view, setView] = useState<View>('list')
   const [threads, setThreads] = useState<Thread[]>([])
   const [query, setQuery] = useState('')
@@ -188,6 +211,14 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
                 </button>
               )}
               <button
+                onClick={toggleTheme}
+                aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                className="w-9 h-9 rounded-lg border flex items-center justify-center text-sm"
+                style={{ borderColor: COLORS.line, color: COLORS.inkSoft }}
+              >
+                {theme === 'dark' ? '☀' : '☾'}
+              </button>
+              <button
                 onClick={() => {
                   setView('templates')
                 }}
@@ -216,6 +247,7 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search"
                 className="bg-transparent outline-none flex-1 text-sm"
+                style={{ color: COLORS.ink }}
               />
             </div>
           </div>
@@ -329,7 +361,7 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
                 placeholder="Write your reply"
                 rows={1}
                 className="flex-1 rounded-2xl border px-3.5 py-2 text-sm outline-none resize-none"
-                style={{ borderColor: compose ? COLORS.moss : COLORS.line, background: COLORS.surfaceAlt }}
+                style={{ borderColor: compose ? COLORS.moss : COLORS.line, background: COLORS.surfaceAlt, color: COLORS.ink }}
               />
               <button
                 onClick={send}
@@ -375,6 +407,7 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
             </p>
             {addingTemplate && (
               <NewTemplateCard
+                colors={COLORS}
                 onCreate={async (label, body) => {
                   await createTemplate(label, body)
                   setAddingTemplate(false)
@@ -383,7 +416,7 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
               />
             )}
             {templates.map((t) => (
-              <TemplateCard key={t.id} template={t} onSave={(body) => saveTemplate(t.id, body)} />
+              <TemplateCard key={t.id} colors={COLORS} template={t} onSave={(body) => saveTemplate(t.id, body)} />
             ))}
           </div>
         </div>
@@ -392,21 +425,21 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
       {/* ---- DEV MOCK INJECT MODAL ---- */}
       {injectOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-6 z-20">
-          <div className="w-full max-w-sm rounded-2xl p-5 flex flex-col gap-3" style={{ background: 'white' }}>
+          <div className="w-full max-w-sm rounded-2xl p-5 flex flex-col gap-3" style={{ background: COLORS.surface, color: COLORS.ink }}>
             <h3 className="text-sm font-semibold">Simulate an inbound text (dev only)</h3>
             <input
               value={injectPhone}
               onChange={(e) => setInjectPhone(e.target.value)}
               placeholder="Phone number"
               className="border rounded-lg px-3 py-2 text-sm"
-              style={{ borderColor: COLORS.line }}
+              style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
             />
             <input
               value={injectName}
               onChange={(e) => setInjectName(e.target.value)}
               placeholder="Name (optional)"
               className="border rounded-lg px-3 py-2 text-sm"
-              style={{ borderColor: COLORS.line }}
+              style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
             />
             <textarea
               value={injectText}
@@ -414,7 +447,7 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
               placeholder="Message text"
               rows={3}
               className="border rounded-lg px-3 py-2 text-sm"
-              style={{ borderColor: COLORS.line }}
+              style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
             />
             <div className="flex gap-2 justify-end">
               <button onClick={() => setInjectOpen(false)} className="text-sm px-3 py-1.5" style={{ color: COLORS.inkSoft }}>
@@ -436,9 +469,11 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
 }
 
 function NewTemplateCard({
+  colors,
   onCreate,
   onCancel,
 }: {
+  colors: Palette
   onCreate: (label: string, body: string) => Promise<void>
   onCancel: () => void
 }) {
@@ -448,13 +483,13 @@ function NewTemplateCard({
   const canCreate = label.trim().length > 0 && body.trim().length > 0
 
   return (
-    <div className="rounded-xl border p-3 flex flex-col gap-2" style={{ borderColor: COLORS.moss }}>
+    <div className="rounded-xl border p-3 flex flex-col gap-2" style={{ borderColor: colors.moss }}>
       <input
         value={label}
         onChange={(e) => setLabel(e.target.value)}
         placeholder="Name this template (e.g. Follow-up after a hospital visit)"
         className="text-sm border rounded-lg px-3 py-2 outline-none font-semibold"
-        style={{ borderColor: COLORS.line }}
+        style={{ borderColor: colors.line, background: colors.surface, color: colors.ink }}
       />
       <textarea
         value={body}
@@ -462,10 +497,10 @@ function NewTemplateCard({
         placeholder="Write the message — use {first_name} anywhere you want their name merged in"
         rows={4}
         className="text-sm border rounded-lg px-3 py-2 outline-none"
-        style={{ borderColor: COLORS.line }}
+        style={{ borderColor: colors.line, background: colors.surface, color: colors.ink }}
       />
       <div className="flex items-center justify-end gap-2">
-        <button onClick={onCancel} className="text-xs px-3 py-1.5" style={{ color: COLORS.inkSoft }}>
+        <button onClick={onCancel} className="text-xs px-3 py-1.5" style={{ color: colors.inkSoft }}>
           Cancel
         </button>
         <button
@@ -479,7 +514,7 @@ function NewTemplateCard({
           }}
           disabled={!canCreate || saving}
           className="text-xs px-3 py-1.5 rounded-lg text-white disabled:opacity-40"
-          style={{ background: COLORS.moss }}
+          style={{ background: colors.moss }}
         >
           Create
         </button>
@@ -488,23 +523,31 @@ function NewTemplateCard({
   )
 }
 
-function TemplateCard({ template, onSave }: { template: Template; onSave: (body: string) => Promise<void> }) {
+function TemplateCard({
+  colors,
+  template,
+  onSave,
+}: {
+  colors: Palette
+  template: Template
+  onSave: (body: string) => Promise<void>
+}) {
   const [body, setBody] = useState(template.body)
   const [saving, setSaving] = useState(false)
   const dirty = body !== template.body
 
   return (
-    <div className="rounded-xl border p-3 flex flex-col gap-2" style={{ borderColor: COLORS.line }}>
+    <div className="rounded-xl border p-3 flex flex-col gap-2" style={{ borderColor: colors.line }}>
       <div className="text-xs font-semibold">{template.label}</div>
       <textarea
         value={body}
         onChange={(e) => setBody(e.target.value)}
         rows={4}
         className="text-sm border rounded-lg px-3 py-2 outline-none"
-        style={{ borderColor: COLORS.line }}
+        style={{ borderColor: colors.line, background: colors.surface, color: colors.ink }}
       />
       <div className="flex items-center justify-between">
-        <span className={mono('text-xs')} style={{ color: COLORS.inkSoft }}>
+        <span className={mono('text-xs')} style={{ color: colors.inkSoft }}>
           Updated {template.updated_at}
         </span>
         <button
@@ -518,7 +561,7 @@ function TemplateCard({ template, onSave }: { template: Template; onSave: (body:
           }}
           disabled={!dirty || saving}
           className="text-xs px-3 py-1.5 rounded-lg text-white disabled:opacity-40"
-          style={{ background: COLORS.moss }}
+          style={{ background: colors.moss }}
         >
           Save
         </button>
