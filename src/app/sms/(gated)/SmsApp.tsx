@@ -120,11 +120,50 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
     setTemplates(data.templates)
   }
 
+  async function refreshActiveMessages(id: number) {
+    const data = await api<{ thread: Thread; messages: Message[] }>(`/api/sms/threads/${id}/messages`)
+    setMessages(data.messages)
+  }
+
   useEffect(() => {
     Promise.all([loadThreads(), loadTemplates()])
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
+
+  // iOS suspends a web app's JavaScript the instant it's not on screen, so
+  // there's no such thing as this app staying current "in the background" --
+  // this polling only ever runs while the page is actually visible, plus one
+  // immediate refresh the moment you switch back to it. Real background
+  // updates (app closed or behind another app) need push notifications,
+  // which is a separate, not-yet-built piece.
+  useEffect(() => {
+    async function tick() {
+      if (document.visibilityState !== 'visible') return
+      await loadThreads().catch(() => {})
+      if (activeId) await refreshActiveMessages(activeId).catch(() => {})
+    }
+    const interval = setInterval(tick, 25000)
+    document.addEventListener('visibilitychange', tick)
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', tick)
+    }
+  }, [activeId])
+
+  const [refreshing, setRefreshing] = useState(false)
+  async function manualRefresh() {
+    if (refreshing) return
+    setRefreshing(true)
+    try {
+      await loadThreads()
+      if (activeId) await refreshActiveMessages(activeId)
+    } catch {
+      // transient network hiccup -- next poll or tap tries again
+    } finally {
+      setRefreshing(false)
+    }
+  }
 
   // Home-screen icon badge (iOS 16.4+ Badging API, standalone/installed PWA
   // only). Syncs to the real unread count whenever it changes -- covers
@@ -233,6 +272,28 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
                 </button>
               )}
               <button
+                onClick={manualRefresh}
+                disabled={refreshing}
+                aria-label="Refresh messages"
+                className="w-9 h-9 rounded-lg border flex items-center justify-center disabled:opacity-50"
+                style={{ borderColor: COLORS.line, color: COLORS.inkSoft }}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={refreshing ? 'animate-spin' : ''}
+                >
+                  <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+                  <path d="M21 3v6h-6" />
+                </svg>
+              </button>
+              <button
                 onClick={toggleTheme}
                 aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
                 className="w-9 h-9 rounded-lg border flex items-center justify-center"
@@ -339,7 +400,28 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
                 {activeThread.phone}
               </div>
             </div>
-            <div className="w-16" />
+            <button
+              onClick={manualRefresh}
+              disabled={refreshing}
+              aria-label="Refresh messages"
+              className="w-9 h-9 rounded-lg flex items-center justify-center disabled:opacity-50 flex-none"
+              style={{ color: COLORS.inkSoft }}
+            >
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={refreshing ? 'animate-spin' : ''}
+              >
+                <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+                <path d="M21 3v6h-6" />
+              </svg>
+            </button>
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2">
