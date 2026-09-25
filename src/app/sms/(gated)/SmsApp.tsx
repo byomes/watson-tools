@@ -278,8 +278,7 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
       {/* ---- LIST VIEW ---- */}
       {view === 'list' && (
         <div className="flex flex-col min-h-screen">
-          <div className="flex items-center justify-between px-5 pt-6 pb-3">
-            <h1 className={fraunces('text-2xl font-semibold')}>Messages</h1>
+          <div className="flex items-center justify-end px-5 pt-6 pb-3">
             <div className="flex items-center gap-2">
               {isDev && (
                 <button
