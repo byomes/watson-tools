@@ -15,6 +15,16 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
   manifest: '/manifest.sms.json',
   appleWebApp: { capable: true, statusBarStyle: 'default', title: 'Watson SMS' },
+  icons: {
+    icon: [
+      { url: '/sms-icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/sms-icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    // iOS's "Add to Home Screen" reads this link tag directly rather than
+    // reliably reading the web manifest's icons array -- this is the one
+    // that actually decides what shows up on Bill's home screen.
+    apple: [{ url: '/sms-apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+  },
 }
 
 export const viewport = {
