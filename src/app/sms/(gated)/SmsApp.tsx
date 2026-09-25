@@ -90,7 +90,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 
 export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
   const [theme, toggleTheme] = useSmsTheme()
-  const { status: pushStatus, enable: enablePush, disable: disablePush } = useSmsPush()
+  const { status: pushStatus, errorDetail: pushErrorDetail, enable: enablePush, disable: disablePush } = useSmsPush()
   const [showPushInfo, setShowPushInfo] = useState(false)
   const COLORS: Palette = theme === 'dark' ? DARK_COLORS : LIGHT_COLORS
   const [view, setView] = useState<View>('list')
@@ -374,6 +374,18 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
                       </>
                     )}
                     {pushStatus === 'busy' && <p style={{ color: COLORS.inkSoft }}>Working on it&hellip;</p>}
+                    {pushStatus === 'error' && (
+                      <>
+                        <p style={{ color: COLORS.clay }}>Couldn&rsquo;t turn it on: {pushErrorDetail || 'something went wrong'}.</p>
+                        <button
+                          onClick={enablePush}
+                          className="text-xs px-2.5 py-1.5 rounded-lg text-white self-start"
+                          style={{ background: COLORS.moss }}
+                        >
+                          Try again
+                        </button>
+                      </>
+                    )}
                     {pushStatus === 'denied' && (
                       <p>Notifications were turned off for this app in iOS Settings &rarr; Notifications &rarr; Watson SMS. They have to be re-enabled there, not here.</p>
                     )}

@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react'
 // prompt must come from a genuine user tap -- never call requestPermission
 // automatically. See public/sw-sms.js for the service worker itself.
 
-export type PushStatus = 'unsupported' | 'not-standalone' | 'default' | 'granted' | 'denied' | 'busy'
+export type PushStatus = 'unsupported' | 'not-standalone' | 'default' | 'granted' | 'denied' | 'busy' | 'error'
 
 function base64UrlToUint8Array(base64Url: string): Uint8Array {
   const padding = '='.repeat((4 - (base64Url.length % 4)) % 4)
@@ -50,10 +50,12 @@ function isStandalone(): boolean {
 
 export function useSmsPush(): {
   status: PushStatus
+  errorDetail: string
   enable: () => Promise<void>
   disable: () => Promise<void>
 } {
   const [status, setStatus] = useState<PushStatus>('default')
+  const [errorDetail, setErrorDetail] = useState('')
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -71,41 +73,53 @@ export function useSmsPush(): {
   async function enable() {
     if (status === 'unsupported' || status === 'not-standalone' || status === 'busy') return
     setStatus('busy')
+    setErrorDetail('')
     try {
-      const registration = await navigator.serviceWorker.register('/sw-sms.js', { scope: '/sms/' })
-      await withTimeout(navigator.serviceWorker.ready, 8000, 'service worker activation')
-
-      const permission = await Notification.requestPermission()
-      if (permission !== 'granted') {
-        setStatus(permission === 'denied' ? 'denied' : 'default')
-        return
-      }
-
-      const keyRes = await fetch('/api/sms/push/vapid-public-key')
-      if (!keyRes.ok) throw new Error('vapid key fetch failed')
-      const { publicKey } = (await keyRes.json()) as { publicKey: string }
-
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: base64UrlToUint8Array(publicKey) as BufferSource,
-      })
-
-      await fetch('/api/sms/push/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          endpoint: subscription.endpoint,
-          keys: {
-            p256dh: bufferToBase64Url(subscription.getKey('p256dh')),
-            auth: bufferToBase64Url(subscription.getKey('auth')),
-          },
-        }),
-      })
-
-      setStatus('granted')
-    } catch {
-      setStatus(Notification.permission === 'denied' ? 'denied' : 'default')
+      await withTimeout(runEnable(), 15000, 'turning on notifications')
+    } catch (e) {
+      setErrorDetail(e instanceof Error ? e.message : 'Something went wrong')
+      setStatus(Notification.permission === 'denied' ? 'denied' : 'error')
     }
+  }
+
+  async function runEnable() {
+    // iOS treats a tap as a one-shot "you may now ask the user something"
+    // token -- any await placed before requestPermission() can silently
+    // spend it, so the system prompt never appears and the call just hangs.
+    // This has to be the very first thing that happens after the tap.
+    const permission = await Notification.requestPermission()
+    if (permission !== 'granted') {
+      setStatus(permission === 'denied' ? 'denied' : 'default')
+      return
+    }
+
+    const registration = await navigator.serviceWorker.register('/sw-sms.js', { scope: '/sms/' })
+    await navigator.serviceWorker.ready
+
+    const keyRes = await fetch('/api/sms/push/vapid-public-key')
+    if (!keyRes.ok) throw new Error('Could not reach Watson to get set up (vapid key fetch failed)')
+    const { publicKey } = (await keyRes.json()) as { publicKey: string }
+    if (!publicKey) throw new Error('Watson has no notification key configured yet')
+
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: base64UrlToUint8Array(publicKey) as BufferSource,
+    })
+
+    const subRes = await fetch('/api/sms/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        endpoint: subscription.endpoint,
+        keys: {
+          p256dh: bufferToBase64Url(subscription.getKey('p256dh')),
+          auth: bufferToBase64Url(subscription.getKey('auth')),
+        },
+      }),
+    })
+    if (!subRes.ok) throw new Error('Got a subscription from iOS but Watson would not save it')
+
+    setStatus('granted')
   }
 
   async function disable() {
@@ -128,5 +142,5 @@ export function useSmsPush(): {
     }
   }
 
-  return { status, enable, disable }
+  return { status, errorDetail, enable, disable }
 }
