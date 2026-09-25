@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 // Web Push for Watson SMS (2026-09-25). iOS only allows this at all for a
 // home-screen-installed (standalone) PWA on 16.4+, and the permission
@@ -51,11 +51,22 @@ function isStandalone(): boolean {
 export function useSmsPush(): {
   status: PushStatus
   errorDetail: string
+  stage: string
   enable: () => Promise<void>
   disable: () => Promise<void>
 } {
   const [status, setStatus] = useState<PushStatus>('default')
   const [errorDetail, setErrorDetail] = useState('')
+  const [stage, setStage] = useState('')
+  // Mirrors `stage` synchronously -- `enable()`'s catch block would
+  // otherwise read a stale closed-over `stage` value from before any of
+  // runEnable()'s setStage() calls, since those trigger re-renders rather
+  // than mutating the variable this closure captured.
+  const stageRef = useRef('')
+  function pushStage(s: string) {
+    stageRef.current = s
+    setStage(s)
+  }
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -74,11 +85,18 @@ export function useSmsPush(): {
     if (status === 'unsupported' || status === 'not-standalone' || status === 'busy') return
     setStatus('busy')
     setErrorDetail('')
+    pushStage('Starting…')
     try {
-      await withTimeout(runEnable(), 15000, 'turning on notifications')
+      await withTimeout(runEnable(), 20000, 'turning on notifications')
     } catch (e) {
-      setErrorDetail(e instanceof Error ? e.message : 'Something went wrong')
+      const message = e instanceof Error ? e.message : 'Something went wrong'
+      // Surface exactly which step it was on when it failed/timed out, not
+      // just the generic message -- this is the difference between
+      // guessing at a fix and actually knowing where it's stuck.
+      setErrorDetail(stageRef.current ? `${message} (stuck at: ${stageRef.current})` : message)
       setStatus(Notification.permission === 'denied' ? 'denied' : 'error')
+    } finally {
+      pushStage('')
     }
   }
 
@@ -87,25 +105,32 @@ export function useSmsPush(): {
     // token -- any await placed before requestPermission() can silently
     // spend it, so the system prompt never appears and the call just hangs.
     // This has to be the very first thing that happens after the tap.
+    pushStage('Requesting permission…')
     const permission = await Notification.requestPermission()
     if (permission !== 'granted') {
       setStatus(permission === 'denied' ? 'denied' : 'default')
       return
     }
 
+    pushStage('Registering on this phone…')
     const registration = await navigator.serviceWorker.register('/sw-sms.js', { scope: '/sms/' })
+
+    pushStage('Waiting for setup to finish…')
     await navigator.serviceWorker.ready
 
+    pushStage('Getting a key from Watson…')
     const keyRes = await fetch('/api/sms/push/vapid-public-key')
     if (!keyRes.ok) throw new Error('Could not reach Watson to get set up (vapid key fetch failed)')
     const { publicKey } = (await keyRes.json()) as { publicKey: string }
     if (!publicKey) throw new Error('Watson has no notification key configured yet')
 
+    pushStage('Subscribing with Apple…')
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: base64UrlToUint8Array(publicKey) as BufferSource,
     })
 
+    pushStage('Saving with Watson…')
     const subRes = await fetch('/api/sms/push/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -142,5 +167,5 @@ export function useSmsPush(): {
     }
   }
 
-  return { status, errorDetail, enable, disable }
+  return { status, errorDetail, stage, enable, disable }
 }

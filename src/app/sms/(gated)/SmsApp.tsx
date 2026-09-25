@@ -90,7 +90,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 
 export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
   const [theme, toggleTheme] = useSmsTheme()
-  const { status: pushStatus, errorDetail: pushErrorDetail, enable: enablePush, disable: disablePush } = useSmsPush()
+  const { status: pushStatus, errorDetail: pushErrorDetail, stage: pushStage, enable: enablePush, disable: disablePush } = useSmsPush()
   const [showPushInfo, setShowPushInfo] = useState(false)
   const COLORS: Palette = theme === 'dark' ? DARK_COLORS : LIGHT_COLORS
   const [view, setView] = useState<View>('list')
@@ -373,7 +373,7 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
                         </button>
                       </>
                     )}
-                    {pushStatus === 'busy' && <p style={{ color: COLORS.inkSoft }}>Working on it&hellip;</p>}
+                    {pushStatus === 'busy' && <p style={{ color: COLORS.inkSoft }}>{pushStage || 'Working on it…'}</p>}
                     {pushStatus === 'error' && (
                       <>
                         <p style={{ color: COLORS.clay }}>Couldn&rsquo;t turn it on: {pushErrorDetail || 'something went wrong'}.</p>
