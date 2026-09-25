@@ -126,6 +126,28 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
       .finally(() => setLoading(false))
   }, [])
 
+  // Home-screen icon badge (iOS 16.4+ Badging API, standalone/installed PWA
+  // only). Syncs to the real unread count whenever it changes -- covers
+  // initial load, opening a thread, sending, and a mock-injected text.
+  // This only updates while the app can run JS -- it will NOT appear the
+  // instant a text arrives with the app closed, since that needs a service
+  // worker responding to a push notification, which isn't built yet. The
+  // badge just reflects reality again the next time the app is opened.
+  useEffect(() => {
+    const nav = navigator as Navigator & {
+      setAppBadge?: (count?: number) => Promise<void>
+      clearAppBadge?: () => Promise<void>
+    }
+    if (!nav.setAppBadge || !nav.clearAppBadge) return
+
+    const unreadCount = threads.filter((t) => t.unread).length
+    const sync = unreadCount > 0 ? nav.setAppBadge(unreadCount) : nav.clearAppBadge()
+    sync.catch(() => {
+      // Badging API not permitted in this context (e.g. not installed to
+      // the home screen yet) -- fine, just no badge until it is.
+    })
+  }, [threads])
+
   async function openThread(id: number) {
     setActiveId(id)
     setView('thread')
