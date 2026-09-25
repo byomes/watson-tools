@@ -51,6 +51,17 @@ export function useDeaconTheme(): [Theme, () => void] {
     }
     meta.setAttribute('content', theme === 'dark' ? DARK_THEME_COLOR : LIGHT_THEME_COLOR)
 
+    // Plain (unsigned -- it's just a display preference, not auth) cookie
+    // mirroring localStorage, readable server-side. This is the ONLY way
+    // to fix the iOS status bar on the Home Screen icon: that bar's color
+    // comes from the appleWebApp.statusBarStyle meta tag (see page.tsx /
+    // login/page.tsx generateMetadata), which iOS reads once per launch
+    // and never updates live -- so it can't be flipped from client JS at
+    // all. Writing this cookie every time theme resolves/changes means
+    // the *next* launch renders with the right statusBarStyle, even
+    // though the current session's status bar stays fixed until relaunch.
+    document.cookie = `${STORAGE_KEY}=${theme}; path=/; max-age=31536000; samesite=lax`
+
     return () => {
       document.documentElement.classList.remove('dark')
       meta?.remove()

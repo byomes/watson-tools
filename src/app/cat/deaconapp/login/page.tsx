@@ -1,13 +1,20 @@
 import type { Metadata } from 'next'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/deaconAuth'
 import { ThemeShell } from '../ThemeShell'
 import PinPad from './pin-pad'
 
-export const metadata: Metadata = {
-  title: 'Catalyst Shepherding App',
-  appleWebApp: { title: 'Deacon' },
-  robots: { index: false, follow: false },
+// See generateMetadata in cat/deaconapp/page.tsx for why this reads the
+// theme cookie instead of a static export -- the iOS status bar on the
+// Home Screen icon only picks up statusBarStyle at launch.
+export async function generateMetadata(): Promise<Metadata> {
+  const theme = (await cookies()).get('deaconapp-theme')?.value
+  return {
+    title: 'Catalyst Shepherding App',
+    appleWebApp: { title: 'Deacon', statusBarStyle: theme === 'dark' ? 'black' : 'default' },
+    robots: { index: false, follow: false },
+  }
 }
 
 export const dynamic = 'force-dynamic'

@@ -1,14 +1,23 @@
 import type { Metadata } from 'next'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { requireLiveTool } from '@/lib/requireLiveTool'
 import { getSession } from '@/lib/deaconAuth'
 import { getShepherdingReport, computeShepherdingTotals } from '@/lib/shepherdingReport'
 import DeaconAppTabs from './DeaconAppTabs'
 
-export const metadata: Metadata = {
-  title: 'Catalyst Shepherding App',
-  appleWebApp: { title: 'Deacon' },
-  robots: { index: false, follow: false },
+// iOS only reads appleWebApp.statusBarStyle once, at the moment the Home
+// Screen icon is launched -- it never live-updates while the app stays
+// open, so the in-app dark/light toggle alone can never move it (see
+// deaconTheme.ts). Reading the theme cookie here at least gets the status
+// bar right on the *next* launch, matching whatever the deacon last chose.
+export async function generateMetadata(): Promise<Metadata> {
+  const theme = (await cookies()).get('deaconapp-theme')?.value
+  return {
+    title: 'Catalyst Shepherding App',
+    appleWebApp: { title: 'Deacon', statusBarStyle: theme === 'dark' ? 'black' : 'default' },
+    robots: { index: false, follow: false },
+  }
 }
 
 // Never statically prerendered — see cat/attendance/page.tsx for why (the
