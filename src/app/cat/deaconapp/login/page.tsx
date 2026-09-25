@@ -12,7 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const theme = (await cookies()).get('deaconapp-theme')?.value
   return {
     title: 'Catalyst Shepherding App',
-    appleWebApp: { title: 'Deacon', statusBarStyle: theme === 'dark' ? 'black' : 'default' },
+    appleWebApp: { title: 'Deacon', statusBarStyle: theme === 'light' ? 'default' : 'black' },
     robots: { index: false, follow: false },
   }
 }

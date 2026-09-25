@@ -17,18 +17,18 @@ function readStoredTheme(): Theme | null {
   }
 }
 
-// Renders 'light' on the server and on first client paint (avoiding a
-// hydration mismatch), then syncs to the stored preference -- falling back
-// to the OS preference -- right after mount.
+// Renders 'dark' on the server and on first client paint (avoiding a
+// hydration mismatch), then syncs to the stored preference right after
+// mount. Dark is the app's default -- Bill's choice, 2026-09-25 -- so a
+// first-time visitor with no stored preference stays dark regardless of
+// OS setting; only an explicit stored 'light' choice overrides it.
 export function useDeaconTheme(): [Theme, () => void] {
-  const [theme, setTheme] = useState<Theme>('light')
+  const [theme, setTheme] = useState<Theme>('dark')
 
   useEffect(() => {
     const stored = readStoredTheme()
     if (stored) {
       setTheme(stored)
-    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      setTheme('dark')
     }
   }, [])
 
