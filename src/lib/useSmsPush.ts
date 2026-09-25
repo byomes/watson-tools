@@ -78,8 +78,69 @@ export function useSmsPush(): {
       setStatus('not-standalone')
       return
     }
-    setStatus(Notification.permission === 'granted' ? 'granted' : Notification.permission === 'denied' ? 'denied' : 'default')
+    if (Notification.permission === 'denied') {
+      setStatus('denied')
+      return
+    }
+    if (Notification.permission !== 'granted') {
+      setStatus('default')
+      return
+    }
+    // iOS granting the permission prompt and actually having a saved
+    // subscription are two different things -- an earlier attempt could
+    // have gotten permission then failed on a later step, which would
+    // otherwise show as "on" forever without ever really being subscribed.
+    // Re-subscribing when permission is already granted needs no new user
+    // tap, so this can run silently and self-heal that gap.
+    setStatus('busy')
+    pushStage('Checking notification setup…')
+    withTimeout(
+      navigator.serviceWorker.register('/sw-sms.js', { scope: '/sms/' }).then(async (registration) => {
+        await navigator.serviceWorker.ready
+        await subscribeAndSave(registration)
+      }),
+      20000,
+      'checking notification setup',
+    )
+      .then(() => setStatus('granted'))
+      .catch((e) => {
+        setErrorDetail(e instanceof Error ? e.message : 'Something went wrong')
+        setStatus('error')
+      })
+      .finally(() => pushStage(''))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  async function subscribeAndSave(registration: ServiceWorkerRegistration) {
+    pushStage('Getting a key from Watson…')
+    const keyRes = await fetch('/api/sms/push/vapid-public-key')
+    if (!keyRes.ok) throw new Error('Could not reach Watson to get set up (vapid key fetch failed)')
+    const { publicKey } = (await keyRes.json()) as { publicKey: string }
+    if (!publicKey) throw new Error('Watson has no notification key configured yet')
+
+    pushStage('Subscribing with Apple…')
+    let subscription = await registration.pushManager.getSubscription()
+    if (!subscription) {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: base64UrlToUint8Array(publicKey) as BufferSource,
+      })
+    }
+
+    pushStage('Saving with Watson…')
+    const subRes = await fetch('/api/sms/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        endpoint: subscription.endpoint,
+        keys: {
+          p256dh: bufferToBase64Url(subscription.getKey('p256dh')),
+          auth: bufferToBase64Url(subscription.getKey('auth')),
+        },
+      }),
+    })
+    if (!subRes.ok) throw new Error('Got a subscription from iOS but Watson would not save it')
+  }
 
   async function enable() {
     if (status === 'unsupported' || status === 'not-standalone' || status === 'busy') return
@@ -118,32 +179,7 @@ export function useSmsPush(): {
     pushStage('Waiting for setup to finish…')
     await navigator.serviceWorker.ready
 
-    pushStage('Getting a key from Watson…')
-    const keyRes = await fetch('/api/sms/push/vapid-public-key')
-    if (!keyRes.ok) throw new Error('Could not reach Watson to get set up (vapid key fetch failed)')
-    const { publicKey } = (await keyRes.json()) as { publicKey: string }
-    if (!publicKey) throw new Error('Watson has no notification key configured yet')
-
-    pushStage('Subscribing with Apple…')
-    const subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: base64UrlToUint8Array(publicKey) as BufferSource,
-    })
-
-    pushStage('Saving with Watson…')
-    const subRes = await fetch('/api/sms/push/subscribe', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        endpoint: subscription.endpoint,
-        keys: {
-          p256dh: bufferToBase64Url(subscription.getKey('p256dh')),
-          auth: bufferToBase64Url(subscription.getKey('auth')),
-        },
-      }),
-    })
-    if (!subRes.ok) throw new Error('Got a subscription from iOS but Watson would not save it')
-
+    await subscribeAndSave(registration)
     setStatus('granted')
   }
 
