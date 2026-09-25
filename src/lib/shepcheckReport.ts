@@ -22,6 +22,7 @@ export type ShepcheckEntry = {
   remind_at: string | null
   snooze_hours: number | null
   escalated_at: string | null
+  escalation_note: string | null
   escalation: ShepcheckEscalation | null
 }
 

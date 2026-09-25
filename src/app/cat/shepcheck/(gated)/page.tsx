@@ -100,6 +100,12 @@ function EntryCard({ entry }: { entry: ShepcheckEntry }) {
             <dd className="inline">{formatEastern(entry.escalated_at)}</dd>
           </div>
         )}
+        {entry.escalation_note && (
+          <div>
+            <dt className="inline font-medium">Note from {entry.deacon_name ?? 'deacon'}:</dt>{' '}
+            <dd className="inline italic">&ldquo;{entry.escalation_note}&rdquo;</dd>
+          </div>
+        )}
       </dl>
 
       {entry.escalation && (
