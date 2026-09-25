@@ -28,8 +28,7 @@ interface Clip {
 
 // Tailscale Funnel public host — the browser fetches clip video bytes
 // directly from here rather than through the Vercel proxy (files run
-// into the hundreds of MB), same pattern as ServantCareSearch.tsx's
-// PHOTO_BASE.
+// into the hundreds of MB).
 const CLIP_BASE = 'https://watson.tail0243ff.ts.net'
 
 interface Status {
