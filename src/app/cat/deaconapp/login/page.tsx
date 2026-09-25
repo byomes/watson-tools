@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/deaconAuth'
 import { ThemeShell } from '../ThemeShell'
+import { ThemeInitScript } from '../ThemeInitScript'
 import PinPad from './pin-pad'
 
 // See generateMetadata in cat/deaconapp/page.tsx for why this reads the
@@ -24,6 +25,7 @@ export default async function DeaconAppLoginPage() {
 
   return (
     <ThemeShell>
+      <ThemeInitScript />
       <div className="min-h-screen bg-white dark:bg-gray-950 flex items-center justify-center px-8">
         <div className="w-full max-w-xs">
           <h1 className="flex items-center justify-center gap-2 text-xl font-bold text-black dark:text-white text-center mb-1">

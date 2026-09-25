@@ -5,6 +5,7 @@ import { requireLiveTool } from '@/lib/requireLiveTool'
 import { getSession } from '@/lib/deaconAuth'
 import { getShepherdingReport, computeShepherdingTotals } from '@/lib/shepherdingReport'
 import DeaconAppTabs from './DeaconAppTabs'
+import { ThemeInitScript } from './ThemeInitScript'
 
 // iOS only reads appleWebApp.statusBarStyle once, at the moment the Home
 // Screen icon is launched -- it never live-updates while the app stays
@@ -36,29 +37,9 @@ export default async function DeaconAppPage() {
   // client-side against public /api/cat/* routes instead.
   const report = await getShepherdingReport()
 
-  // TEMP DEBUG (remove once the status-bar cookie issue is diagnosed):
-  // shows exactly what theme cookie, if any, this specific request/launch
-  // actually carried.
-  const debugThemeCookie = (await cookies()).get('deaconapp-theme')?.value ?? '(none)'
-
   return (
     <>
-      <div
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 99999,
-          fontSize: 11,
-          background: 'red',
-          color: 'white',
-          padding: '2px 6px',
-          textAlign: 'center',
-        }}
-      >
-        DEBUG theme cookie: {debugThemeCookie}
-      </div>
+      <ThemeInitScript />
       <DeaconAppTabs
         deaconName={deaconName}
         shepherdingGroups={report?.groups ?? null}
