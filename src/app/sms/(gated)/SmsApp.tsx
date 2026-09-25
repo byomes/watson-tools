@@ -278,7 +278,7 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
       {/* ---- LIST VIEW ---- */}
       {view === 'list' && (
         <div className="flex flex-col min-h-screen">
-          <div className="flex items-center justify-end px-5 pt-6 pb-3">
+          <div className="flex items-center justify-between px-5 pt-6 pb-3">
             <div className="flex items-center gap-2">
               {isDev && (
                 <button
@@ -405,12 +405,12 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
               >
                 ✎ Templates
               </button>
-              <form action={logoutAction}>
-                <button type="submit" className="text-xs underline" style={{ color: COLORS.inkSoft }}>
-                  Log out
-                </button>
-              </form>
             </div>
+            <form action={logoutAction}>
+              <button type="submit" className="text-xs underline" style={{ color: COLORS.inkSoft }}>
+                Log out
+              </button>
+            </form>
           </div>
 
           <div className="px-5 pb-3">
