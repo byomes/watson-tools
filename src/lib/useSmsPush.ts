@@ -26,6 +26,22 @@ function bufferToBase64Url(buf: ArrayBuffer | null): string {
   return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label} timed out`)), ms)
+    promise.then(
+      (v) => {
+        clearTimeout(timer)
+        resolve(v)
+      },
+      (e) => {
+        clearTimeout(timer)
+        reject(e)
+      },
+    )
+  })
+}
+
 function isStandalone(): boolean {
   if (typeof window === 'undefined') return false
   const nav = navigator as Navigator & { standalone?: boolean }
@@ -57,7 +73,7 @@ export function useSmsPush(): {
     setStatus('busy')
     try {
       const registration = await navigator.serviceWorker.register('/sw-sms.js', { scope: '/sms/' })
-      await navigator.serviceWorker.ready
+      await withTimeout(navigator.serviceWorker.ready, 8000, 'service worker activation')
 
       const permission = await Notification.requestPermission()
       if (permission !== 'granted') {
