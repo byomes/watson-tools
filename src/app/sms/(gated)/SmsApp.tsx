@@ -15,6 +15,7 @@ type Thread = {
   state: 'open' | 'archived'
   muted: boolean
   snoozed_until: string | null
+  draft_text: string | null
 }
 type Message = {
   id: number
@@ -310,7 +311,7 @@ export default function SmsApp() {
     setArchivedThreads(data.threads)
   }
 
-  async function patchThread(id: number, patch: Partial<Pick<Thread, 'state' | 'muted' | 'snoozed_until' | 'unread'>>) {
+  async function patchThread(id: number, patch: Partial<Pick<Thread, 'state' | 'muted' | 'snoozed_until' | 'unread' | 'draft_text'>>) {
     const data = await api<{ thread: Thread }>(`/api/sms/threads/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(patch),
@@ -478,6 +479,13 @@ export default function SmsApp() {
     patchThread(id, { unread: 0 }).catch(() => {})
     const data = await api<{ thread: Thread; messages: Message[] }>(`/api/sms/threads/${id}/messages`)
     setMessages(data.messages)
+    if (data.thread.draft_text) {
+      // Watson-prepped draft (see "prep a text") -- takes priority over any
+      // local in-progress draft, and is cleared server-side once loaded so
+      // it doesn't reappear on a later open.
+      updateCompose(data.thread.draft_text)
+      patchThread(id, { draft_text: null }).catch(() => {})
+    }
     await Promise.all([
       loadScheduled(id).catch(() => {}),
       loadContext(id).catch(() => {}),
