@@ -13,6 +13,7 @@ type Thread = {
   unread: number
 }
 type Message = { id: number; direction: 'in' | 'out'; body: string; created_at: string }
+type ScheduledMessage = { id: number; body: string; send_at: string; status: 'pending' | 'failed'; error: string | null }
 type Template = { id: string; label: string; body: string; updated_at: string }
 
 type View = 'list' | 'thread' | 'templates'
@@ -70,6 +71,16 @@ function fmtTime(iso: string | null): string {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
+function fmtScheduled(utc: string): string {
+  const d = new Date(utc.replace(' ', 'T') + 'Z')
+  if (Number.isNaN(d.getTime())) return utc
+  const now = new Date()
+  const sameDay = d.toDateString() === now.toDateString()
+  const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+  if (sameDay) return `today ${time}`
+  return `${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} ${time}`
+}
+
 function displayName(t: Thread): string {
   return t.contact_name || t.phone
 }
@@ -99,6 +110,10 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
   const [activeId, setActiveId] = useState<number | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [compose, setCompose] = useState('')
+  const [scheduled, setScheduled] = useState<ScheduledMessage[]>([])
+  const [showSchedule, setShowSchedule] = useState(false)
+  const [scheduleAt, setScheduleAt] = useState('')
+  const [scheduling, setScheduling] = useState(false)
   const [templates, setTemplates] = useState<Template[]>([])
   const [showTemplates, setShowTemplates] = useState(false)
   const [sending, setSending] = useState(false)
@@ -126,6 +141,11 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
   async function refreshActiveMessages(id: number) {
     const data = await api<{ thread: Thread; messages: Message[] }>(`/api/sms/threads/${id}/messages`)
     setMessages(data.messages)
+  }
+
+  async function loadScheduled(id: number) {
+    const data = await api<{ scheduled: ScheduledMessage[] }>(`/api/sms/threads/${id}/scheduled`)
+    setScheduled(data.scheduled)
   }
 
   useEffect(() => {
@@ -160,7 +180,10 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
     async function tick() {
       if (document.visibilityState !== 'visible') return
       await loadThreads().catch(() => {})
-      if (activeId) await refreshActiveMessages(activeId).catch(() => {})
+      if (activeId) {
+        await refreshActiveMessages(activeId).catch(() => {})
+        await loadScheduled(activeId).catch(() => {})
+      }
     }
     const interval = setInterval(tick, 25000)
     document.addEventListener('visibilitychange', tick)
@@ -211,9 +234,12 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
     setView('thread')
     setCompose('')
     setShowTemplates(false)
+    setShowSchedule(false)
+    setScheduleAt('')
     setThreads((prev) => prev.map((t) => (t.id === id ? { ...t, unread: 0 } : t)))
     const data = await api<{ thread: Thread; messages: Message[] }>(`/api/sms/threads/${id}/messages`)
     setMessages(data.messages)
+    await loadScheduled(id).catch(() => {})
   }
 
   async function send() {
@@ -231,6 +257,35 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
     } finally {
       setSending(false)
     }
+  }
+
+  async function scheduleSend() {
+    const text = compose.trim()
+    if (!text || !activeId || !scheduleAt || scheduling) return
+    const localDate = new Date(scheduleAt)
+    if (Number.isNaN(localDate.getTime()) || localDate <= new Date()) return
+    // Convert the datetime-local (browser-local wall clock) value to the UTC
+    // "YYYY-MM-DD HH:MM:SS" form jobs/sms/scheduled_sender.py's
+    // `send_at <= datetime('now')` cron compares against directly.
+    const sendAt = localDate.toISOString().slice(0, 19).replace('T', ' ')
+    setScheduling(true)
+    try {
+      const data = await api<{ scheduled: ScheduledMessage }>(`/api/sms/threads/${activeId}/scheduled`, {
+        method: 'POST',
+        body: JSON.stringify({ text, send_at: sendAt }),
+      })
+      setScheduled((prev) => [...prev, data.scheduled].sort((a, b) => a.send_at.localeCompare(b.send_at)))
+      setCompose('')
+      setShowSchedule(false)
+      setScheduleAt('')
+    } finally {
+      setScheduling(false)
+    }
+  }
+
+  async function cancelScheduled(id: number) {
+    setScheduled((prev) => prev.filter((s) => s.id !== id))
+    await api(`/api/sms/scheduled/${id}`, { method: 'DELETE' }).catch(() => {})
   }
 
   function applyTemplate(t: Template) {
@@ -534,15 +589,51 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
             ))}
           </div>
 
+          {scheduled.length > 0 && (
+            <div className="px-4 pb-2 flex flex-col gap-1.5">
+              {scheduled.map((s) => (
+                <div
+                  key={s.id}
+                  className="flex items-center gap-2 rounded-lg border border-dashed px-3 py-1.5 text-xs"
+                  style={{
+                    borderColor: s.status === 'failed' ? COLORS.clay : COLORS.tagblue,
+                    color: s.status === 'failed' ? COLORS.clay : COLORS.tagblue,
+                  }}
+                >
+                  <span aria-hidden>{s.status === 'failed' ? '⚠' : '🕐'}</span>
+                  <span className="flex-1 truncate" style={{ color: COLORS.ink }}>
+                    {s.body}
+                  </span>
+                  <span className="flex-none">
+                    {s.status === 'failed' ? `failed: ${s.error || 'send failed'}` : fmtScheduled(s.send_at)}
+                  </span>
+                  <button onClick={() => cancelScheduled(s.id)} aria-label="Cancel scheduled message" className="flex-none px-1">
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="border-t px-4 pt-3 pb-4 flex flex-col gap-2" style={{ borderColor: COLORS.line }}>
             <div className="flex items-center justify-between">
-              <button
-                onClick={() => setShowTemplates((s) => !s)}
-                className="text-xs font-medium px-2.5 py-1 rounded-full border"
-                style={{ borderColor: COLORS.tagblue, color: COLORS.tagblue }}
-              >
-                Use a template
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowTemplates((s) => !s)}
+                  className="text-xs font-medium px-2.5 py-1 rounded-full border"
+                  style={{ borderColor: COLORS.tagblue, color: COLORS.tagblue }}
+                >
+                  Use a template
+                </button>
+                <button
+                  onClick={() => setShowSchedule((s) => !s)}
+                  aria-label="Schedule for later"
+                  className="text-xs font-medium px-2.5 py-1 rounded-full border"
+                  style={{ borderColor: COLORS.tagblue, color: COLORS.tagblue }}
+                >
+                  🕐 Later
+                </button>
+              </div>
               <span className="text-xs" style={{ color: COLORS.inkSoft }}>
                 Nothing sends until you tap send
               </span>
@@ -559,6 +650,31 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
                     {t.label}
                   </button>
                 ))}
+              </div>
+            )}
+            {showSchedule && (
+              <div className="flex flex-col gap-2 rounded-lg border p-2" style={{ borderColor: COLORS.line }}>
+                <label className="text-xs" style={{ color: COLORS.inkSoft }}>
+                  Send this message at:
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="datetime-local"
+                    value={scheduleAt}
+                    min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+                    onChange={(e) => setScheduleAt(e.target.value)}
+                    className="flex-1 rounded-lg border px-2 py-1.5 text-sm"
+                    style={{ borderColor: COLORS.line, background: COLORS.surfaceAlt, color: COLORS.ink }}
+                  />
+                  <button
+                    onClick={scheduleSend}
+                    disabled={!compose.trim() || !scheduleAt || scheduling}
+                    className="text-xs font-medium px-3 py-1.5 rounded-lg text-white disabled:opacity-40 flex-none"
+                    style={{ background: COLORS.moss }}
+                  >
+                    Schedule
+                  </button>
+                </div>
               </div>
             )}
             <div className="flex items-end gap-2">
