@@ -183,6 +183,11 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
   const [injectPhone, setInjectPhone] = useState('')
   const [injectName, setInjectName] = useState('')
   const [injectText, setInjectText] = useState('')
+  const [composeOpen, setComposeOpen] = useState(false)
+  const [composePhone, setComposePhone] = useState('')
+  const [composeName, setComposeName] = useState('')
+  const [composeText, setComposeText] = useState('')
+  const [composeSending, setComposeSending] = useState(false)
   const [addingTemplate, setAddingTemplate] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
   const [archivedThreads, setArchivedThreads] = useState<Thread[]>([])
@@ -508,6 +513,29 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
     await loadThreads()
   }
 
+  async function sendNewMessage() {
+    if (!composePhone.trim() || !composeText.trim() || composeSending) return
+    setComposeSending(true)
+    try {
+      const data = await api<{ thread: Thread }>('/api/sms/send', {
+        method: 'POST',
+        body: JSON.stringify({
+          phone: composePhone.trim(),
+          name: composeName.trim() || undefined,
+          text: composeText.trim(),
+        }),
+      })
+      setComposeOpen(false)
+      setComposePhone('')
+      setComposeName('')
+      setComposeText('')
+      await loadThreads()
+      await openThread(data.thread.id)
+    } finally {
+      setComposeSending(false)
+    }
+  }
+
   const visibleThreads = threads.filter((t) => {
     const q = query.trim().toLowerCase()
     if (!q) return true
@@ -641,10 +669,12 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
                   setView('templates')
                 }}
                 aria-label="Add and edit templates"
-                className="text-xs font-medium px-3 py-2 rounded-lg border flex items-center gap-1.5"
+                className="w-9 h-9 rounded-lg border flex items-center justify-center"
                 style={{ borderColor: COLORS.line, color: COLORS.inkSoft }}
               >
-                ✎ Templates
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3Z" />
+                </svg>
               </button>
               <button
                 onClick={() => {
@@ -653,13 +683,27 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
                   if (next) loadArchived().catch(() => {})
                 }}
                 aria-label="Show archived conversations"
-                className="text-xs font-medium px-3 py-2 rounded-lg border flex items-center gap-1.5"
+                className="w-9 h-9 rounded-lg border flex items-center justify-center"
                 style={{
                   borderColor: showArchived ? COLORS.tagblue : COLORS.line,
                   color: showArchived ? COLORS.tagblue : COLORS.inkSoft,
                 }}
               >
-                🗄 Archived
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="5" rx="1" />
+                  <path d="M5 9v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9" />
+                  <path d="M10 13h4" />
+                </svg>
+              </button>
+              <button
+                onClick={() => setComposeOpen(true)}
+                aria-label="New message"
+                className="w-9 h-9 rounded-lg border flex items-center justify-center"
+                style={{ borderColor: COLORS.line, color: COLORS.inkSoft }}
+              >
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
               </button>
             </div>
             <form action={logoutAction}>
@@ -1154,6 +1198,60 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
             {templates.map((t) => (
               <TemplateCard key={t.id} colors={COLORS} template={t} onSave={(body) => saveTemplate(t.id, body)} />
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ---- NEW MESSAGE MODAL ---- */}
+      {composeOpen && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-6 z-20">
+          <div className="w-full max-w-sm rounded-2xl p-5 flex flex-col gap-3" style={{ background: COLORS.surface, color: COLORS.ink }}>
+            <h3 className="text-sm font-semibold">New message</h3>
+            <input
+              value={composePhone}
+              onChange={(e) => setComposePhone(e.target.value)}
+              placeholder="Phone number"
+              inputMode="tel"
+              className="border rounded-lg px-3 py-2 text-sm"
+              style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
+            />
+            <input
+              value={composeName}
+              onChange={(e) => setComposeName(e.target.value)}
+              placeholder="Name (optional)"
+              className="border rounded-lg px-3 py-2 text-sm"
+              style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
+            />
+            <textarea
+              value={composeText}
+              onChange={(e) => setComposeText(e.target.value)}
+              placeholder="Message text"
+              rows={3}
+              className="border rounded-lg px-3 py-2 text-sm"
+              style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => {
+                  setComposeOpen(false)
+                  setComposePhone('')
+                  setComposeName('')
+                  setComposeText('')
+                }}
+                className="text-sm px-3 py-1.5"
+                style={{ color: COLORS.inkSoft }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={sendNewMessage}
+                disabled={!composePhone.trim() || !composeText.trim() || composeSending}
+                className="text-sm px-3 py-1.5 rounded-lg text-white disabled:opacity-40"
+                style={{ background: COLORS.moss }}
+              >
+                Send
+              </button>
+            </div>
           </div>
         </div>
       )}
