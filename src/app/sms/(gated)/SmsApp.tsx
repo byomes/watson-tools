@@ -1051,20 +1051,20 @@ export default function SmsApp() {
                 ⚙
               </button>
               {contextFields.last_attended && context.last_attended_summary && <div>{context.last_attended_summary}</div>}
-              {contextFields.deacon && context.deacon && <div>Deacon: {context.deacon}</div>}
-              {contextFields.campus && context.campus_preference && <div>Campus: {context.campus_preference}</div>}
-              {contextFields.first_visit && context.first_visit_date && <div>First visit: {context.first_visit_date}</div>}
+              {contextFields.deacon && context.deacon && <div><strong>Deacon:</strong> {context.deacon}</div>}
+              {contextFields.campus && context.campus_preference && <div><strong>Campus:</strong> {context.campus_preference}</div>}
+              {contextFields.first_visit && context.first_visit_date && <div><strong>First visit:</strong> {context.first_visit_date}</div>}
               {contextFields.household && context.household && context.household.length > 0 && (
                 <div>
-                  Household: {context.household.map((h) => (h.household_role ? `${h.name} (${h.household_role})` : h.name)).join(', ')}
+                  <strong>Household:</strong> {context.household.map((h) => (h.household_role ? `${h.name} (${h.household_role})` : h.name)).join(', ')}
                 </div>
               )}
-              {contextFields.birthdate_anniversary && context.birthdate && <div>Birthday: {context.birthdate}</div>}
-              {contextFields.birthdate_anniversary && context.anniversary && <div>Anniversary: {context.anniversary}</div>}
-              {contextFields.active_status && context.active_status && <div>Status: {context.active_status}</div>}
+              {contextFields.birthdate_anniversary && context.birthdate && <div><strong>Birthday:</strong> {context.birthdate}</div>}
+              {contextFields.birthdate_anniversary && context.anniversary && <div><strong>Anniversary:</strong> {context.anniversary}</div>}
+              {contextFields.active_status && context.active_status && <div><strong>Status:</strong> {context.active_status}</div>}
               {contextFields.serving && (context.serving_teams?.length || context.started_serving_date) && (
                 <div>
-                  Serving
+                  <strong>Serving</strong>
                   {context.serving_teams && context.serving_teams.length > 0
                     ? `: ${context.serving_teams.map((t) => (t.position ? `${t.team_name} (${t.position})` : t.team_name)).join(', ')}`
                     : ''}
@@ -1112,6 +1112,11 @@ export default function SmsApp() {
                 {m.direction === 'out' && m.status === 'failed' && (
                   <span className="text-xs px-1" style={{ color: COLORS.clay }}>
                     Failed to send
+                  </span>
+                )}
+                {m.direction === 'out' && m.status === 'delivered' && (
+                  <span className="text-xs px-1" style={{ color: COLORS.inkSoft }}>
+                    Delivered
                   </span>
                 )}
               </div>
