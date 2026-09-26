@@ -66,7 +66,7 @@ function CalendarCheckIcon() {
 
 function SunIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
       <circle cx="12" cy="12" r="4" />
       <path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8l1.8-1.8M18 6l1.8-1.8" />
     </svg>
@@ -75,7 +75,7 @@ function SunIcon() {
 
 function MoonIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
       <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" />
     </svg>
   )
@@ -83,7 +83,7 @@ function MoonIcon() {
 
 function PlusIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
       <path d="M12 5v14M5 12h14" />
     </svg>
   )
@@ -91,10 +91,20 @@ function PlusIcon() {
 
 function HelpIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
       <circle cx="12" cy="12" r="9" />
       <path d="M9.3 9.2a2.7 2.7 0 0 1 5.2.9c0 1.8-2.5 2-2.5 3.6" />
       <path d="M12 17.3h.01" />
+    </svg>
+  )
+}
+
+function LogoutIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
     </svg>
   )
 }
@@ -224,15 +234,17 @@ export default function DeaconAppTabs({
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/catalyst-c-logo.jpg" alt="" className="h-6 w-6 rounded-md" />
-              Catalyst Shepherding App
+              Shepherding App
             </button>
           </h1>
           <button
             type="button"
             onClick={() => logoutAction()}
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400 active:opacity-60"
+            aria-label="Log out"
+            title="Log out"
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-[45px] h-[45px] flex items-center justify-center text-gray-500 dark:text-gray-400 active:opacity-60"
           >
-            Log out
+            <LogoutIcon />
           </button>
           <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
             <button
@@ -240,7 +252,7 @@ export default function DeaconAppTabs({
               onClick={() => setHelpOpen(true)}
               aria-label="Help"
               title="Help"
-              className="text-gray-500 dark:text-gray-400 active:opacity-60"
+              className="w-[45px] h-[45px] flex items-center justify-center text-gray-500 dark:text-gray-400 active:opacity-60"
             >
               <HelpIcon />
             </button>
@@ -249,7 +261,7 @@ export default function DeaconAppTabs({
               onClick={() => boardRef.current?.openAddPerson()}
               aria-label="Add new person"
               title="Add new person"
-              className="text-gray-500 dark:text-gray-400 active:opacity-60"
+              className="w-[45px] h-[45px] flex items-center justify-center text-gray-500 dark:text-gray-400 active:opacity-60"
             >
               <PlusIcon />
             </button>
@@ -257,7 +269,7 @@ export default function DeaconAppTabs({
               type="button"
               onClick={toggleTheme}
               aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              className="text-gray-500 dark:text-gray-400 active:opacity-60"
+              className="w-[45px] h-[45px] flex items-center justify-center text-gray-500 dark:text-gray-400 active:opacity-60"
             >
               {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
             </button>
