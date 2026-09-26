@@ -37,6 +37,11 @@ type Context = {
   deacon?: string | null
   last_attended_summary?: string
   household?: { name: string; household_role: string | null }[]
+  birthdate?: string | null
+  anniversary?: string | null
+  active_status?: string | null
+  serving_teams?: { team_name: string; position: string | null }[]
+  started_serving_date?: string | null
 }
 
 type View = 'list' | 'thread' | 'templates'
@@ -47,6 +52,9 @@ const CONTEXT_FIELDS = [
   { key: 'deacon', label: 'Deacon' },
   { key: 'campus', label: 'Campus preference' },
   { key: 'first_visit', label: 'First visit date' },
+  { key: 'birthdate_anniversary', label: 'Birthdate / Anniversary' },
+  { key: 'serving', label: 'Serving status' },
+  { key: 'active_status', label: 'Active/inactive status' },
 ] as const
 type ContextFieldKey = (typeof CONTEXT_FIELDS)[number]['key']
 
@@ -1041,6 +1049,18 @@ export default function SmsApp() {
               {contextFields.household && context.household && context.household.length > 0 && (
                 <div>
                   Household: {context.household.map((h) => (h.household_role ? `${h.name} (${h.household_role})` : h.name)).join(', ')}
+                </div>
+              )}
+              {contextFields.birthdate_anniversary && context.birthdate && <div>Birthday: {context.birthdate}</div>}
+              {contextFields.birthdate_anniversary && context.anniversary && <div>Anniversary: {context.anniversary}</div>}
+              {contextFields.active_status && context.active_status && <div>Status: {context.active_status}</div>}
+              {contextFields.serving && (context.serving_teams?.length || context.started_serving_date) && (
+                <div>
+                  Serving
+                  {context.serving_teams && context.serving_teams.length > 0
+                    ? `: ${context.serving_teams.map((t) => (t.position ? `${t.team_name} (${t.position})` : t.team_name)).join(', ')}`
+                    : ''}
+                  {context.started_serving_date ? ` since ${context.started_serving_date}` : ''}
                 </div>
               )}
               {showSettings && (
