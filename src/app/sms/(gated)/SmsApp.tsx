@@ -341,7 +341,7 @@ export default function SmsApp() {
     setContext(data)
   }
 
-  async function linkToMember(id: number, member: Member, overwrite: boolean) {
+  async function linkToMember(id: number, member: Member, action: 'ask' | 'overwrite' | 'keep_both') {
     setLinking(true)
     try {
       const data = await api<{
@@ -352,7 +352,11 @@ export default function SmsApp() {
         new_phone?: string
       }>(`/api/sms/threads/${id}/link-member`, {
         method: 'POST',
-        body: JSON.stringify({ member_id: member.id, overwrite }),
+        body: JSON.stringify({
+          member_id: member.id,
+          overwrite: action === 'overwrite',
+          keep_both: action === 'keep_both',
+        }),
       })
       if (data.error === 'phone_conflict') {
         setLinkConflict({
@@ -1276,16 +1280,30 @@ export default function SmsApp() {
                   {linkConflict ? (
                     <div className="flex flex-col gap-2">
                       <div style={{ color: COLORS.ink }}>
-                        <strong>{linkConflict.memberName}</strong> already has {linkConflict.existingPhone} on file. Replace it with {linkConflict.newPhone}?
+                        <strong>{linkConflict.memberName}</strong> already has {linkConflict.existingPhone} on file. Replace it with {linkConflict.newPhone}, or keep both?
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <button
                           disabled={linking}
-                          onClick={() => activeThread && linkToMember(activeThread.id, { id: linkConflict.memberId, name: linkConflict.memberName, phone: linkConflict.existingPhone }, true)}
+                          onClick={() =>
+                            activeThread &&
+                            linkToMember(activeThread.id, { id: linkConflict.memberId, name: linkConflict.memberName, phone: linkConflict.existingPhone }, 'overwrite')
+                          }
                           className="px-2.5 py-1 rounded-lg text-white disabled:opacity-50"
                           style={{ background: COLORS.clay }}
                         >
                           Replace it
+                        </button>
+                        <button
+                          disabled={linking}
+                          onClick={() =>
+                            activeThread &&
+                            linkToMember(activeThread.id, { id: linkConflict.memberId, name: linkConflict.memberName, phone: linkConflict.existingPhone }, 'keep_both')
+                          }
+                          className="px-2.5 py-1 rounded-lg text-white disabled:opacity-50"
+                          style={{ background: COLORS.moss }}
+                        >
+                          Keep both
                         </button>
                         <button onClick={() => setLinkConflict(null)} style={{ color: COLORS.inkSoft }}>
                           Cancel
@@ -1308,7 +1326,7 @@ export default function SmsApp() {
                             <button
                               key={m.id}
                               disabled={linking}
-                              onClick={() => activeThread && linkToMember(activeThread.id, m, false)}
+                              onClick={() => activeThread && linkToMember(activeThread.id, m, 'ask')}
                               className="text-left px-2 py-1.5 rounded-lg disabled:opacity-50"
                               style={{ background: COLORS.surfaceAlt, color: COLORS.ink }}
                             >
