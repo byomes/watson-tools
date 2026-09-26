@@ -46,7 +46,7 @@ type Context = {
   started_serving_date?: string | null
 }
 
-type View = 'list' | 'thread' | 'templates'
+type View = 'list' | 'thread' | 'templates' | 'settings'
 
 const CONTEXT_FIELDS = [
   { key: 'last_attended', label: 'Last attended' },
@@ -106,6 +106,37 @@ const DARK_COLORS = {
 }
 
 type Palette = typeof LIGHT_COLORS
+
+// Accent themes: only the primary accent (moss/mossStrong, used for the
+// send button, active states, links) changes -- surfaces/ink/etc. stay
+// the same clean neutral scale in every theme, light and dark mode both
+// still apply independently on top. "Ocean" matches the app icon and is
+// the default.
+const ACCENT_THEMES = [
+  { key: 'ocean', label: 'Ocean', swatch: '#3C5C89', light: { moss: '#3C5C89', mossStrong: '#2A4666' }, dark: { moss: '#7FA1D4', mossStrong: '#9DBBE3' } },
+  { key: 'violet', label: 'Violet', swatch: '#6B46A3', light: { moss: '#6B46A3', mossStrong: '#4F3379' }, dark: { moss: '#B794E6', mossStrong: '#CBAEF0' } },
+  { key: 'teal', label: 'Teal', swatch: '#0F766E', light: { moss: '#0F766E', mossStrong: '#0B5A54' }, dark: { moss: '#4FD1C5', mossStrong: '#7EE8DC' } },
+  { key: 'forest', label: 'Forest', swatch: '#2F6B4F', light: { moss: '#2F6B4F', mossStrong: '#204A37' }, dark: { moss: '#6FBE94', mossStrong: '#8ED1AC' } },
+  { key: 'rose', label: 'Rose', swatch: '#A3405C', light: { moss: '#A3405C', mossStrong: '#7C2F46' }, dark: { moss: '#E38CA6', mossStrong: '#EDA8BD' } },
+  { key: 'slate', label: 'Slate', swatch: '#475569', light: { moss: '#475569', mossStrong: '#334155' }, dark: { moss: '#94A3B8', mossStrong: '#B0BECC' } },
+] as const
+type AccentKey = (typeof ACCENT_THEMES)[number]['key']
+
+function loadAccentTheme(): AccentKey {
+  try {
+    const stored = localStorage.getItem('sms_accent_theme')
+    if (stored && ACCENT_THEMES.some((t) => t.key === stored)) return stored as AccentKey
+  } catch {
+    // localStorage unavailable -- default accent
+  }
+  return 'ocean'
+}
+
+function applyAccent(base: Palette, mode: 'light' | 'dark', accent: AccentKey): Palette {
+  const found = ACCENT_THEMES.find((t) => t.key === accent) ?? ACCENT_THEMES[0]
+  const override = mode === 'dark' ? found.dark : found.light
+  return { ...base, moss: override.moss, mossStrong: override.mossStrong }
+}
 
 function fraunces(extra = '') {
   return `font-[family-name:var(--font-fraunces)] ${extra}`
@@ -206,7 +237,8 @@ export default function SmsApp() {
   const [theme, toggleTheme] = useSmsTheme()
   const { status: pushStatus, errorDetail: pushErrorDetail, stage: pushStage, enable: enablePush } = useSmsPush()
   const [showPushInfo, setShowPushInfo] = useState(false)
-  const COLORS: Palette = theme === 'dark' ? DARK_COLORS : LIGHT_COLORS
+  const [accentTheme, setAccentTheme] = useState<AccentKey>('ocean')
+  const COLORS: Palette = applyAccent(theme === 'dark' ? DARK_COLORS : LIGHT_COLORS, theme, accentTheme)
   const [view, setView] = useState<View>('list')
   const [threads, setThreads] = useState<Thread[]>([])
   const [query, setQuery] = useState('')
@@ -249,6 +281,9 @@ export default function SmsApp() {
   const [linking, setLinking] = useState(false)
   const [linkConflict, setLinkConflict] = useState<{ memberId: number; memberName: string; existingPhone: string; newPhone: string } | null>(null)
   const [linkError, setLinkError] = useState<string | null>(null)
+  const [vacationMode, setVacationMode] = useState(false)
+  const [sabbathSilence, setSabbathSilence] = useState(true)
+  const [savingSettings, setSavingSettings] = useState(false)
   const [contextFields, setContextFields] = useState<Record<ContextFieldKey, boolean>>(() =>
     Object.fromEntries(CONTEXT_FIELDS.map((f) => [f.key, true])) as Record<ContextFieldKey, boolean>,
   )
@@ -261,12 +296,22 @@ export default function SmsApp() {
 
   useEffect(() => {
     setContextFields(loadContextSettings())
+    setAccentTheme(loadAccentTheme())
     try {
       setContextCollapsed(localStorage.getItem('sms_context_collapsed') === 'true')
     } catch {
       // localStorage unavailable (private mode etc) -- stays expanded
     }
   }, [])
+
+  function chooseAccentTheme(key: AccentKey) {
+    setAccentTheme(key)
+    try {
+      localStorage.setItem('sms_accent_theme', key)
+    } catch {
+      // localStorage unavailable (private mode etc) -- setting just won't persist
+    }
+  }
 
   function toggleContextCollapsed() {
     setContextCollapsed((prev) => {
@@ -337,6 +382,28 @@ export default function SmsApp() {
     setBatteryPct(data.heartbeat?.battery_pct ?? null)
   }
 
+  async function loadAppSettings() {
+    const data = await api<{ vacation_mode: boolean; sabbath_silence: boolean }>('/api/sms/settings')
+    setVacationMode(data.vacation_mode)
+    setSabbathSilence(data.sabbath_silence)
+  }
+
+  async function updateAppSetting(patch: { vacation_mode?: boolean; sabbath_silence?: boolean }) {
+    setSavingSettings(true)
+    try {
+      const data = await api<{ vacation_mode: boolean; sabbath_silence: boolean }>('/api/sms/settings', {
+        method: 'PATCH',
+        body: JSON.stringify(patch),
+      })
+      setVacationMode(data.vacation_mode)
+      setSabbathSilence(data.sabbath_silence)
+    } catch {
+      // transient network hiccup -- toggle just won't visually update; user can retry
+    } finally {
+      setSavingSettings(false)
+    }
+  }
+
   async function loadContext(id: number) {
     const data = await api<Context>(`/api/sms/threads/${id}/context`)
     setContext(data)
@@ -401,7 +468,7 @@ export default function SmsApp() {
   }
 
   useEffect(() => {
-    Promise.all([loadThreads(), loadTemplates(), loadHeartbeat().catch(() => {})])
+    Promise.all([loadThreads(), loadTemplates(), loadHeartbeat().catch(() => {}), loadAppSettings().catch(() => {})])
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
@@ -833,23 +900,6 @@ export default function SmsApp() {
                   <path d="M21 3v6h-6" />
                 </svg>
               </button>
-              <button
-                onClick={toggleTheme}
-                aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                className="w-[45px] h-[45px] rounded-lg border flex items-center justify-center"
-                style={{ borderColor: COLORS.line, color: COLORS.inkSoft }}
-              >
-                {theme === 'dark' ? (
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="4" />
-                    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
-                  </svg>
-                ) : (
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
-                  </svg>
-                )}
-              </button>
               {pushStatus !== 'granted' && (
               <div className="relative">
                 <button
@@ -905,16 +955,14 @@ export default function SmsApp() {
               </div>
               )}
               <button
-                onClick={() => {
-                  setView('templates')
-                }}
-                aria-label="Add and edit templates"
+                onClick={() => setView('settings')}
+                aria-label="Settings"
                 className="w-[45px] h-[45px] rounded-lg border flex items-center justify-center"
                 style={{ borderColor: COLORS.line, color: COLORS.inkSoft }}
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="9 11 12 14 22 4" />
-                  <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
                 </svg>
               </button>
               <button
@@ -1555,13 +1603,13 @@ export default function SmsApp() {
           <div className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: COLORS.line }}>
             <button
               onClick={() => {
-                setView('list')
+                setView('settings')
                 setAddingTemplate(false)
               }}
               style={{ color: COLORS.moss }}
               className="font-medium text-sm"
             >
-              ← Messages
+              ← Settings
             </button>
             <h2 className={fraunces('flex-1 text-center text-sm font-semibold')}>Saved templates</h2>
             <button
@@ -1590,6 +1638,141 @@ export default function SmsApp() {
             {templates.map((t) => (
               <TemplateCard key={t.id} colors={COLORS} template={t} onSave={(body) => saveTemplate(t.id, body)} />
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ---- SETTINGS VIEW ---- */}
+      {view === 'settings' && (
+        <div className="flex flex-col min-h-screen">
+          <div className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: COLORS.line }}>
+            <button onClick={() => setView('list')} style={{ color: COLORS.moss }} className="font-medium text-sm">
+              ← Messages
+            </button>
+            <h2 className={fraunces('flex-1 text-center text-sm font-semibold')}>Settings</h2>
+            <div className="w-16" />
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-6">
+            <section className="flex flex-col gap-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: COLORS.inkSoft, letterSpacing: '0.05em' }}>
+                Appearance
+              </h3>
+              <div className="rounded-2xl border p-3 flex flex-col gap-3" style={{ borderColor: COLORS.line, background: COLORS.surface }}>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Mode</span>
+                  <button
+                    onClick={toggleTheme}
+                    className="flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full border"
+                    style={{ borderColor: COLORS.line, color: COLORS.inkSoft }}
+                  >
+                    {theme === 'dark' ? (
+                      <>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="4" />
+                          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+                        </svg>
+                        Dark
+                      </>
+                    ) : (
+                      <>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
+                        </svg>
+                        Light
+                      </>
+                    )}
+                  </button>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <span className="text-sm">Theme</span>
+                  <div className="grid grid-cols-3 gap-2">
+                    {ACCENT_THEMES.map((t) => (
+                      <button
+                        key={t.key}
+                        onClick={() => chooseAccentTheme(t.key)}
+                        className="flex flex-col items-center gap-1.5 rounded-xl border py-2.5"
+                        style={{
+                          borderColor: accentTheme === t.key ? t.swatch : COLORS.line,
+                          borderWidth: accentTheme === t.key ? 2 : 1,
+                        }}
+                      >
+                        <span
+                          className="w-7 h-7 rounded-full flex items-center justify-center"
+                          style={{ background: t.swatch }}
+                        >
+                          {accentTheme === t.key && (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          )}
+                        </span>
+                        <span className="text-[11px]" style={{ color: COLORS.inkSoft }}>{t.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="flex flex-col gap-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: COLORS.inkSoft, letterSpacing: '0.05em' }}>
+                Messaging
+              </h3>
+              <button
+                onClick={() => setView('templates')}
+                className="rounded-2xl border p-3 flex items-center justify-between text-sm"
+                style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
+              >
+                <span className="flex items-center gap-2">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 11 12 14 22 4" />
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                  </svg>
+                  Saved templates
+                </span>
+                <span style={{ color: COLORS.inkSoft }}>{templates.length} &rsaquo;</span>
+              </button>
+            </section>
+
+            <section className="flex flex-col gap-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: COLORS.inkSoft, letterSpacing: '0.05em' }}>
+                Availability
+              </h3>
+              <div className="rounded-2xl border p-3 flex flex-col gap-3" style={{ borderColor: COLORS.line, background: COLORS.surface }}>
+                <label className="flex items-start justify-between gap-3">
+                  <span className="flex flex-col gap-0.5">
+                    <span className="text-sm">Friday Sabbath</span>
+                    <span className="text-xs" style={{ color: COLORS.inkSoft }}>
+                      Silences calls and texts every Friday, 12:00am&ndash;11:59pm, for family Sabbath.
+                    </span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    disabled={savingSettings}
+                    checked={sabbathSilence}
+                    onChange={(e) => updateAppSetting({ sabbath_silence: e.target.checked })}
+                    className="mt-1 flex-none"
+                  />
+                </label>
+                <div className="h-px" style={{ background: COLORS.line }} />
+                <label className="flex items-start justify-between gap-3">
+                  <span className="flex flex-col gap-0.5">
+                    <span className="text-sm">Vacation mode</span>
+                    <span className="text-xs" style={{ color: COLORS.inkSoft }}>
+                      Silences all calls and texts until you turn this back off.
+                    </span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    disabled={savingSettings}
+                    checked={vacationMode}
+                    onChange={(e) => updateAppSetting({ vacation_mode: e.target.checked })}
+                    className="mt-1 flex-none"
+                  />
+                </label>
+              </div>
+            </section>
           </div>
         </div>
       )}
