@@ -248,6 +248,7 @@ export default function SmsApp() {
   const [linkMemberResults, setLinkMemberResults] = useState<Member[]>([])
   const [linking, setLinking] = useState(false)
   const [linkConflict, setLinkConflict] = useState<{ memberId: number; memberName: string; existingPhone: string; newPhone: string } | null>(null)
+  const [linkError, setLinkError] = useState<string | null>(null)
   const [contextFields, setContextFields] = useState<Record<ContextFieldKey, boolean>>(() =>
     Object.fromEntries(CONTEXT_FIELDS.map((f) => [f.key, true])) as Record<ContextFieldKey, boolean>,
   )
@@ -344,20 +345,25 @@ export default function SmsApp() {
   async function linkToMember(id: number, member: Member, action: 'ask' | 'overwrite' | 'keep_both') {
     setLinking(true)
     try {
-      const data = await api<{
-        ok?: boolean
-        thread?: Thread
-        error?: string
-        existing_phone?: string
-        new_phone?: string
-      }>(`/api/sms/threads/${id}/link-member`, {
+      // Not the shared api() helper -- it throws away the response body on
+      // any non-2xx status, but the 409 conflict response IS the useful
+      // payload here (existing_phone/new_phone), not just an error to swallow.
+      const res = await fetch(`/api/sms/threads/${id}/link-member`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           member_id: member.id,
           overwrite: action === 'overwrite',
           keep_both: action === 'keep_both',
         }),
       })
+      const data: {
+        ok?: boolean
+        thread?: Thread
+        error?: string
+        existing_phone?: string
+        new_phone?: string
+      } = await res.json()
       if (data.error === 'phone_conflict') {
         setLinkConflict({
           memberId: member.id,
@@ -367,16 +373,19 @@ export default function SmsApp() {
         })
         return
       }
-      if (data.thread) {
-        setThreads((prev) => prev.map((t) => (t.id === id ? data.thread! : t)))
+      if (!res.ok || !data.thread) {
+        setLinkError(data.error || `Failed (${res.status})`)
+        return
       }
+      setThreads((prev) => prev.map((t) => (t.id === id ? data.thread! : t)))
       setShowLinkMember(false)
       setLinkMemberQuery('')
       setLinkMemberResults([])
       setLinkConflict(null)
+      setLinkError(null)
       await loadContext(id)
     } catch {
-      // transient network hiccup -- picker stays open so Bill can retry
+      setLinkError('Network error -- try again')
     } finally {
       setLinking(false)
     }
@@ -1271,12 +1280,14 @@ export default function SmsApp() {
                         setLinkMemberQuery('')
                         setLinkMemberResults([])
                         setLinkConflict(null)
+                        setLinkError(null)
                       }}
                       style={{ color: COLORS.inkSoft }}
                     >
                       Cancel
                     </button>
                   </div>
+                  {linkError && <div style={{ color: COLORS.clay }}>{linkError}</div>}
                   {linkConflict ? (
                     <div className="flex flex-col gap-2">
                       <div style={{ color: COLORS.ink }}>
