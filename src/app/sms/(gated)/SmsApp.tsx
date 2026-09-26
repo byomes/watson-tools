@@ -208,6 +208,7 @@ export default function SmsApp() {
   const [editingScheduledId, setEditingScheduledId] = useState<number | null>(null)
   const [gatewayOk, setGatewayOk] = useState<boolean | null>(null)
   const [batteryPct, setBatteryPct] = useState<number | null>(null)
+  const [spellchecking, setSpellchecking] = useState(false)
 
   useEffect(() => {
     setContextFields(loadContextSettings())
@@ -420,6 +421,22 @@ export default function SmsApp() {
   function updateCompose(text: string) {
     setCompose(text)
     if (activeId) saveDraft(activeId, text)
+  }
+
+  async function fixSpelling() {
+    if (!compose.trim() || spellchecking) return
+    setSpellchecking(true)
+    try {
+      const data = await api<{ text: string }>('/api/sms/spellcheck', {
+        method: 'POST',
+        body: JSON.stringify({ text: compose }),
+      })
+      updateCompose(data.text)
+    } catch {
+      // transient/offline -- leave the compose text untouched
+    } finally {
+      setSpellchecking(false)
+    }
   }
 
   async function attachImage(file: File) {
@@ -1206,6 +1223,23 @@ export default function SmsApp() {
                 className="flex-1 rounded-2xl border px-3.5 py-2 text-sm outline-none resize-none"
                 style={{ borderColor: compose ? COLORS.moss : COLORS.line, background: COLORS.surfaceAlt, color: COLORS.ink }}
               />
+              <button
+                onClick={fixSpelling}
+                disabled={!compose.trim() || spellchecking}
+                aria-label="Fix spelling"
+                className="w-[45px] h-[45px] rounded-full flex-none border flex items-center justify-center text-sm disabled:opacity-40"
+                style={{ borderColor: COLORS.line, color: COLORS.inkSoft }}
+              >
+                {spellchecking ? (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
+                    <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+                  </svg>
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+              </button>
               <button
                 onClick={send}
                 disabled={(!compose.trim() && !attachedImage) || sending}
