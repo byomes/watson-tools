@@ -206,6 +206,8 @@ export default function SmsApp() {
   )
   const [attachedImage, setAttachedImage] = useState<{ dataUrl: string; mimeType: string } | null>(null)
   const [editingScheduledId, setEditingScheduledId] = useState<number | null>(null)
+  const [gatewayOk, setGatewayOk] = useState<boolean | null>(null)
+  const [batteryPct, setBatteryPct] = useState<number | null>(null)
 
   useEffect(() => {
     setContextFields(loadContextSettings())
@@ -249,7 +251,7 @@ export default function SmsApp() {
     setArchivedThreads(data.threads)
   }
 
-  async function patchThread(id: number, patch: Partial<Pick<Thread, 'state' | 'muted' | 'snoozed_until'>>) {
+  async function patchThread(id: number, patch: Partial<Pick<Thread, 'state' | 'muted' | 'snoozed_until' | 'unread'>>) {
     const data = await api<{ thread: Thread }>(`/api/sms/threads/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(patch),
@@ -260,6 +262,12 @@ export default function SmsApp() {
       return data.thread.state === 'archived' ? [...withoutIt, data.thread] : withoutIt
     })
     return data.thread
+  }
+
+  async function loadHeartbeat() {
+    const data = await api<{ heartbeat: { ok: boolean; battery_pct: number | null } | null }>('/api/sms/heartbeat')
+    setGatewayOk(data.heartbeat?.ok ?? null)
+    setBatteryPct(data.heartbeat?.battery_pct ?? null)
   }
 
   async function loadContext(id: number) {
@@ -277,7 +285,7 @@ export default function SmsApp() {
   }
 
   useEffect(() => {
-    Promise.all([loadThreads(), loadTemplates()])
+    Promise.all([loadThreads(), loadTemplates(), loadHeartbeat().catch(() => {})])
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
@@ -341,6 +349,7 @@ export default function SmsApp() {
         await refreshActiveMessages(activeId).catch(() => {})
         await loadScheduled(activeId).catch(() => {})
       }
+      await loadHeartbeat().catch(() => {})
     }
     const interval = setInterval(tick, 25000)
     document.addEventListener('visibilitychange', tick)
@@ -399,6 +408,7 @@ export default function SmsApp() {
     setEditingScheduledId(null)
     setContext(null)
     setThreads((prev) => prev.map((t) => (t.id === id ? { ...t, unread: 0 } : t)))
+    patchThread(id, { unread: 0 }).catch(() => {})
     const data = await api<{ thread: Thread; messages: Message[] }>(`/api/sms/threads/${id}/messages`)
     setMessages(data.messages)
     await Promise.all([
@@ -612,6 +622,30 @@ export default function SmsApp() {
                 >
                   + test text
                 </button>
+              )}
+              {batteryPct !== null && (
+                <div
+                  aria-label={`Gateway phone battery ${batteryPct}%${gatewayOk === false ? ', unreachable' : ''}`}
+                  className="h-[45px] px-2 rounded-lg border flex items-center gap-1 text-xs font-medium"
+                  style={{
+                    borderColor: batteryPct < 20 || gatewayOk === false ? COLORS.clay : COLORS.line,
+                    color: batteryPct < 20 || gatewayOk === false ? COLORS.clay : COLORS.inkSoft,
+                  }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="7" width="18" height="10" rx="2" />
+                    <path d="M22 10v4" />
+                    <rect
+                      x="4"
+                      y="9"
+                      width={Math.max(1, Math.round((Math.min(100, Math.max(0, batteryPct)) / 100) * 14))}
+                      height="6"
+                      fill="currentColor"
+                      stroke="none"
+                    />
+                  </svg>
+                  {batteryPct}%
+                </div>
               )}
               <button
                 onClick={manualRefresh}
