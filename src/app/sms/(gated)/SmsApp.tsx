@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSmsTheme } from '@/lib/useSmsTheme'
 import { useSmsPush } from '@/lib/useSmsPush'
 
@@ -217,6 +217,7 @@ export default function SmsApp() {
   const [gatewayOk, setGatewayOk] = useState<boolean | null>(null)
   const [batteryPct, setBatteryPct] = useState<number | null>(null)
   const [spellchecking, setSpellchecking] = useState(false)
+  const messagesScrollRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     setContextFields(loadContextSettings())
@@ -298,6 +299,13 @@ export default function SmsApp() {
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
+
+  // Always land on the newest message -- opening a thread, sending, or the
+  // periodic poll picking up a reply should never leave you scrolled up.
+  useEffect(() => {
+    const el = messagesScrollRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [messages])
 
   // Debounced so a full search query doesn't fire one request per keystroke.
   useEffect(() => {
@@ -900,7 +908,7 @@ export default function SmsApp() {
 
       {/* ---- THREAD VIEW ---- */}
       {view === 'thread' && activeThread && (
-        <div className="flex flex-col min-h-screen">
+        <div className="flex flex-col h-screen overflow-hidden">
           <div className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: COLORS.line }}>
             <button onClick={() => setView('list')} style={{ color: COLORS.moss }} className="font-medium text-sm">
               ← Messages
@@ -1084,7 +1092,7 @@ export default function SmsApp() {
             </div>
           )}
 
-          <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2">
+          <div ref={messagesScrollRef} className="flex-1 min-h-0 overflow-y-auto px-4 py-4 flex flex-col gap-2">
             {messages.map((m) => (
               <div key={m.id} className="flex flex-col gap-0.5" style={{ alignItems: m.direction === 'out' ? 'flex-end' : 'flex-start' }}>
                 <div
