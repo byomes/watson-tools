@@ -70,8 +70,8 @@ function loadContextSettings(): Record<ContextFieldKey, boolean> {
 }
 
 const LIGHT_COLORS = {
-  moss: '#3B6A4C',
-  mossStrong: '#2A4E37',
+  moss: '#3C5C89',
+  mossStrong: '#2A4666',
   clay: '#AD5F1B',
   claySoft: '#F3E2CE',
   tagblue: '#3C5C89',
@@ -87,8 +87,8 @@ const LIGHT_COLORS = {
 }
 
 const DARK_COLORS = {
-  moss: '#6EA47C',
-  mossStrong: '#8BC299',
+  moss: '#7FA1D4',
+  mossStrong: '#9DBBE3',
   clay: '#DE8F41',
   claySoft: '#31240F',
   tagblue: '#7FA1D4',

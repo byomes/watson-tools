@@ -28,7 +28,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport = {
-  themeColor: '#3B6A4C',
+  themeColor: '#3C5C89',
 }
 
 export default function SmsLayout({ children }: { children: React.ReactNode }) {
