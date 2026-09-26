@@ -345,7 +345,7 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
                 </button>
                 {showPushInfo && (
                   <div
-                    className="absolute right-0 top-11 z-10 w-64 rounded-xl border p-3 flex flex-col gap-2 text-xs"
+                    className="absolute left-1/2 -translate-x-1/2 top-11 z-10 w-64 max-w-[calc(100vw-2.5rem)] rounded-xl border p-3 flex flex-col gap-2 text-xs"
                     style={{ background: COLORS.surface, borderColor: COLORS.line, color: COLORS.ink }}
                   >
                     {pushStatus === 'granted' && (
