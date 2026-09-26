@@ -32,3 +32,21 @@ body {
 .dark body {
   color: #f3f4f6;
 }
+
+/* iOS Safari auto-zooms the whole page when a focused text input renders
+   under 16px -- true of nearly every input/textarea/select across these
+   tools, since most use Tailwind's text-xs/text-sm. This rule sits outside
+   any @layer, so (per the Cascade Layers note above) it overrides
+   Tailwind's layered text-size utilities regardless of specificity, no
+   !important needed. Scoped to phone-width viewports only -- desktop/
+   tablet input sizing is untouched, and pinch-zoom itself stays available
+   (unlike a maximum-scale=1 viewport meta, which would break
+   accessibility). Found 2026-09-26: tapping a birthday field on
+   catalystdb zoomed past the phone's screen bounds. */
+@media (max-width: 640px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
