@@ -178,9 +178,9 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
       await loadThreads()
       if (activeId) await refreshActiveMessages(activeId)
     } catch {
-      // transient network hiccup -- next poll or tap tries again
+      // transient network hiccup -- the reload below tries again anyway
     } finally {
-      setRefreshing(false)
+      window.location.reload()
     }
   }
 
