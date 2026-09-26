@@ -28,6 +28,7 @@ type Message = {
 type ScheduledMessage = { id: number; body: string; send_at: string; status: 'pending' | 'failed'; error: string | null }
 type Template = { id: string; label: string; body: string; updated_at: string }
 type SearchHit = { message_id: number; thread_id: number; body: string; created_at: string; contact_name: string | null; phone: string }
+type Contact = { id: number; name: string; phone: string }
 type Context = {
   matched: boolean
   name?: string
@@ -188,6 +189,10 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
   const [composeName, setComposeName] = useState('')
   const [composeText, setComposeText] = useState('')
   const [composeSending, setComposeSending] = useState(false)
+  const [composeContacts, setComposeContacts] = useState<Contact[]>([])
+  const [composeContactPicked, setComposeContactPicked] = useState(false)
+  const [composeShowSchedule, setComposeShowSchedule] = useState(false)
+  const [composeScheduleAt, setComposeScheduleAt] = useState('')
   const [addingTemplate, setAddingTemplate] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
   const [archivedThreads, setArchivedThreads] = useState<Thread[]>([])
@@ -289,6 +294,22 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
     }, 300)
     return () => clearTimeout(timer)
   }, [query])
+
+  // Contact-picker autocomplete on the compose window's Name field --
+  // suppressed right after a pick so selecting a contact doesn't
+  // immediately reopen its own dropdown.
+  useEffect(() => {
+    if (!composeOpen || composeContactPicked || !composeName.trim()) {
+      setComposeContacts([])
+      return
+    }
+    const timer = setTimeout(() => {
+      api<{ contacts: Contact[] }>(`/api/sms/contacts?q=${encodeURIComponent(composeName.trim())}`)
+        .then((data) => setComposeContacts(data.contacts))
+        .catch(() => {})
+    }, 250)
+    return () => clearTimeout(timer)
+  }, [composeName, composeOpen, composeContactPicked])
 
   // Deep-link from a push notification tap: the service worker navigates to
   // /sms?thread=<id>, so once threads are loaded, open that thread directly
@@ -513,24 +534,58 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
     await loadThreads()
   }
 
+  function closeCompose() {
+    setComposeOpen(false)
+    setComposePhone('')
+    setComposeName('')
+    setComposeText('')
+    setComposeContacts([])
+    setComposeContactPicked(false)
+    setComposeShowSchedule(false)
+    setComposeScheduleAt('')
+  }
+
+  function pickContact(c: Contact) {
+    setComposeName(c.name)
+    setComposePhone(c.phone)
+    setComposeContactPicked(true)
+    setComposeContacts([])
+  }
+
   async function sendNewMessage() {
     if (!composePhone.trim() || !composeText.trim() || composeSending) return
+    if (composeShowSchedule && !composeScheduleAt) return
     setComposeSending(true)
     try {
-      const data = await api<{ thread: Thread }>('/api/sms/send', {
-        method: 'POST',
-        body: JSON.stringify({
-          phone: composePhone.trim(),
-          name: composeName.trim() || undefined,
-          text: composeText.trim(),
-        }),
-      })
-      setComposeOpen(false)
-      setComposePhone('')
-      setComposeName('')
-      setComposeText('')
+      let threadId: number
+      if (composeShowSchedule) {
+        const localDate = new Date(composeScheduleAt)
+        if (Number.isNaN(localDate.getTime()) || localDate <= new Date()) return
+        const sendAt = localDate.toISOString().slice(0, 19).replace('T', ' ')
+        const data = await api<{ thread: Thread }>('/api/sms/schedule', {
+          method: 'POST',
+          body: JSON.stringify({
+            phone: composePhone.trim(),
+            name: composeName.trim() || undefined,
+            text: composeText.trim(),
+            send_at: sendAt,
+          }),
+        })
+        threadId = data.thread.id
+      } else {
+        const data = await api<{ thread: Thread }>('/api/sms/send', {
+          method: 'POST',
+          body: JSON.stringify({
+            phone: composePhone.trim(),
+            name: composeName.trim() || undefined,
+            text: composeText.trim(),
+          }),
+        })
+        threadId = data.thread.id
+      }
+      closeCompose()
       await loadThreads()
-      await openThread(data.thread.id)
+      await openThread(threadId)
     } finally {
       setComposeSending(false)
     }
@@ -1207,18 +1262,43 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-6 z-20">
           <div className="w-full max-w-sm rounded-2xl p-5 flex flex-col gap-3" style={{ background: COLORS.surface, color: COLORS.ink }}>
             <h3 className="text-sm font-semibold">New message</h3>
+            <div className="relative">
+              <input
+                value={composeName}
+                onChange={(e) => {
+                  setComposeName(e.target.value)
+                  setComposeContactPicked(false)
+                }}
+                placeholder="Name -- search contacts or type your own"
+                className="w-full border rounded-lg px-3 py-2 text-sm"
+                style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
+              />
+              {composeContacts.length > 0 && (
+                <div
+                  className="absolute left-0 right-0 top-full mt-1 z-10 rounded-lg border max-h-40 overflow-y-auto flex flex-col"
+                  style={{ background: COLORS.surface, borderColor: COLORS.line }}
+                >
+                  {composeContacts.map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => pickContact(c)}
+                      className="text-left px-3 py-2 text-sm flex flex-col"
+                      style={{ borderBottom: `1px solid ${COLORS.line}` }}
+                    >
+                      <span>{c.name}</span>
+                      <span className={mono('text-xs')} style={{ color: COLORS.inkSoft }}>
+                        {c.phone}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <input
               value={composePhone}
               onChange={(e) => setComposePhone(e.target.value)}
               placeholder="Phone number"
               inputMode="tel"
-              className="border rounded-lg px-3 py-2 text-sm"
-              style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
-            />
-            <input
-              value={composeName}
-              onChange={(e) => setComposeName(e.target.value)}
-              placeholder="Name (optional)"
               className="border rounded-lg px-3 py-2 text-sm"
               style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
             />
@@ -1230,26 +1310,34 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
               className="border rounded-lg px-3 py-2 text-sm"
               style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
             />
+            <button
+              onClick={() => setComposeShowSchedule((s) => !s)}
+              className="text-xs font-medium px-2.5 py-1 rounded-full border self-start"
+              style={{ borderColor: COLORS.tagblue, color: COLORS.tagblue }}
+            >
+              🕐 {composeShowSchedule ? 'Sending later' : 'Send now'}
+            </button>
+            {composeShowSchedule && (
+              <input
+                type="datetime-local"
+                value={composeScheduleAt}
+                min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+                onChange={(e) => setComposeScheduleAt(e.target.value)}
+                className="border rounded-lg px-3 py-2 text-sm"
+                style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
+              />
+            )}
             <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => {
-                  setComposeOpen(false)
-                  setComposePhone('')
-                  setComposeName('')
-                  setComposeText('')
-                }}
-                className="text-sm px-3 py-1.5"
-                style={{ color: COLORS.inkSoft }}
-              >
+              <button onClick={closeCompose} className="text-sm px-3 py-1.5" style={{ color: COLORS.inkSoft }}>
                 Cancel
               </button>
               <button
                 onClick={sendNewMessage}
-                disabled={!composePhone.trim() || !composeText.trim() || composeSending}
+                disabled={!composePhone.trim() || !composeText.trim() || (composeShowSchedule && !composeScheduleAt) || composeSending}
                 className="text-sm px-3 py-1.5 rounded-lg text-white disabled:opacity-40"
                 style={{ background: COLORS.moss }}
               >
-                Send
+                {composeShowSchedule ? 'Schedule' : 'Send'}
               </button>
             </div>
           </div>
