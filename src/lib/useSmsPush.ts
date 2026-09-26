@@ -95,7 +95,7 @@ export function useSmsPush(): {
     setStatus('busy')
     pushStage('Checking notification setup…')
     withTimeout(
-      navigator.serviceWorker.register('/sw-sms.js', { scope: '/sms/' }).then(async (registration) => {
+      navigator.serviceWorker.register('/sw-sms.js', { scope: '/sms' }).then(async (registration) => {
         await navigator.serviceWorker.ready
         await subscribeAndSave(registration)
       }),
@@ -174,7 +174,7 @@ export function useSmsPush(): {
     }
 
     pushStage('Registering on this phone…')
-    const registration = await navigator.serviceWorker.register('/sw-sms.js', { scope: '/sms/' })
+    const registration = await navigator.serviceWorker.register('/sw-sms.js', { scope: '/sms' })
 
     pushStage('Waiting for setup to finish…')
     await navigator.serviceWorker.ready
@@ -187,7 +187,7 @@ export function useSmsPush(): {
     if (status === 'busy') return
     setStatus('busy')
     try {
-      const registration = await navigator.serviceWorker.getRegistration('/sms/')
+      const registration = await navigator.serviceWorker.getRegistration('/sms')
       const subscription = await registration?.pushManager.getSubscription()
       if (subscription) {
         await fetch('/api/sms/push/unsubscribe', {
