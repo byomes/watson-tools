@@ -617,12 +617,12 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
                 onClick={manualRefresh}
                 disabled={refreshing}
                 aria-label="Refresh messages"
-                className="w-9 h-9 rounded-lg border flex items-center justify-center disabled:opacity-50"
+                className="w-[45px] h-[45px] rounded-lg border flex items-center justify-center disabled:opacity-50"
                 style={{ borderColor: COLORS.line, color: COLORS.inkSoft }}
               >
                 <svg
-                  width="19"
-                  height="19"
+                  width="24"
+                  height="24"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -638,16 +638,16 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
               <button
                 onClick={toggleTheme}
                 aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                className="w-9 h-9 rounded-lg border flex items-center justify-center"
+                className="w-[45px] h-[45px] rounded-lg border flex items-center justify-center"
                 style={{ borderColor: COLORS.line, color: COLORS.inkSoft }}
               >
                 {theme === 'dark' ? (
-                  <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="4" />
                     <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
                   </svg>
                 ) : (
-                  <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
                   </svg>
                 )}
@@ -656,13 +656,13 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
                 <button
                   onClick={() => setShowPushInfo((s) => !s)}
                   aria-label="Notifications"
-                  className="w-9 h-9 rounded-lg border flex items-center justify-center"
+                  className="w-[45px] h-[45px] rounded-lg border flex items-center justify-center"
                   style={{
                     borderColor: pushStatus === 'granted' ? COLORS.moss : COLORS.line,
                     color: pushStatus === 'granted' ? COLORS.moss : COLORS.inkSoft,
                   }}
                 >
-                  <svg width="19" height="19" viewBox="0 0 24 24" fill={pushStatus === 'granted' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill={pushStatus === 'granted' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
                     <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                   </svg>
@@ -724,10 +724,10 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
                   setView('templates')
                 }}
                 aria-label="Add and edit templates"
-                className="w-9 h-9 rounded-lg border flex items-center justify-center"
+                className="w-[45px] h-[45px] rounded-lg border flex items-center justify-center"
                 style={{ borderColor: COLORS.line, color: COLORS.inkSoft }}
               >
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="9 11 12 14 22 4" />
                   <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
                 </svg>
@@ -739,13 +739,13 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
                   if (next) loadArchived().catch(() => {})
                 }}
                 aria-label="Show archived conversations"
-                className="w-9 h-9 rounded-lg border flex items-center justify-center"
+                className="w-[45px] h-[45px] rounded-lg border flex items-center justify-center"
                 style={{
                   borderColor: showArchived ? COLORS.tagblue : COLORS.line,
                   color: showArchived ? COLORS.tagblue : COLORS.inkSoft,
                 }}
               >
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="4" width="18" height="5" rx="1" />
                   <path d="M5 9v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9" />
                   <path d="M10 13h4" />
@@ -754,10 +754,10 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
               <button
                 onClick={() => setComposeOpen(true)}
                 aria-label="New message"
-                className="w-9 h-9 rounded-lg border flex items-center justify-center"
+                className="w-[45px] h-[45px] rounded-lg border flex items-center justify-center"
                 style={{ borderColor: COLORS.line, color: COLORS.inkSoft }}
               >
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 5v14M5 12h14" />
                 </svg>
               </button>
@@ -766,10 +766,10 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
               <button
                 type="submit"
                 aria-label="Log out"
-                className="w-9 h-9 rounded-lg border flex items-center justify-center"
+                className="w-[45px] h-[45px] rounded-lg border flex items-center justify-center"
                 style={{ borderColor: COLORS.line, color: COLORS.inkSoft }}
               >
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                   <polyline points="16 17 21 12 16 7" />
                   <line x1="21" y1="12" x2="9" y2="12" />
@@ -883,12 +883,12 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
               onClick={manualRefresh}
               disabled={refreshing}
               aria-label="Refresh messages"
-              className="w-9 h-9 rounded-lg flex items-center justify-center disabled:opacity-50 flex-none"
+              className="w-[45px] h-[45px] rounded-lg flex items-center justify-center disabled:opacity-50 flex-none"
               style={{ color: COLORS.inkSoft }}
             >
               <svg
-                width="18"
-                height="18"
+                width="23"
+                height="23"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -1202,7 +1202,7 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
               <button
                 onClick={send}
                 disabled={(!compose.trim() && !attachedImage) || sending}
-                className="w-9 h-9 rounded-full flex-none text-white disabled:opacity-40"
+                className="w-[45px] h-[45px] rounded-full flex-none text-white text-lg disabled:opacity-40"
                 style={{ background: COLORS.moss }}
                 aria-label="Send"
               >
