@@ -30,6 +30,7 @@ type ScheduledMessage = { id: number; body: string; send_at: string; status: 'pe
 type Template = { id: string; label: string; body: string; updated_at: string }
 type SearchHit = { message_id: number; thread_id: number; body: string; created_at: string; contact_name: string | null; phone: string }
 type Contact = { id: number; name: string; phone: string }
+type Member = { id: number; name: string; phone: string | null }
 type Context = {
   matched: boolean
   name?: string
@@ -242,6 +243,11 @@ export default function SmsApp() {
   const [snoozeAt, setSnoozeAt] = useState('')
   const [showSettings, setShowSettings] = useState(false)
   const [contextCollapsed, setContextCollapsed] = useState(false)
+  const [showLinkMember, setShowLinkMember] = useState(false)
+  const [linkMemberQuery, setLinkMemberQuery] = useState('')
+  const [linkMemberResults, setLinkMemberResults] = useState<Member[]>([])
+  const [linking, setLinking] = useState(false)
+  const [linkConflict, setLinkConflict] = useState<{ memberId: number; memberName: string; existingPhone: string; newPhone: string } | null>(null)
   const [contextFields, setContextFields] = useState<Record<ContextFieldKey, boolean>>(() =>
     Object.fromEntries(CONTEXT_FIELDS.map((f) => [f.key, true])) as Record<ContextFieldKey, boolean>,
   )
@@ -335,6 +341,43 @@ export default function SmsApp() {
     setContext(data)
   }
 
+  async function linkToMember(id: number, member: Member, overwrite: boolean) {
+    setLinking(true)
+    try {
+      const data = await api<{
+        ok?: boolean
+        thread?: Thread
+        error?: string
+        existing_phone?: string
+        new_phone?: string
+      }>(`/api/sms/threads/${id}/link-member`, {
+        method: 'POST',
+        body: JSON.stringify({ member_id: member.id, overwrite }),
+      })
+      if (data.error === 'phone_conflict') {
+        setLinkConflict({
+          memberId: member.id,
+          memberName: member.name,
+          existingPhone: data.existing_phone || '',
+          newPhone: data.new_phone || '',
+        })
+        return
+      }
+      if (data.thread) {
+        setThreads((prev) => prev.map((t) => (t.id === id ? data.thread! : t)))
+      }
+      setShowLinkMember(false)
+      setLinkMemberQuery('')
+      setLinkMemberResults([])
+      setLinkConflict(null)
+      await loadContext(id)
+    } catch {
+      // transient network hiccup -- picker stays open so Bill can retry
+    } finally {
+      setLinking(false)
+    }
+  }
+
   async function searchAcrossMessages(q: string) {
     if (!q.trim()) {
       setSearchHits([])
@@ -385,6 +428,23 @@ export default function SmsApp() {
     }, 250)
     return () => clearTimeout(timer)
   }, [composeName, composeOpen, composeContactPicked])
+
+  // Member search for linking an unmatched thread's number to an existing
+  // congregation.db profile -- unlike the compose contact-picker above,
+  // this deliberately includes members with no phone on file yet, since
+  // that's exactly who this feature is for.
+  useEffect(() => {
+    if (!showLinkMember || !linkMemberQuery.trim()) {
+      setLinkMemberResults([])
+      return
+    }
+    const timer = setTimeout(() => {
+      api<{ members: Member[] }>(`/api/sms/members/search?q=${encodeURIComponent(linkMemberQuery.trim())}`)
+        .then((data) => setLinkMemberResults(data.members))
+        .catch(() => {})
+    }, 250)
+    return () => clearTimeout(timer)
+  }, [linkMemberQuery, showLinkMember])
 
   // Deep-link from a push notification tap: the service worker navigates to
   // /sms?thread=<id>, so once threads are loaded, open that thread directly
@@ -1172,6 +1232,94 @@ export default function SmsApp() {
                       {f.label}
                     </label>
                   ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {context && !context.matched && (
+            <div
+              className="mx-4 mt-2 rounded-2xl border px-3 py-2 relative"
+              style={{ borderColor: COLORS.line, background: COLORS.surface }}
+            >
+              {!showLinkMember ? (
+                <button
+                  onClick={() => setShowLinkMember(true)}
+                  className="w-full flex items-center gap-2 text-xs"
+                  style={{ color: COLORS.inkSoft }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-none">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M22 11h-6M19 8v6" />
+                  </svg>
+                  This number isn&rsquo;t linked to anyone &mdash; link to a member
+                </button>
+              ) : (
+                <div className="flex flex-col gap-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium" style={{ color: COLORS.ink }}>
+                      Link this number to
+                    </span>
+                    <button
+                      onClick={() => {
+                        setShowLinkMember(false)
+                        setLinkMemberQuery('')
+                        setLinkMemberResults([])
+                        setLinkConflict(null)
+                      }}
+                      style={{ color: COLORS.inkSoft }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                  {linkConflict ? (
+                    <div className="flex flex-col gap-2">
+                      <div style={{ color: COLORS.ink }}>
+                        <strong>{linkConflict.memberName}</strong> already has {linkConflict.existingPhone} on file. Replace it with {linkConflict.newPhone}?
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          disabled={linking}
+                          onClick={() => activeThread && linkToMember(activeThread.id, { id: linkConflict.memberId, name: linkConflict.memberName, phone: linkConflict.existingPhone }, true)}
+                          className="px-2.5 py-1 rounded-lg text-white disabled:opacity-50"
+                          style={{ background: COLORS.clay }}
+                        >
+                          Replace it
+                        </button>
+                        <button onClick={() => setLinkConflict(null)} style={{ color: COLORS.inkSoft }}>
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <input
+                        autoFocus
+                        value={linkMemberQuery}
+                        onChange={(e) => setLinkMemberQuery(e.target.value)}
+                        placeholder="Search members by name"
+                        className="rounded-lg border px-2.5 py-1.5 outline-none"
+                        style={{ borderColor: COLORS.line, background: COLORS.surfaceAlt, color: COLORS.ink }}
+                      />
+                      {linkMemberResults.length > 0 && (
+                        <div className="flex flex-col gap-1 max-h-40 overflow-y-auto">
+                          {linkMemberResults.map((m) => (
+                            <button
+                              key={m.id}
+                              disabled={linking}
+                              onClick={() => activeThread && linkToMember(activeThread.id, m, false)}
+                              className="text-left px-2 py-1.5 rounded-lg disabled:opacity-50"
+                              style={{ background: COLORS.surfaceAlt, color: COLORS.ink }}
+                            >
+                              {m.name}
+                              {m.phone && <span style={{ color: COLORS.inkSoft }}> &middot; has {m.phone} on file</span>}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
             </div>
