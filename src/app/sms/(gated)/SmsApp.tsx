@@ -430,6 +430,7 @@ export default function SmsApp() {
     if (refreshing) return
     setRefreshing(true)
     try {
+      await api('/api/sms/poll-now', { method: 'POST' }).catch(() => {})
       await loadThreads()
       if (activeId) await refreshActiveMessages(activeId)
     } catch {
