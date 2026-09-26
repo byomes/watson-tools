@@ -1561,6 +1561,15 @@ export default function SmsApp() {
               <textarea
                 value={compose}
                 onChange={(e) => updateCompose(e.target.value)}
+                onKeyDown={(e) => {
+                  // Desktop-browser convenience: Enter sends, Shift+Enter
+                  // still inserts a newline. isComposing guards against IME
+                  // (e.g. Japanese/Chinese input) committing text with Enter.
+                  if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                    e.preventDefault()
+                    if ((compose.trim() || attachedImage) && !sending) send()
+                  }
+                }}
                 placeholder="Write your reply"
                 rows={1}
                 className="flex-1 rounded-2xl border px-3.5 py-2 text-sm outline-none resize-none"
@@ -1825,6 +1834,13 @@ export default function SmsApp() {
             <textarea
               value={composeText}
               onChange={(e) => setComposeText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                  e.preventDefault()
+                  const disabled = !composePhone.trim() || !composeText.trim() || (composeShowSchedule && !composeScheduleAt) || composeSending
+                  if (!disabled) sendNewMessage()
+                }
+              }}
               placeholder="Message text"
               rows={3}
               className="border rounded-lg px-3 py-2 text-sm"
