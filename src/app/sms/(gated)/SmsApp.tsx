@@ -151,6 +151,37 @@ function saveDraft(id: number, text: string): void {
   }
 }
 
+type ContextEntry = { key: string; label: string; value: string; full?: boolean }
+
+function buildContextEntries(context: Context, fields: Record<ContextFieldKey, boolean>): ContextEntry[] {
+  const entries: ContextEntry[] = []
+  if (fields.last_attended && context.last_attended_summary) {
+    entries.push({ key: 'last_attended', label: 'Last attended', value: context.last_attended_summary, full: true })
+  }
+  if (fields.deacon && context.deacon) entries.push({ key: 'deacon', label: 'Deacon', value: context.deacon })
+  if (fields.campus && context.campus_preference) entries.push({ key: 'campus', label: 'Campus', value: context.campus_preference })
+  if (fields.first_visit && context.first_visit_date) entries.push({ key: 'first_visit', label: 'First visit', value: context.first_visit_date })
+  if (fields.birthdate_anniversary && context.birthdate) entries.push({ key: 'birthday', label: 'Birthday', value: context.birthdate })
+  if (fields.birthdate_anniversary && context.anniversary) entries.push({ key: 'anniversary', label: 'Anniversary', value: context.anniversary })
+  if (fields.active_status && context.active_status) entries.push({ key: 'status', label: 'Status', value: context.active_status })
+  if (fields.household && context.household && context.household.length > 0) {
+    entries.push({
+      key: 'household',
+      label: 'Household',
+      value: context.household.map((h) => (h.household_role ? `${h.name} (${h.household_role})` : h.name)).join(', '),
+      full: true,
+    })
+  }
+  if (fields.serving && (context.serving_teams?.length || context.started_serving_date)) {
+    const teams = context.serving_teams?.length
+      ? context.serving_teams.map((t) => (t.position ? `${t.team_name} (${t.position})` : t.team_name)).join(', ')
+      : ''
+    const since = context.started_serving_date ? `since ${context.started_serving_date}` : ''
+    entries.push({ key: 'serving', label: 'Serving', value: [teams, since].filter(Boolean).join(' — '), full: true })
+  }
+  return entries
+}
+
 function displayName(t: Thread): string {
   return t.contact_name || t.phone
 }
@@ -209,6 +240,7 @@ export default function SmsApp() {
   const [showSnooze, setShowSnooze] = useState(false)
   const [snoozeAt, setSnoozeAt] = useState('')
   const [showSettings, setShowSettings] = useState(false)
+  const [contextCollapsed, setContextCollapsed] = useState(false)
   const [contextFields, setContextFields] = useState<Record<ContextFieldKey, boolean>>(() =>
     Object.fromEntries(CONTEXT_FIELDS.map((f) => [f.key, true])) as Record<ContextFieldKey, boolean>,
   )
@@ -221,7 +253,24 @@ export default function SmsApp() {
 
   useEffect(() => {
     setContextFields(loadContextSettings())
+    try {
+      setContextCollapsed(localStorage.getItem('sms_context_collapsed') === 'true')
+    } catch {
+      // localStorage unavailable (private mode etc) -- stays expanded
+    }
   }, [])
+
+  function toggleContextCollapsed() {
+    setContextCollapsed((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem('sms_context_collapsed', String(next))
+      } catch {
+        // localStorage unavailable (private mode etc) -- setting just won't persist
+      }
+      return next
+    })
+  }
 
   function saveContextFields(next: Record<ContextFieldKey, boolean>) {
     setContextFields(next)
@@ -1040,35 +1089,62 @@ export default function SmsApp() {
 
           {context?.matched && (
             <div
-              className="mx-4 mt-2 rounded-lg border px-3 py-2 text-xs flex flex-col gap-1 relative"
-              style={{ borderColor: COLORS.line, color: COLORS.inkSoft }}
+              className="mx-4 mt-2 rounded-2xl border overflow-hidden relative"
+              style={{ borderColor: COLORS.line, background: COLORS.surface }}
             >
               <button
-                onClick={() => setShowSettings((s) => !s)}
+                onClick={toggleContextCollapsed}
+                className="w-full flex items-center gap-2 px-3 py-2"
+                aria-expanded={!contextCollapsed}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="flex-none transition-transform"
+                  style={{ color: COLORS.inkSoft, transform: contextCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+                <span
+                  className="text-[10px] font-semibold uppercase tracking-wide"
+                  style={{ color: COLORS.inkSoft, letterSpacing: '0.06em' }}
+                >
+                  Pastoral context
+                </span>
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setShowSettings((s) => !s)
+                }}
                 aria-label="Choose what shows here"
-                className="absolute right-2 top-2"
+                className="absolute right-2 top-2 w-7 h-7 rounded-full flex items-center justify-center"
+                style={{ color: COLORS.inkSoft }}
               >
                 ⚙
               </button>
-              {contextFields.last_attended && context.last_attended_summary && <div>{context.last_attended_summary}</div>}
-              {contextFields.deacon && context.deacon && <div><strong>Deacon:</strong> {context.deacon}</div>}
-              {contextFields.campus && context.campus_preference && <div><strong>Campus:</strong> {context.campus_preference}</div>}
-              {contextFields.first_visit && context.first_visit_date && <div><strong>First visit:</strong> {context.first_visit_date}</div>}
-              {contextFields.household && context.household && context.household.length > 0 && (
-                <div>
-                  <strong>Household:</strong> {context.household.map((h) => (h.household_role ? `${h.name} (${h.household_role})` : h.name)).join(', ')}
-                </div>
-              )}
-              {contextFields.birthdate_anniversary && context.birthdate && <div><strong>Birthday:</strong> {context.birthdate}</div>}
-              {contextFields.birthdate_anniversary && context.anniversary && <div><strong>Anniversary:</strong> {context.anniversary}</div>}
-              {contextFields.active_status && context.active_status && <div><strong>Status:</strong> {context.active_status}</div>}
-              {contextFields.serving && (context.serving_teams?.length || context.started_serving_date) && (
-                <div>
-                  <strong>Serving</strong>
-                  {context.serving_teams && context.serving_teams.length > 0
-                    ? `: ${context.serving_teams.map((t) => (t.position ? `${t.team_name} (${t.position})` : t.team_name)).join(', ')}`
-                    : ''}
-                  {context.started_serving_date ? ` since ${context.started_serving_date}` : ''}
+              {!contextCollapsed && (
+                <div
+                  className="px-3 pb-3 pt-1 grid grid-cols-2 gap-x-3 gap-y-2 text-xs border-t"
+                  style={{ borderColor: COLORS.line }}
+                >
+                  {buildContextEntries(context, contextFields).map((entry) => (
+                    <div key={entry.key} className={entry.full ? 'col-span-2' : undefined}>
+                      <div
+                        className="text-[10px] font-medium uppercase tracking-wide mb-0.5"
+                        style={{ color: COLORS.inkSoft, letterSpacing: '0.05em' }}
+                      >
+                        {entry.label}
+                      </div>
+                      <div style={{ color: COLORS.ink }}>{entry.value}</div>
+                    </div>
+                  ))}
                 </div>
               )}
               {showSettings && (
