@@ -161,7 +161,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json()
 }
 
-export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
+export default function SmsApp() {
   const [theme, toggleTheme] = useSmsTheme()
   const { status: pushStatus, errorDetail: pushErrorDetail, stage: pushStage, enable: enablePush, disable: disablePush } = useSmsPush()
   const [showPushInfo, setShowPushInfo] = useState(false)
@@ -754,7 +754,7 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
               <button
                 onClick={() => setComposeOpen(true)}
                 aria-label="New message"
-                className="w-[45px] h-[45px] rounded-lg border flex items-center justify-center"
+                className="w-[90px] h-[45px] rounded-lg border flex items-center justify-center"
                 style={{ borderColor: COLORS.line, color: COLORS.inkSoft }}
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -762,20 +762,6 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
                 </svg>
               </button>
             </div>
-            <form action={logoutAction}>
-              <button
-                type="submit"
-                aria-label="Log out"
-                className="w-[45px] h-[45px] rounded-lg border flex items-center justify-center"
-                style={{ borderColor: COLORS.line, color: COLORS.inkSoft }}
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                  <polyline points="16 17 21 12 16 7" />
-                  <line x1="21" y1="12" x2="9" y2="12" />
-                </svg>
-              </button>
-            </form>
           </div>
 
           <div className="px-5 pb-3">
