@@ -7,12 +7,16 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
 
-  const archived = new URL(req.url).searchParams.get('archived') === '1'
-  const res = await watsonFetch(`/api/sms/threads${archived ? '?archived=1' : ''}`, {
+  const q = new URL(req.url).searchParams.get('q') || ''
+  if (!q.trim()) {
+    return NextResponse.json({ results: [] })
+  }
+
+  const res = await watsonFetch(`/api/sms/search?q=${encodeURIComponent(q)}`, {
     headers: { 'X-Watson-Key': process.env.SMS_APP_API_KEY ?? '' },
   })
   if (!res.ok) {
-    return NextResponse.json({ error: 'Failed to load threads' }, { status: 502 })
+    return NextResponse.json({ error: 'Search failed' }, { status: 502 })
   }
   return NextResponse.json(await res.json())
 }

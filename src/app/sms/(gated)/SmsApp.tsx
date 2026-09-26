@@ -8,15 +8,57 @@ type Thread = {
   id: number
   phone: string
   contact_name: string | null
+  member_id: number | null
   last_message_preview: string | null
   last_message_at: string | null
   unread: number
+  state: 'open' | 'archived'
+  muted: boolean
+  snoozed_until: string | null
 }
-type Message = { id: number; direction: 'in' | 'out'; body: string; created_at: string }
+type Message = {
+  id: number
+  direction: 'in' | 'out'
+  body: string
+  created_at: string
+  media_url: string | null
+  media_type: string | null
+  status: 'sent' | 'delivered' | 'failed' | null
+}
 type ScheduledMessage = { id: number; body: string; send_at: string; status: 'pending' | 'failed'; error: string | null }
 type Template = { id: string; label: string; body: string; updated_at: string }
+type SearchHit = { message_id: number; thread_id: number; body: string; created_at: string; contact_name: string | null; phone: string }
+type Context = {
+  matched: boolean
+  name?: string
+  campus_preference?: string | null
+  first_visit_date?: string | null
+  deacon?: string | null
+  last_attended_summary?: string
+  household?: { name: string; household_role: string | null }[]
+}
 
 type View = 'list' | 'thread' | 'templates'
+
+const CONTEXT_FIELDS = [
+  { key: 'last_attended', label: 'Last attended' },
+  { key: 'household', label: 'Household' },
+  { key: 'deacon', label: 'Deacon' },
+  { key: 'campus', label: 'Campus preference' },
+  { key: 'first_visit', label: 'First visit date' },
+] as const
+type ContextFieldKey = (typeof CONTEXT_FIELDS)[number]['key']
+
+function loadContextSettings(): Record<ContextFieldKey, boolean> {
+  const all = Object.fromEntries(CONTEXT_FIELDS.map((f) => [f.key, true])) as Record<ContextFieldKey, boolean>
+  try {
+    const raw = localStorage.getItem('sms_context_fields')
+    if (!raw) return all
+    return { ...all, ...JSON.parse(raw) }
+  } catch {
+    return all
+  }
+}
 
 const LIGHT_COLORS = {
   moss: '#3B6A4C',
@@ -81,6 +123,25 @@ function fmtScheduled(utc: string): string {
   return `${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} ${time}`
 }
 
+function draftKey(id: number): string {
+  return `sms_draft_${id}`
+}
+function loadDraft(id: number): string {
+  try {
+    return localStorage.getItem(draftKey(id)) || ''
+  } catch {
+    return ''
+  }
+}
+function saveDraft(id: number, text: string): void {
+  try {
+    if (text) localStorage.setItem(draftKey(id), text)
+    else localStorage.removeItem(draftKey(id))
+  } catch {
+    // localStorage unavailable (private mode etc) -- draft just won't persist
+  }
+}
+
 function displayName(t: Thread): string {
   return t.contact_name || t.phone
 }
@@ -123,6 +184,31 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
   const [injectName, setInjectName] = useState('')
   const [injectText, setInjectText] = useState('')
   const [addingTemplate, setAddingTemplate] = useState(false)
+  const [showArchived, setShowArchived] = useState(false)
+  const [archivedThreads, setArchivedThreads] = useState<Thread[]>([])
+  const [searchHits, setSearchHits] = useState<SearchHit[]>([])
+  const [context, setContext] = useState<Context | null>(null)
+  const [showSnooze, setShowSnooze] = useState(false)
+  const [snoozeAt, setSnoozeAt] = useState('')
+  const [showSettings, setShowSettings] = useState(false)
+  const [contextFields, setContextFields] = useState<Record<ContextFieldKey, boolean>>(() =>
+    Object.fromEntries(CONTEXT_FIELDS.map((f) => [f.key, true])) as Record<ContextFieldKey, boolean>,
+  )
+  const [attachedImage, setAttachedImage] = useState<{ dataUrl: string; mimeType: string } | null>(null)
+  const [editingScheduledId, setEditingScheduledId] = useState<number | null>(null)
+
+  useEffect(() => {
+    setContextFields(loadContextSettings())
+  }, [])
+
+  function saveContextFields(next: Record<ContextFieldKey, boolean>) {
+    setContextFields(next)
+    try {
+      localStorage.setItem('sms_context_fields', JSON.stringify(next))
+    } catch {
+      // localStorage unavailable (private mode etc) -- setting just won't persist
+    }
+  }
 
   const isDev = process.env.NODE_ENV !== 'production'
 
@@ -148,11 +234,56 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
     setScheduled(data.scheduled)
   }
 
+  async function loadArchived() {
+    const data = await api<{ threads: Thread[] }>('/api/sms/threads?archived=1')
+    setArchivedThreads(data.threads)
+  }
+
+  async function patchThread(id: number, patch: Partial<Pick<Thread, 'state' | 'muted' | 'snoozed_until'>>) {
+    const data = await api<{ thread: Thread }>(`/api/sms/threads/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    })
+    setThreads((prev) => prev.map((t) => (t.id === id ? data.thread : t)).filter((t) => t.state !== 'archived'))
+    setArchivedThreads((prev) => {
+      const withoutIt = prev.filter((t) => t.id !== id)
+      return data.thread.state === 'archived' ? [...withoutIt, data.thread] : withoutIt
+    })
+    return data.thread
+  }
+
+  async function loadContext(id: number) {
+    const data = await api<Context>(`/api/sms/threads/${id}/context`)
+    setContext(data)
+  }
+
+  async function searchAcrossMessages(q: string) {
+    if (!q.trim()) {
+      setSearchHits([])
+      return
+    }
+    const data = await api<{ results: SearchHit[] }>(`/api/sms/search?q=${encodeURIComponent(q.trim())}`)
+    setSearchHits(data.results)
+  }
+
   useEffect(() => {
     Promise.all([loadThreads(), loadTemplates()])
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
+
+  // Debounced so a full search query doesn't fire one request per keystroke.
+  useEffect(() => {
+    const q = query.trim()
+    if (!q) {
+      setSearchHits([])
+      return
+    }
+    const timer = setTimeout(() => {
+      searchAcrossMessages(q).catch(() => {})
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [query])
 
   // Deep-link from a push notification tap: the service worker navigates to
   // /sms?thread=<id>, so once threads are loaded, open that thread directly
@@ -232,27 +363,56 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
   async function openThread(id: number) {
     setActiveId(id)
     setView('thread')
-    setCompose('')
+    setCompose(loadDraft(id))
     setShowTemplates(false)
     setShowSchedule(false)
     setScheduleAt('')
+    setShowSnooze(false)
+    setSnoozeAt('')
+    setAttachedImage(null)
+    setEditingScheduledId(null)
+    setContext(null)
     setThreads((prev) => prev.map((t) => (t.id === id ? { ...t, unread: 0 } : t)))
     const data = await api<{ thread: Thread; messages: Message[] }>(`/api/sms/threads/${id}/messages`)
     setMessages(data.messages)
-    await loadScheduled(id).catch(() => {})
+    await Promise.all([
+      loadScheduled(id).catch(() => {}),
+      loadContext(id).catch(() => {}),
+    ])
+  }
+
+  function updateCompose(text: string) {
+    setCompose(text)
+    if (activeId) saveDraft(activeId, text)
+  }
+
+  async function attachImage(file: File) {
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = () => reject(reader.error)
+      reader.readAsDataURL(file)
+    })
+    setAttachedImage({ dataUrl, mimeType: file.type })
   }
 
   async function send() {
     const text = compose.trim()
-    if (!text || !activeId || sending) return
+    if ((!text && !attachedImage) || !activeId || sending) return
     setSending(true)
     try {
       const data = await api<{ message: Message }>(`/api/sms/threads/${activeId}/send`, {
         method: 'POST',
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({
+          text,
+          ...(attachedImage
+            ? { media_base64: attachedImage.dataUrl.split(',')[1], media_type: attachedImage.mimeType }
+            : {}),
+        }),
       })
       setMessages((prev) => [...prev, data.message])
-      setCompose('')
+      updateCompose('')
+      setAttachedImage(null)
       await loadThreads()
     } finally {
       setSending(false)
@@ -270,12 +430,23 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
     const sendAt = localDate.toISOString().slice(0, 19).replace('T', ' ')
     setScheduling(true)
     try {
-      const data = await api<{ scheduled: ScheduledMessage }>(`/api/sms/threads/${activeId}/scheduled`, {
-        method: 'POST',
-        body: JSON.stringify({ text, send_at: sendAt }),
-      })
-      setScheduled((prev) => [...prev, data.scheduled].sort((a, b) => a.send_at.localeCompare(b.send_at)))
-      setCompose('')
+      if (editingScheduledId) {
+        const data = await api<{ scheduled: ScheduledMessage }>(`/api/sms/scheduled/${editingScheduledId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ text, send_at: sendAt }),
+        })
+        setScheduled((prev) =>
+          prev.map((s) => (s.id === editingScheduledId ? data.scheduled : s)).sort((a, b) => a.send_at.localeCompare(b.send_at)),
+        )
+        setEditingScheduledId(null)
+      } else {
+        const data = await api<{ scheduled: ScheduledMessage }>(`/api/sms/threads/${activeId}/scheduled`, {
+          method: 'POST',
+          body: JSON.stringify({ text, send_at: sendAt }),
+        })
+        setScheduled((prev) => [...prev, data.scheduled].sort((a, b) => a.send_at.localeCompare(b.send_at)))
+      }
+      updateCompose('')
       setShowSchedule(false)
       setScheduleAt('')
     } finally {
@@ -283,8 +454,23 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
     }
   }
 
+  function editScheduled(s: ScheduledMessage) {
+    setEditingScheduledId(s.id)
+    setCompose(s.body)
+    // send_at is UTC "YYYY-MM-DD HH:MM:SS" -- back to a local datetime-local value.
+    const local = new Date(s.send_at.replace(' ', 'T') + 'Z')
+    const offsetMs = local.getTimezoneOffset() * 60000
+    setScheduleAt(new Date(local.getTime() - offsetMs).toISOString().slice(0, 16))
+    setShowSchedule(true)
+  }
+
   async function cancelScheduled(id: number) {
     setScheduled((prev) => prev.filter((s) => s.id !== id))
+    if (editingScheduledId === id) {
+      setEditingScheduledId(null)
+      setShowSchedule(false)
+      setScheduleAt('')
+    }
     await api(`/api/sms/scheduled/${id}`, { method: 'DELETE' }).catch(() => {})
   }
 
@@ -460,6 +646,21 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
               >
                 ✎ Templates
               </button>
+              <button
+                onClick={() => {
+                  const next = !showArchived
+                  setShowArchived(next)
+                  if (next) loadArchived().catch(() => {})
+                }}
+                aria-label="Show archived conversations"
+                className="text-xs font-medium px-3 py-2 rounded-lg border flex items-center gap-1.5"
+                style={{
+                  borderColor: showArchived ? COLORS.tagblue : COLORS.line,
+                  color: showArchived ? COLORS.tagblue : COLORS.inkSoft,
+                }}
+              >
+                🗄 Archived
+              </button>
             </div>
             <form action={logoutAction}>
               <button
@@ -495,13 +696,38 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
 
           <div className="flex-1 overflow-y-auto">
             {loading && <div className="px-5 py-6 text-sm" style={{ color: COLORS.inkSoft }}>Loading…</div>}
-            {!loading && visibleThreads.length === 0 && (
-              <div className="px-5 py-10 text-sm text-center" style={{ color: COLORS.inkSoft }}>
-                No conversations yet.
-                {isDev ? ' Use "+ test text" to simulate one.' : ''}
+
+            {!loading && query.trim() && searchHits.length > 0 && (
+              <div className="pb-2">
+                <div className="px-5 pb-1 text-xs font-medium" style={{ color: COLORS.inkSoft }}>
+                  Messages
+                </div>
+                {searchHits.map((h) => (
+                  <button
+                    key={h.message_id}
+                    onClick={() => openThread(h.thread_id)}
+                    className="w-full text-left px-5 py-2 border-b flex flex-col gap-0.5"
+                    style={{ borderColor: COLORS.line }}
+                  >
+                    <span className="text-sm font-medium">{h.contact_name || h.phone}</span>
+                    <span className="text-xs truncate" style={{ color: COLORS.inkSoft }}>
+                      {h.body}
+                    </span>
+                  </button>
+                ))}
+                <div className="px-5 pt-2 pb-1 text-xs font-medium" style={{ color: COLORS.inkSoft }}>
+                  Conversations
+                </div>
               </div>
             )}
-            {visibleThreads.map((t) => (
+
+            {!loading && (showArchived ? archivedThreads : visibleThreads).length === 0 && (
+              <div className="px-5 py-10 text-sm text-center" style={{ color: COLORS.inkSoft }}>
+                {showArchived ? 'No archived conversations.' : 'No conversations yet.'}
+                {!showArchived && isDev ? ' Use "+ test text" to simulate one.' : ''}
+              </div>
+            )}
+            {(showArchived ? archivedThreads : visibleThreads).map((t) => (
               <button
                 key={t.id}
                 onClick={() => openThread(t.id)}
@@ -516,7 +742,11 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className={`text-sm ${t.unread ? 'font-semibold' : 'font-medium'}`}>{displayName(t)}</span>
+                    <span className={`text-sm ${t.unread ? 'font-semibold' : 'font-medium'}`}>
+                      {t.muted ? '🔕 ' : ''}
+                      {t.snoozed_until ? '🕐 ' : ''}
+                      {displayName(t)}
+                    </span>
                     <span className={mono('text-xs flex-none')} style={{ color: COLORS.inkSoft }}>
                       {fmtTime(t.last_message_at)}
                     </span>
@@ -573,18 +803,165 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
             </button>
           </div>
 
+          <div className="flex items-center gap-2 px-4 py-2 border-b" style={{ borderColor: COLORS.line }}>
+            <button
+              onClick={() => patchThread(activeThread.id, { muted: !activeThread.muted })}
+              className="text-xs font-medium px-2.5 py-1 rounded-full border"
+              style={{ borderColor: COLORS.line, color: activeThread.muted ? COLORS.clay : COLORS.inkSoft }}
+            >
+              {activeThread.muted ? '🔕 Muted' : '🔔 Mute'}
+            </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowSnooze((s) => !s)}
+                className="text-xs font-medium px-2.5 py-1 rounded-full border"
+                style={{
+                  borderColor: COLORS.line,
+                  color: activeThread.snoozed_until ? COLORS.tagblue : COLORS.inkSoft,
+                }}
+              >
+                {activeThread.snoozed_until ? `🕐 Snoozed till ${fmtScheduled(activeThread.snoozed_until)}` : '🕐 Snooze'}
+              </button>
+              {showSnooze && (
+                <div
+                  className="absolute left-0 top-9 z-10 w-60 max-w-[calc(100vw-2.5rem)] rounded-xl border p-2 flex flex-col gap-1 text-xs"
+                  style={{ background: COLORS.surface, borderColor: COLORS.line, color: COLORS.ink }}
+                >
+                  {activeThread.snoozed_until && (
+                    <button
+                      className="text-left px-2 py-1.5 rounded-md"
+                      style={{ background: COLORS.tagblueSoft, color: '#1D2E47' }}
+                      onClick={() => {
+                        patchThread(activeThread.id, { snoozed_until: null })
+                        setShowSnooze(false)
+                      }}
+                    >
+                      Clear snooze
+                    </button>
+                  )}
+                  {[
+                    { label: '3 hours', ms: 3 * 60 * 60 * 1000 },
+                    { label: 'Tomorrow 9am', tomorrow9am: true },
+                    { label: 'Next week', ms: 7 * 24 * 60 * 60 * 1000 },
+                  ].map((opt) => (
+                    <button
+                      key={opt.label}
+                      className="text-left px-2 py-1.5 rounded-md"
+                      style={{ background: COLORS.tagblueSoft, color: '#1D2E47' }}
+                      onClick={() => {
+                        let target: Date
+                        if (opt.tomorrow9am) {
+                          target = new Date()
+                          target.setDate(target.getDate() + 1)
+                          target.setHours(9, 0, 0, 0)
+                        } else {
+                          target = new Date(Date.now() + (opt.ms as number))
+                        }
+                        patchThread(activeThread.id, { snoozed_until: target.toISOString().slice(0, 19).replace('T', ' ') })
+                        setShowSnooze(false)
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                  <input
+                    type="datetime-local"
+                    value={snoozeAt}
+                    min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+                    onChange={(e) => setSnoozeAt(e.target.value)}
+                    className="rounded-md border px-2 py-1.5"
+                    style={{ borderColor: COLORS.line, background: COLORS.surfaceAlt, color: COLORS.ink }}
+                  />
+                  <button
+                    disabled={!snoozeAt}
+                    className="text-left px-2 py-1.5 rounded-md text-white disabled:opacity-40"
+                    style={{ background: COLORS.moss }}
+                    onClick={() => {
+                      const d = new Date(snoozeAt)
+                      if (Number.isNaN(d.getTime())) return
+                      patchThread(activeThread.id, { snoozed_until: d.toISOString().slice(0, 19).replace('T', ' ') })
+                      setShowSnooze(false)
+                      setSnoozeAt('')
+                    }}
+                  >
+                    Snooze until picked time
+                  </button>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={() => patchThread(activeThread.id, { state: activeThread.state === 'archived' ? 'open' : 'archived' })}
+              className="text-xs font-medium px-2.5 py-1 rounded-full border"
+              style={{ borderColor: COLORS.line, color: COLORS.inkSoft }}
+            >
+              {activeThread.state === 'archived' ? '📤 Unarchive' : '🗄 Archive'}
+            </button>
+          </div>
+
+          {context?.matched && (
+            <div
+              className="mx-4 mt-2 rounded-lg border px-3 py-2 text-xs flex flex-col gap-1 relative"
+              style={{ borderColor: COLORS.line, color: COLORS.inkSoft }}
+            >
+              <button
+                onClick={() => setShowSettings((s) => !s)}
+                aria-label="Choose what shows here"
+                className="absolute right-2 top-2"
+              >
+                ⚙
+              </button>
+              {contextFields.last_attended && context.last_attended_summary && <div>{context.last_attended_summary}</div>}
+              {contextFields.deacon && context.deacon && <div>Deacon: {context.deacon}</div>}
+              {contextFields.campus && context.campus_preference && <div>Campus: {context.campus_preference}</div>}
+              {contextFields.first_visit && context.first_visit_date && <div>First visit: {context.first_visit_date}</div>}
+              {contextFields.household && context.household && context.household.length > 0 && (
+                <div>
+                  Household: {context.household.map((h) => (h.household_role ? `${h.name} (${h.household_role})` : h.name)).join(', ')}
+                </div>
+              )}
+              {showSettings && (
+                <div
+                  className="absolute right-2 top-8 z-10 w-52 rounded-xl border p-2 flex flex-col gap-1 text-xs"
+                  style={{ background: COLORS.surface, borderColor: COLORS.line, color: COLORS.ink }}
+                >
+                  <span className="px-1 pb-1 font-medium">Show in this panel:</span>
+                  {CONTEXT_FIELDS.map((f) => (
+                    <label key={f.key} className="flex items-center gap-2 px-1 py-1">
+                      <input
+                        type="checkbox"
+                        checked={contextFields[f.key]}
+                        onChange={(e) => saveContextFields({ ...contextFields, [f.key]: e.target.checked })}
+                      />
+                      {f.label}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2">
             {messages.map((m) => (
-              <div
-                key={m.id}
-                className="max-w-[75%] px-3.5 py-2 rounded-2xl text-sm leading-snug"
-                style={
-                  m.direction === 'out'
-                    ? { alignSelf: 'flex-end', background: COLORS.moss, color: 'white' }
-                    : { alignSelf: 'flex-start', background: COLORS.surfaceAlt, color: COLORS.ink }
-                }
-              >
-                {m.body}
+              <div key={m.id} className="flex flex-col gap-0.5" style={{ alignItems: m.direction === 'out' ? 'flex-end' : 'flex-start' }}>
+                <div
+                  className="max-w-[75%] px-3.5 py-2 rounded-2xl text-sm leading-snug flex flex-col gap-1.5"
+                  style={
+                    m.direction === 'out'
+                      ? { background: COLORS.moss, color: 'white' }
+                      : { background: COLORS.surfaceAlt, color: COLORS.ink }
+                  }
+                >
+                  {m.media_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={m.media_url} alt="Attachment" className="rounded-lg max-w-full" />
+                  )}
+                  {m.body && <span>{m.body}</span>}
+                </div>
+                {m.direction === 'out' && m.status === 'failed' && (
+                  <span className="text-xs px-1" style={{ color: COLORS.clay }}>
+                    Failed to send
+                  </span>
+                )}
               </div>
             ))}
           </div>
@@ -607,6 +984,9 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
                   <span className="flex-none">
                     {s.status === 'failed' ? `failed: ${s.error || 'send failed'}` : fmtScheduled(s.send_at)}
                   </span>
+                  <button onClick={() => editScheduled(s)} aria-label="Edit scheduled message" className="flex-none px-1">
+                    ✎
+                  </button>
                   <button onClick={() => cancelScheduled(s.id)} aria-label="Cancel scheduled message" className="flex-none px-1">
                     ✕
                   </button>
@@ -626,13 +1006,37 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
                   Use a template
                 </button>
                 <button
-                  onClick={() => setShowSchedule((s) => !s)}
+                  onClick={() => {
+                    if (editingScheduledId) {
+                      setEditingScheduledId(null)
+                      setScheduleAt('')
+                      updateCompose('')
+                    }
+                    setShowSchedule((s) => !s)
+                  }}
                   aria-label="Schedule for later"
                   className="text-xs font-medium px-2.5 py-1 rounded-full border"
                   style={{ borderColor: COLORS.tagblue, color: COLORS.tagblue }}
                 >
                   🕐 Later
                 </button>
+                <label
+                  aria-label="Attach a photo"
+                  className="text-xs font-medium px-2.5 py-1 rounded-full border cursor-pointer"
+                  style={{ borderColor: COLORS.tagblue, color: COLORS.tagblue }}
+                >
+                  📷
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) attachImage(file)
+                      e.target.value = ''
+                    }}
+                  />
+                </label>
               </div>
               <span className="text-xs" style={{ color: COLORS.inkSoft }}>
                 Nothing sends until you tap send
@@ -655,7 +1059,7 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
             {showSchedule && (
               <div className="flex flex-col gap-2 rounded-lg border p-2" style={{ borderColor: COLORS.line }}>
                 <label className="text-xs" style={{ color: COLORS.inkSoft }}>
-                  Send this message at:
+                  {editingScheduledId ? 'Edit send time:' : 'Send this message at:'}
                 </label>
                 <div className="flex items-center gap-2">
                   <input
@@ -672,15 +1076,24 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
                     className="text-xs font-medium px-3 py-1.5 rounded-lg text-white disabled:opacity-40 flex-none"
                     style={{ background: COLORS.moss }}
                   >
-                    Schedule
+                    {editingScheduledId ? 'Save' : 'Schedule'}
                   </button>
                 </div>
+              </div>
+            )}
+            {attachedImage && (
+              <div className="flex items-center gap-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={attachedImage.dataUrl} alt="Attached" className="w-14 h-14 rounded-lg object-cover" />
+                <button onClick={() => setAttachedImage(null)} className="text-xs" style={{ color: COLORS.inkSoft }}>
+                  Remove photo
+                </button>
               </div>
             )}
             <div className="flex items-end gap-2">
               <textarea
                 value={compose}
-                onChange={(e) => setCompose(e.target.value)}
+                onChange={(e) => updateCompose(e.target.value)}
                 placeholder="Write your reply"
                 rows={1}
                 className="flex-1 rounded-2xl border px-3.5 py-2 text-sm outline-none resize-none"
@@ -688,7 +1101,7 @@ export default function SmsApp({ logoutAction }: { logoutAction: () => void }) {
               />
               <button
                 onClick={send}
-                disabled={!compose.trim() || sending}
+                disabled={(!compose.trim() && !attachedImage) || sending}
                 className="w-9 h-9 rounded-full flex-none text-white disabled:opacity-40"
                 style={{ background: COLORS.moss }}
                 aria-label="Send"
