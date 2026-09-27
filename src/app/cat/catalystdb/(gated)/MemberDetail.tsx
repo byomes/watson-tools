@@ -1,9 +1,192 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { COLUMNS } from './columns'
 
 type Member = Record<string, string | number | null>
+
+interface TeamMembership {
+  team_name: string
+  position: string | null
+  started_serving_date: string | null
+}
+
+interface ServantsState {
+  teams: { team_name: string; members: { id: number; position: string | null }[] }[]
+}
+
+// Team membership is many-to-many (a person can serve on several teams),
+// so it can't be a single COLUMNS field -- reuses the same
+// /api/cat/servants/{state,add,remove} endpoints that already back
+// wtsn.me/cat/servants (see jobs/congregation/servants_web.py), just
+// scoped to one member_id instead of rendering the whole roster.
+function TeamsSection({ member }: { member: Member }) {
+  const memberId = member.id as number
+  const [allTeams, setAllTeams] = useState<string[]>([])
+  const [teams, setTeams] = useState<TeamMembership[] | null>(null)
+  const [error, setError] = useState('')
+  const [addTeam, setAddTeam] = useState('')
+  const [customTeam, setCustomTeam] = useState('')
+  const [addPosition, setAddPosition] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  async function load() {
+    try {
+      const res = await fetch('/api/cat/servants/state')
+      if (!res.ok) throw new Error('Failed to load teams')
+      const data: ServantsState = await res.json()
+      setAllTeams(data.teams.map((t) => t.team_name).sort())
+      setTeams(
+        data.teams
+          .filter((t) => t.members.some((m) => m.id === memberId))
+          .map((t) => ({
+            team_name: t.team_name,
+            position: t.members.find((m) => m.id === memberId)?.position ?? null,
+            started_serving_date: null,
+          }))
+      )
+    } catch (e) {
+      setError(String((e as Error).message ?? e))
+    }
+  }
+
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [memberId])
+
+  async function addToTeam() {
+    const teamName = (addTeam === '__custom__' ? customTeam : addTeam).trim()
+    if (!teamName) return
+    setBusy(true)
+    setError('')
+    try {
+      const res = await fetch('/api/cat/servants/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: String(member.name ?? ''),
+          member_id: memberId,
+          team_name: teamName,
+          position: addPosition.trim() || undefined,
+        }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body.error || 'Could not add to team')
+      setAddTeam('')
+      setCustomTeam('')
+      setAddPosition('')
+      await load()
+    } catch (e) {
+      setError(String((e as Error).message ?? e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function removeFromTeam(teamName: string) {
+    setBusy(true)
+    setError('')
+    try {
+      const res = await fetch('/api/cat/servants/remove', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ member_id: memberId, team_name: teamName }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body.error || 'Could not remove from team')
+      await load()
+    } catch (e) {
+      setError(String((e as Error).message ?? e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const joinable = allTeams.filter((t) => !teams?.some((tm) => tm.team_name === t))
+
+  return (
+    <div className="max-w-3xl mx-auto mt-8">
+      <h2 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Serving Teams</h2>
+      {error && <p className="text-xs text-red-600 dark:text-red-400 mb-2">{error}</p>}
+      {teams === null ? (
+        <p className="text-sm text-slate-400 dark:text-slate-500">Loading…</p>
+      ) : teams.length === 0 ? (
+        <p className="text-sm text-slate-400 dark:text-slate-500 mb-3">Not on any team yet.</p>
+      ) : (
+        <ul className="flex flex-col gap-2 mb-4">
+          {teams.map((t) => (
+            <li
+              key={t.team_name}
+              className="flex items-center justify-between rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2"
+            >
+              <span className="text-sm text-slate-900 dark:text-white">
+                {t.team_name}
+                {t.position && <span className="text-slate-500 dark:text-slate-400"> — {t.position}</span>}
+              </span>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => removeFromTeam(t.team_name)}
+                className="text-xs font-medium text-red-600 dark:text-red-400 hover:opacity-80 disabled:opacity-40"
+              >
+                Remove
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-end">
+        <div className="flex flex-col gap-1 flex-1">
+          <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Add to team</label>
+          <select
+            value={addTeam}
+            onChange={(e) => setAddTeam(e.target.value)}
+            className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-sm text-slate-900 dark:text-white"
+          >
+            <option value="">Select a team…</option>
+            {joinable.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+            <option value="__custom__">New team…</option>
+          </select>
+        </div>
+        {addTeam === '__custom__' && (
+          <div className="flex flex-col gap-1 flex-1">
+            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">New team name</label>
+            <input
+              type="text"
+              value={customTeam}
+              onChange={(e) => setCustomTeam(e.target.value)}
+              className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-sm text-slate-900 dark:text-white"
+            />
+          </div>
+        )}
+        <div className="flex flex-col gap-1 flex-1">
+          <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Role (optional)</label>
+          <input
+            type="text"
+            value={addPosition}
+            onChange={(e) => setAddPosition(e.target.value)}
+            placeholder="e.g. Leader"
+            className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-sm text-slate-900 dark:text-white"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={addToTeam}
+          disabled={busy || !addTeam || (addTeam === '__custom__' && !customTeam.trim())}
+          className="rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-1.5 text-xs font-semibold hover:opacity-90 disabled:opacity-40"
+        >
+          Add
+        </button>
+      </div>
+    </div>
+  )
+}
 
 export default function MemberDetail({
   member,
@@ -118,6 +301,7 @@ export default function MemberDetail({
             )
           })}
         </div>
+        <TeamsSection member={member} />
       </div>
     </div>
   )
