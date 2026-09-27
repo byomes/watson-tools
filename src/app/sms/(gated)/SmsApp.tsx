@@ -1228,9 +1228,23 @@ export default function SmsApp() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className={`text-sm ${t.unread ? 'font-bold' : 'font-medium'}`} style={{ color: t.unread ? COLORS.ink : undefined }}>
-                      {t.muted ? '🔕 ' : ''}
-                      {t.snoozed_until ? '🕐 ' : ''}
+                    <span
+                      className={`inline-flex items-center gap-1 text-sm ${t.unread ? 'font-bold' : 'font-medium'}`}
+                      style={{ color: t.unread ? COLORS.ink : undefined }}
+                    >
+                      {t.muted && (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-none" style={{ color: COLORS.inkSoft }}>
+                          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+                          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                          <path d="M2 2l20 20" />
+                        </svg>
+                      )}
+                      {t.snoozed_until && (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-none" style={{ color: COLORS.inkSoft }}>
+                          <circle cx="12" cy="12" r="9" />
+                          <path d="M12 7v5l3 3" />
+                        </svg>
+                      )}
                       {displayName(t)}
                     </span>
                     <span className={mono('text-xs flex-none')} style={{ color: t.unread ? COLORS.moss : COLORS.inkSoft, fontWeight: t.unread ? 700 : 400 }}>
@@ -1296,21 +1310,30 @@ export default function SmsApp() {
           <div className="flex items-center gap-2 px-4 py-2 border-b" style={{ borderColor: COLORS.line }}>
             <button
               onClick={() => patchThread(activeThread.id, { muted: !activeThread.muted })}
-              className="text-xs font-medium px-2.5 py-1 rounded-full border"
+              className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border"
               style={{ borderColor: COLORS.line, color: activeThread.muted ? COLORS.clay : COLORS.inkSoft }}
             >
-              {activeThread.muted ? '🔕 Muted' : '🔔 Mute'}
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                {activeThread.muted && <path d="M2 2l20 20" />}
+              </svg>
+              {activeThread.muted ? 'Muted' : 'Mute'}
             </button>
             <div className="relative">
               <button
                 onClick={() => setShowSnooze((s) => !s)}
-                className="text-xs font-medium px-2.5 py-1 rounded-full border"
+                className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border"
                 style={{
                   borderColor: COLORS.line,
                   color: activeThread.snoozed_until ? COLORS.tagblue : COLORS.inkSoft,
                 }}
               >
-                {activeThread.snoozed_until ? `🕐 Snoozed till ${fmtScheduled(activeThread.snoozed_until)}` : '🕐 Snooze'}
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v5l3 3" />
+                </svg>
+                {activeThread.snoozed_until ? `Snoozed till ${fmtScheduled(activeThread.snoozed_until)}` : 'Snooze'}
               </button>
               {showSnooze && (
                 <div
@@ -1381,10 +1404,15 @@ export default function SmsApp() {
             </div>
             <button
               onClick={() => patchThread(activeThread.id, { state: activeThread.state === 'archived' ? 'open' : 'archived' })}
-              className="text-xs font-medium px-2.5 py-1 rounded-full border"
+              className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border"
               style={{ borderColor: COLORS.line, color: COLORS.inkSoft }}
             >
-              {activeThread.state === 'archived' ? '📤 Unarchive' : '🗄 Archive'}
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="5" rx="1" />
+                <path d="M5 9v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9" />
+                <path d="M10 13h4" />
+              </svg>
+              {activeThread.state === 'archived' ? 'Unarchive' : 'Archive'}
             </button>
           </div>
 
@@ -1428,7 +1456,10 @@ export default function SmsApp() {
                 className="absolute right-2 top-2 w-7 h-7 rounded-full flex items-center justify-center"
                 style={{ color: COLORS.inkSoft }}
               >
-                ⚙
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
               </button>
               {!contextCollapsed && (
                 <div
@@ -1615,7 +1646,19 @@ export default function SmsApp() {
                     color: s.status === 'failed' ? COLORS.clay : COLORS.tagblue,
                   }}
                 >
-                  <span aria-hidden>{s.status === 'failed' ? '⚠' : '🕐'}</span>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-none" aria-hidden>
+                    {s.status === 'failed' ? (
+                      <>
+                        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+                        <path d="M12 9v4M12 17h.01" />
+                      </>
+                    ) : (
+                      <>
+                        <circle cx="12" cy="12" r="9" />
+                        <path d="M12 7v5l3 3" />
+                      </>
+                    )}
+                  </svg>
                   <span className="flex-1 truncate" style={{ color: COLORS.ink }}>
                     {s.body}
                   </span>
@@ -1653,17 +1696,25 @@ export default function SmsApp() {
                     setShowSchedule((s) => !s)
                   }}
                   aria-label="Schedule for later"
-                  className="text-xs font-medium px-2.5 py-1 rounded-full border"
+                  className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border"
                   style={{ borderColor: COLORS.tagblue, color: COLORS.tagblue }}
                 >
-                  🕐 Later
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 7v5l3 3" />
+                  </svg>
+                  Later
                 </button>
                 <label
                   aria-label="Attach a photo"
-                  className="text-xs font-medium px-2.5 py-1 rounded-full border cursor-pointer"
+                  className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border cursor-pointer"
                   style={{ borderColor: COLORS.tagblue, color: COLORS.tagblue }}
                 >
-                  📷
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="5" width="20" height="15" rx="2" />
+                    <circle cx="12" cy="12.5" r="3.5" />
+                    <path d="M8 5l1.5-2h5L16 5" />
+                  </svg>
                   <input
                     type="file"
                     accept="image/*"
@@ -2051,10 +2102,14 @@ export default function SmsApp() {
             />
             <button
               onClick={() => setComposeShowSchedule((s) => !s)}
-              className="text-xs font-medium px-2.5 py-1 rounded-full border self-start"
+              className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border self-start"
               style={{ borderColor: COLORS.tagblue, color: COLORS.tagblue }}
             >
-              🕐 {composeShowSchedule ? 'Sending later' : 'Send now'}
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v5l3 3" />
+              </svg>
+              {composeShowSchedule ? 'Sending later' : 'Send now'}
             </button>
             {composeShowSchedule && (
               <input
