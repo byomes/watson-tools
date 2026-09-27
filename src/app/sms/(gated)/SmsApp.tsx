@@ -120,19 +120,78 @@ const ACCENT_THEMES = [
   { key: 'rose', label: 'Rose', swatch: '#A3405C', light: { moss: '#A3405C', mossStrong: '#7C2F46' }, dark: { moss: '#E38CA6', mossStrong: '#EDA8BD' } },
   { key: 'slate', label: 'Slate', swatch: '#475569', light: { moss: '#475569', mossStrong: '#334155' }, dark: { moss: '#94A3B8', mossStrong: '#B0BECC' } },
 ] as const
-type AccentKey = (typeof ACCENT_THEMES)[number]['key']
+type AccentKey = (typeof ACCENT_THEMES)[number]['key'] | 'custom'
+const DEFAULT_CUSTOM_HEX = '#3C5C89'
 
 function loadAccentTheme(): AccentKey {
   try {
     const stored = localStorage.getItem('sms_accent_theme')
-    if (stored && ACCENT_THEMES.some((t) => t.key === stored)) return stored as AccentKey
+    if (stored === 'custom' || ACCENT_THEMES.some((t) => t.key === stored)) return stored as AccentKey
   } catch {
     // localStorage unavailable -- default accent
   }
   return 'ocean'
 }
 
-function applyAccent(base: Palette, mode: 'light' | 'dark', accent: AccentKey): Palette {
+function loadCustomAccentHex(): string {
+  try {
+    const stored = localStorage.getItem('sms_accent_custom_hex')
+    if (stored && /^#[0-9a-fA-F]{6}$/.test(stored)) return stored
+  } catch {
+    // localStorage unavailable -- default hex
+  }
+  return DEFAULT_CUSTOM_HEX
+}
+
+// Minimal hex<->HSL round trip -- no need for a full color library just to
+// darken/lighten a single picked hue for the light/dark mossStrong pairs.
+function hexToHsl(hex: string): [number, number, number] {
+  const r = parseInt(hex.slice(1, 3), 16) / 255
+  const g = parseInt(hex.slice(3, 5), 16) / 255
+  const b = parseInt(hex.slice(5, 7), 16) / 255
+  const max = Math.max(r, g, b), min = Math.min(r, g, b)
+  let h = 0
+  const l = (max + min) / 2
+  const d = max - min
+  const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1))
+  if (d !== 0) {
+    switch (max) {
+      case r: h = ((g - b) / d) % 6; break
+      case g: h = (b - r) / d + 2; break
+      default: h = (r - g) / d + 4
+    }
+    h *= 60
+    if (h < 0) h += 360
+  }
+  return [h, s, l]
+}
+function hslToHex(h: number, s: number, l: number): string {
+  const c = (1 - Math.abs(2 * l - 1)) * s
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1))
+  const m = l - c / 2
+  let [r, g, b] = [0, 0, 0]
+  if (h < 60) [r, g, b] = [c, x, 0]
+  else if (h < 120) [r, g, b] = [x, c, 0]
+  else if (h < 180) [r, g, b] = [0, c, x]
+  else if (h < 240) [r, g, b] = [0, x, c]
+  else if (h < 300) [r, g, b] = [x, 0, c]
+  else [r, g, b] = [c, 0, x]
+  const toHex = (v: number) => Math.round((v + m) * 255).toString(16).padStart(2, '0')
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`
+}
+function withLightness(hex: string, lightness: number): string {
+  const [h, s] = hexToHsl(hex)
+  return hslToHex(h, Math.max(s, 0.35), lightness)
+}
+
+function applyAccent(base: Palette, mode: 'light' | 'dark', accent: AccentKey, customHex: string): Palette {
+  if (accent === 'custom') {
+    const [, , l] = hexToHsl(customHex)
+    const override = mode === 'dark'
+      ? { moss: withLightness(customHex, Math.max(l, 0.68)), mossStrong: withLightness(customHex, Math.max(l, 0.68) + 0.1) }
+      : { moss: customHex, mossStrong: withLightness(customHex, Math.max(l - 0.14, 0.15)) }
+    return { ...base, moss: override.moss, mossStrong: override.mossStrong }
+  }
   const found = ACCENT_THEMES.find((t) => t.key === accent) ?? ACCENT_THEMES[0]
   const override = mode === 'dark' ? found.dark : found.light
   return { ...base, moss: override.moss, mossStrong: override.mossStrong }
@@ -254,7 +313,8 @@ export default function SmsApp() {
   const { status: pushStatus, errorDetail: pushErrorDetail, stage: pushStage, enable: enablePush } = useSmsPush()
   const [showPushInfo, setShowPushInfo] = useState(false)
   const [accentTheme, setAccentTheme] = useState<AccentKey>('ocean')
-  const COLORS: Palette = applyAccent(theme === 'dark' ? DARK_COLORS : LIGHT_COLORS, theme, accentTheme)
+  const [customAccentHex, setCustomAccentHex] = useState(DEFAULT_CUSTOM_HEX)
+  const COLORS: Palette = applyAccent(theme === 'dark' ? DARK_COLORS : LIGHT_COLORS, theme, accentTheme, customAccentHex)
   const [view, setView] = useState<View>('list')
   const [threads, setThreads] = useState<Thread[]>([])
   const [query, setQuery] = useState('')
@@ -320,6 +380,7 @@ export default function SmsApp() {
   useEffect(() => {
     setContextFields(loadContextSettings())
     setAccentTheme(loadAccentTheme())
+    setCustomAccentHex(loadCustomAccentHex())
     try {
       setContextCollapsed(localStorage.getItem('sms_context_collapsed') === 'true')
     } catch {
@@ -331,6 +392,17 @@ export default function SmsApp() {
     setAccentTheme(key)
     try {
       localStorage.setItem('sms_accent_theme', key)
+    } catch {
+      // localStorage unavailable (private mode etc) -- setting just won't persist
+    }
+  }
+
+  function chooseCustomAccentHex(hex: string) {
+    setAccentTheme('custom')
+    setCustomAccentHex(hex)
+    try {
+      localStorage.setItem('sms_accent_theme', 'custom')
+      localStorage.setItem('sms_accent_custom_hex', hex)
     } catch {
       // localStorage unavailable (private mode etc) -- setting just won't persist
     }
@@ -1819,6 +1891,36 @@ export default function SmsApp() {
                         <span className="text-[11px]" style={{ color: COLORS.inkSoft }}>{t.label}</span>
                       </button>
                     ))}
+                    <label
+                      className="flex flex-col items-center gap-1.5 rounded-xl border py-2.5 cursor-pointer relative"
+                      style={{
+                        borderColor: accentTheme === 'custom' ? customAccentHex : COLORS.line,
+                        borderWidth: accentTheme === 'custom' ? 2 : 1,
+                      }}
+                    >
+                      <span
+                        className="w-7 h-7 rounded-full flex items-center justify-center flex-none"
+                        style={{
+                          background: accentTheme === 'custom'
+                            ? customAccentHex
+                            : 'conic-gradient(red, yellow, lime, cyan, blue, magenta, red)',
+                        }}
+                      >
+                        {accentTheme === 'custom' && (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        )}
+                      </span>
+                      <span className="text-[11px]" style={{ color: COLORS.inkSoft }}>Custom</span>
+                      <input
+                        type="color"
+                        value={customAccentHex}
+                        onChange={(e) => chooseCustomAccentHex(e.target.value)}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                        aria-label="Pick a custom accent color"
+                      />
+                    </label>
                   </div>
                 </div>
               </div>
