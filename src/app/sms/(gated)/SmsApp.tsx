@@ -1343,7 +1343,7 @@ export default function SmsApp() {
                   {activeThread.snoozed_until && (
                     <button
                       className="text-left px-2 py-1.5 rounded-md"
-                      style={{ background: COLORS.tagblueSoft, color: '#1D2E47' }}
+                      style={{ background: COLORS.tagblueSoft, color: COLORS.ink }}
                       onClick={() => {
                         patchThread(activeThread.id, { snoozed_until: null })
                         setShowSnooze(false)
@@ -1360,7 +1360,7 @@ export default function SmsApp() {
                     <button
                       key={opt.label}
                       className="text-left px-2 py-1.5 rounded-md"
-                      style={{ background: COLORS.tagblueSoft, color: '#1D2E47' }}
+                      style={{ background: COLORS.tagblueSoft, color: COLORS.ink }}
                       onClick={() => {
                         let target: Date
                         if (opt.tomorrow9am) {
@@ -1739,8 +1739,8 @@ export default function SmsApp() {
                   <button
                     key={t.id}
                     onClick={() => applyTemplate(t)}
-                    className="text-left text-xs px-2 py-1.5 rounded-md"
-                    style={{ background: COLORS.tagblueSoft, color: '#1D2E47' }}
+                    className="text-left text-xs px-2 py-1.5 rounded-md font-medium"
+                    style={{ background: COLORS.tagblueSoft, color: COLORS.ink }}
                   >
                     {t.label}
                   </button>
