@@ -898,7 +898,7 @@ export default function SmsApp() {
       {view === 'list' && (
         <div className="flex flex-col min-h-screen">
           <div className="flex items-center justify-between px-5 pt-6 pb-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full">
               {isDev && (
                 <button
                   onClick={() => setInjectOpen(true)}
@@ -1030,7 +1030,7 @@ export default function SmsApp() {
               <button
                 onClick={() => setComposeOpen(true)}
                 aria-label="New message"
-                className="w-[90px] h-[45px] rounded-lg border flex items-center justify-center"
+                className="flex-1 h-[45px] rounded-lg border flex items-center justify-center"
                 style={{ borderColor: COLORS.line, color: COLORS.inkSoft }}
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
