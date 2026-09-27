@@ -145,6 +145,22 @@ function mono(extra = '') {
   return `font-[family-name:var(--font-plex-mono)] ${extra}`
 }
 
+// Auto-grows a textarea to fit its content (up to maxPx) instead of clipping
+// to a fixed row count -- resetting height to 'auto' first is required so
+// scrollHeight reports the content's real height rather than the previous
+// expanded height (it would otherwise only ever grow, never shrink back
+// down after deleting text).
+function useAutoGrowTextarea(value: string, maxPx = 160) {
+  const ref = useRef<HTMLTextAreaElement | null>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, maxPx)}px`
+  }, [value, maxPx])
+  return ref
+}
+
 function fmtTime(iso: string | null): string {
   if (!iso) return ''
   const d = new Date(iso.replace(' ', 'T') + 'Z')
@@ -293,6 +309,8 @@ export default function SmsApp() {
   const [batteryPct, setBatteryPct] = useState<number | null>(null)
   const [spellchecking, setSpellchecking] = useState(false)
   const messagesScrollRef = useRef<HTMLDivElement | null>(null)
+  const composeGrowRef = useAutoGrowTextarea(compose)
+  const composeTextGrowRef = useAutoGrowTextarea(composeText)
 
   useEffect(() => {
     setContextFields(loadContextSettings())
@@ -1566,6 +1584,7 @@ export default function SmsApp() {
             )}
             <div className="flex items-end gap-2">
               <textarea
+                ref={composeGrowRef}
                 value={compose}
                 onChange={(e) => updateCompose(e.target.value)}
                 onKeyDown={(e) => {
@@ -1579,7 +1598,7 @@ export default function SmsApp() {
                 }}
                 placeholder="Write your reply"
                 rows={1}
-                className="flex-1 rounded-2xl border px-3.5 py-2 text-sm outline-none resize-none"
+                className="flex-1 rounded-2xl border px-3.5 py-2 text-sm outline-none resize-none overflow-y-auto"
                 style={{ borderColor: compose ? COLORS.moss : COLORS.line, background: COLORS.surfaceAlt, color: COLORS.ink }}
               />
               <button
@@ -1839,6 +1858,7 @@ export default function SmsApp() {
               style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
             />
             <textarea
+              ref={composeTextGrowRef}
               value={composeText}
               onChange={(e) => setComposeText(e.target.value)}
               onKeyDown={(e) => {
@@ -1850,7 +1870,7 @@ export default function SmsApp() {
               }}
               placeholder="Message text"
               rows={3}
-              className="border rounded-lg px-3 py-2 text-sm"
+              className="border rounded-lg px-3 py-2 text-sm resize-none overflow-y-auto"
               style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
             />
             <button
