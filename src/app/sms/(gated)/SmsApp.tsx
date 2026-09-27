@@ -1681,10 +1681,14 @@ export default function SmsApp() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowTemplates((s) => !s)}
-                  className="text-xs font-medium px-2.5 py-1 rounded-full border"
+                  className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border"
                   style={{ borderColor: COLORS.tagblue, color: COLORS.tagblue }}
                 >
-                  Use a template
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 11 12 14 22 4" />
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                  </svg>
+                  Template
                 </button>
                 <button
                   onClick={() => {
@@ -1715,6 +1719,7 @@ export default function SmsApp() {
                     <circle cx="12" cy="12.5" r="3.5" />
                     <path d="M8 5l1.5-2h5L16 5" />
                   </svg>
+                  Image
                   <input
                     type="file"
                     accept="image/*"
