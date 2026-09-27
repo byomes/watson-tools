@@ -1051,7 +1051,11 @@ export default function SmsApp() {
                 key={t.id}
                 onClick={() => openThread(t.id)}
                 className="w-full text-left px-5 py-3 border-b flex items-start gap-3"
-                style={{ borderColor: COLORS.line }}
+                style={{
+                  borderColor: COLORS.line,
+                  background: t.unread ? COLORS.tagblueSoft : 'transparent',
+                  boxShadow: t.unread ? `inset 3px 0 0 0 ${COLORS.moss}` : undefined,
+                }}
               >
                 <div
                   className="w-11 h-11 rounded-full flex-none flex items-center justify-center text-white text-sm font-semibold"
@@ -1061,21 +1065,24 @@ export default function SmsApp() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className={`text-sm ${t.unread ? 'font-semibold' : 'font-medium'}`}>
+                    <span className={`text-sm ${t.unread ? 'font-bold' : 'font-medium'}`} style={{ color: t.unread ? COLORS.ink : undefined }}>
                       {t.muted ? '🔕 ' : ''}
                       {t.snoozed_until ? '🕐 ' : ''}
                       {displayName(t)}
                     </span>
-                    <span className={mono('text-xs flex-none')} style={{ color: COLORS.inkSoft }}>
+                    <span className={mono('text-xs flex-none')} style={{ color: t.unread ? COLORS.moss : COLORS.inkSoft, fontWeight: t.unread ? 700 : 400 }}>
                       {fmtTime(t.last_message_at)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm truncate" style={{ color: COLORS.inkSoft }}>
+                    <span
+                      className={`text-sm truncate ${t.unread ? 'font-semibold' : ''}`}
+                      style={{ color: t.unread ? COLORS.ink : COLORS.inkSoft }}
+                    >
                       {t.last_message_preview}
                     </span>
                     {!!t.unread && (
-                      <span className="w-2 h-2 rounded-full flex-none" style={{ background: COLORS.moss }} />
+                      <span className="w-2.5 h-2.5 rounded-full flex-none" style={{ background: COLORS.moss }} />
                     )}
                   </div>
                 </div>
