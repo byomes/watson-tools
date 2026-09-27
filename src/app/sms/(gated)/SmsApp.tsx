@@ -1732,9 +1732,6 @@ export default function SmsApp() {
                   />
                 </label>
               </div>
-              <span className="text-xs" style={{ color: COLORS.inkSoft }}>
-                Nothing sends until you tap send
-              </span>
             </div>
             {showTemplates && (
               <div className="flex flex-col gap-1 rounded-lg border p-2" style={{ borderColor: COLORS.line }}>
