@@ -309,6 +309,11 @@ export default function SmsApp() {
   const [batteryPct, setBatteryPct] = useState<number | null>(null)
   const [spellchecking, setSpellchecking] = useState(false)
   const messagesScrollRef = useRef<HTMLDivElement | null>(null)
+  const listScrollRef = useRef<HTMLDivElement | null>(null)
+  const pullStartY = useRef<number | null>(null)
+  const [pullDistance, setPullDistance] = useState(0)
+  const [pullReleased, setPullReleased] = useState(false)
+  const PULL_THRESHOLD = 64
   const composeGrowRef = useAutoGrowTextarea(compose)
   const composeTextGrowRef = useAutoGrowTextarea(composeText)
 
@@ -596,6 +601,37 @@ export default function SmsApp() {
       // transient network hiccup -- the reload below tries again anyway
     } finally {
       window.location.reload()
+    }
+  }
+
+  // Pull-to-refresh on the thread list: iOS home-screen PWAs don't get
+  // Safari's native pull-to-refresh (that's browser chrome, absent in
+  // standalone mode), so this reimplements the gesture by hand. Only
+  // starts tracking when the list is already scrolled to the very top,
+  // so an ordinary scroll-down-then-up doesn't accidentally trigger it.
+  function handleListTouchStart(e: React.TouchEvent<HTMLDivElement>) {
+    if (listScrollRef.current && listScrollRef.current.scrollTop <= 0) {
+      pullStartY.current = e.touches[0].clientY
+    }
+  }
+  function handleListTouchMove(e: React.TouchEvent<HTMLDivElement>) {
+    if (pullStartY.current === null) return
+    const delta = e.touches[0].clientY - pullStartY.current
+    if (delta <= 0 || (listScrollRef.current && listScrollRef.current.scrollTop > 0)) {
+      pullStartY.current = null
+      setPullDistance(0)
+      return
+    }
+    setPullDistance(Math.min(delta * 0.5, 90))
+  }
+  function handleListTouchEnd() {
+    if (pullStartY.current === null) return
+    pullStartY.current = null
+    if (pullDistance >= PULL_THRESHOLD) {
+      setPullReleased(true)
+      manualRefresh()
+    } else {
+      setPullDistance(0)
     }
   }
 
@@ -1031,7 +1067,44 @@ export default function SmsApp() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
+          <div
+            ref={listScrollRef}
+            className="flex-1 overflow-y-auto relative"
+            onTouchStart={handleListTouchStart}
+            onTouchMove={handleListTouchMove}
+            onTouchEnd={handleListTouchEnd}
+          >
+            <div
+              className="absolute left-0 right-0 flex items-center justify-center"
+              style={{
+                top: 0,
+                height: 56,
+                transform: `translateY(${pullDistance - 56}px)`,
+                transition: pullStartY.current === null ? 'transform 0.2s' : 'none',
+              }}
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke={pullDistance >= PULL_THRESHOLD || refreshing ? COLORS.moss : COLORS.inkSoft}
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={refreshing || pullReleased ? 'animate-spin' : ''}
+                style={{ transform: refreshing || pullReleased ? undefined : `rotate(${Math.min(pullDistance / PULL_THRESHOLD, 1) * 180}deg)` }}
+              >
+                <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+                <path d="M21 3v6h-6" />
+              </svg>
+            </div>
+            <div
+              style={{
+                transform: `translateY(${pullDistance}px)`,
+                transition: pullStartY.current === null ? 'transform 0.2s' : 'none',
+              }}
+            >
             {loading && <div className="px-5 py-6 text-sm" style={{ color: COLORS.inkSoft }}>Loading…</div>}
 
             {!loading && query.trim() && searchHits.length > 0 && (
@@ -1106,6 +1179,7 @@ export default function SmsApp() {
                 </div>
               </button>
             ))}
+            </div>
           </div>
         </div>
       )}
