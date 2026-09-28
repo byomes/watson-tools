@@ -25,6 +25,14 @@ function lastNameKey(name: string): string {
   return (parts.length > 1 ? parts[parts.length - 1] : name || '').toLowerCase()
 }
 
+// "Deactivated" here means the Deactivate action was used -- active is
+// 'disconnected' or 'deceased'. 'non-active' is a separate, manually-set
+// status and stays visible in the default view.
+function isDeactivated(m: Member): boolean {
+  const v = String(m.active ?? '')
+  return v === 'disconnected' || v === 'deceased'
+}
+
 function CellValue({ col, value }: { col: Col; value: string | number | null }) {
   if (col.type === 'bool') {
     return (
@@ -95,6 +103,11 @@ export default function CatalystDBBoard() {
     if (!members) return []
     const q = search.trim().toLowerCase()
     let rows = members.filter((m) => {
+      // Deactivated members are hidden from the default view -- pick a
+      // specific value in the Active filter (e.g. "disconnected") to see
+      // them; that filter already exact-matches below, so this default
+      // hide only applies while Active is left on "All".
+      if (!filters.active && isDeactivated(m)) return false
       if (q) {
         const hay = `${m.name ?? ''} ${m.email ?? ''} ${m.phone ?? ''} ${m.notes ?? ''}`.toLowerCase()
         if (!hay.includes(q)) return false
@@ -181,9 +194,26 @@ export default function CatalystDBBoard() {
     if (selected.size === 0) return
     if (!confirm(`Deactivate ${selected.size} member(s)? This can be undone by re-activating.`)) return
     const ids = Array.from(selected)
-    setMembers((m) => m && m.map((row) => (ids.includes(row.id as number) ? { ...row, active: 0 } : row)))
+    setMembers((m) => m && m.map((row) => (ids.includes(row.id as number) ? { ...row, active: 'disconnected' } : row)))
     try {
       await api('deactivate', { ids })
+      setSelected(new Set())
+    } catch (e) {
+      setError(String((e as Error).message ?? e))
+    }
+  }
+
+  async function deleteSelected() {
+    if (selected.size === 0) return
+    const ids = Array.from(selected)
+    const names = (members ?? [])
+      .filter((m) => ids.includes(m.id as number))
+      .map((m) => String(m.name ?? `#${m.id}`))
+      .join(', ')
+    if (!confirm(`Permanently delete ${selected.size} member(s)? This cannot be undone.\n\n${names}`)) return
+    try {
+      await api('delete', { ids })
+      setMembers((m) => m && m.filter((row) => !ids.includes(row.id as number)))
       setSelected(new Set())
     } catch (e) {
       setError(String((e as Error).message ?? e))
@@ -206,9 +236,21 @@ export default function CatalystDBBoard() {
 
   async function deactivateOne(id: number) {
     if (!confirm('Deactivate this member? This can be undone by re-activating.')) return
-    setMembers((m) => m && m.map((row) => (row.id === id ? { ...row, active: 0 } : row)))
+    setMembers((m) => m && m.map((row) => (row.id === id ? { ...row, active: 'disconnected' } : row)))
     try {
       await api('deactivate', { ids: [id] })
+      setOpenId(null)
+    } catch (e) {
+      setError(String((e as Error).message ?? e))
+    }
+  }
+
+  async function deleteOne(id: number) {
+    const name = members?.find((m) => m.id === id)?.name ?? `#${id}`
+    if (!confirm(`Permanently delete ${name}? This cannot be undone.`)) return
+    try {
+      await api('delete', { ids: [id] })
+      setMembers((m) => m && m.filter((row) => row.id !== id))
       setOpenId(null)
     } catch (e) {
       setError(String((e as Error).message ?? e))
@@ -231,6 +273,9 @@ export default function CatalystDBBoard() {
 
   const visibleCols = COLUMNS.filter((c) => visible.has(c.key))
   const bulkCol = COLUMNS.find((c) => c.key === bulkField)!
+  const deactivatedHiddenCount = !filters.active && members ? members.filter(isDeactivated).length : 0
+  const allSelectedDeactivated =
+    selected.size > 0 && members != null && Array.from(selected).every((id) => isDeactivated(members.find((m) => m.id === id) ?? {}))
 
   if (!members)
     return (
@@ -247,6 +292,7 @@ export default function CatalystDBBoard() {
         onClose={() => setOpenId(null)}
         onSave={(changes) => saveDetail(openId as number, changes)}
         onDeactivate={() => deactivateOne(openId as number)}
+        onDelete={() => deleteOne(openId as number)}
       />
     )
   }
@@ -343,7 +389,10 @@ export default function CatalystDBBoard() {
         >
           + Add Member
         </button>
-        <span className="text-xs text-slate-400 dark:text-slate-500 shrink-0">{filtered.length} of {members.length}</span>
+        <span className="text-xs text-slate-400 dark:text-slate-500 shrink-0">
+          {filtered.length} of {members.length}
+          {deactivatedHiddenCount > 0 && ` · ${deactivatedHiddenCount} deactivated hidden (set Active filter to show)`}
+        </span>
       </div>
 
       {/* Mobile header — card-list conventions from Airtable/Notion/Coda's
@@ -454,7 +503,10 @@ export default function CatalystDBBoard() {
                 className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-2 text-sm text-slate-700 dark:text-slate-300"
               />
             </div>
-            <span className="text-xs text-slate-400 dark:text-slate-500">{filtered.length} of {members.length}</span>
+            <span className="text-xs text-slate-400 dark:text-slate-500">
+              {filtered.length} of {members.length}
+              {deactivatedHiddenCount > 0 && ` · ${deactivatedHiddenCount} deactivated hidden (set Active filter to show)`}
+            </span>
           </div>
         )}
       </div>
@@ -693,6 +745,14 @@ export default function CatalystDBBoard() {
           </button>
           <button onClick={deactivateSelected} className="rounded-lg bg-red-600 text-white px-3 py-1.5 text-xs font-semibold">
             Deactivate
+          </button>
+          <button
+            onClick={deleteSelected}
+            disabled={!allSelectedDeactivated}
+            title={allSelectedDeactivated ? 'Permanently delete the selected member(s)' : 'Deactivate first, then delete'}
+            className="rounded-lg border border-red-600 text-red-600 dark:text-red-400 dark:border-red-400 px-3 py-1.5 text-xs font-semibold hover:bg-red-50 dark:hover:bg-red-950/40 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+          >
+            Delete Permanently
           </button>
           <button onClick={() => setSelected(new Set())} className="text-xs text-slate-500 dark:text-slate-400 underline">
             Clear

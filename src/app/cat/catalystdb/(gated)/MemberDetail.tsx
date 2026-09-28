@@ -193,12 +193,15 @@ export default function MemberDetail({
   onClose,
   onSave,
   onDeactivate,
+  onDelete,
 }: {
   member: Member
   onClose: () => void
   onSave: (changes: Record<string, string | number>) => Promise<void>
   onDeactivate: () => void
+  onDelete: () => void
 }) {
+  const isDeactivated = member.active === 'disconnected' || member.active === 'deceased'
   const [draft, setDraft] = useState<Member>(member)
   const [saving, setSaving] = useState(false)
 
@@ -232,6 +235,14 @@ export default function MemberDetail({
           ← Back to list
         </button>
         <h1 className="text-base font-semibold text-slate-900 dark:text-white flex-1 truncate">{String(member.name ?? '')}</h1>
+        {isDeactivated && (
+          <button
+            onClick={onDelete}
+            className="rounded-lg border border-red-600 text-red-600 dark:text-red-400 dark:border-red-400 px-3 py-1.5 text-xs font-semibold hover:bg-red-50 dark:hover:bg-red-950/40"
+          >
+            Delete Permanently
+          </button>
+        )}
         <button
           onClick={onDeactivate}
           className="rounded-lg bg-red-600 text-white px-3 py-1.5 text-xs font-semibold hover:opacity-90"
