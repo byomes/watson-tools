@@ -80,13 +80,10 @@ export function computeEngagementTotals(groups: Group[]): EngagementTotals {
 // jobs/congregation/elder_shepherding_report.py's bucket labels.
 //
 // 2026-09-28, Bill's ruling: each row is its own good-to-bad status ramp
-// that escalates left to right, and the two rows must never share a hue
-// (they used to both reach for amber/red, making it easy to mistake one
-// row's badge for the other's at a glance). Connected gets the classic
-// green/amber/orange/red alert ramp since it's literally "how urgently
-// does someone need a check-in." Consistency gets a separate blue/indigo/
-// violet/fuchsia ramp -- same escalating feel, zero hue overlap with
-// Connected.
+// that escalates left to right (green -> amber -> orange -> red), and
+// Consistency deliberately mirrors Connected's exact ramp rather than
+// using its own hues -- Bill's call, after an earlier pass gave it a
+// separate blue/indigo/violet/fuchsia ramp specifically to avoid overlap.
 export const BUCKET_META: Record<Bucket, { label: string; className: string }> = {
   current: { label: '0-1 wk', className: 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 border-green-300 dark:border-green-800' },
   at_risk: { label: '2-3 wks', className: 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800' },
@@ -95,10 +92,10 @@ export const BUCKET_META: Record<Bucket, { label: string; className: string }> =
 }
 
 export const ENGAGEMENT_META: Record<Engagement, { label: string; className: string }> = {
-  consistent: { label: 'Consistent', className: 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-800' },
-  active: { label: 'Active', className: 'text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-800' },
-  occasional: { label: 'Occasional', className: 'text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-950/40 border-violet-300 dark:border-violet-800' },
-  lapsed: { label: 'Lapsed', className: 'text-fuchsia-700 dark:text-fuchsia-300 bg-fuchsia-50 dark:bg-fuchsia-950/40 border-fuchsia-300 dark:border-fuchsia-800' },
+  consistent: { label: 'Consistent', className: 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 border-green-300 dark:border-green-800' },
+  active: { label: 'Active', className: 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800' },
+  occasional: { label: 'Occasional', className: 'text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-950/40 border-orange-300 dark:border-orange-800' },
+  lapsed: { label: 'Lapsed', className: 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800' },
 }
 
 export function weeksLabel(daysSince: number): string {

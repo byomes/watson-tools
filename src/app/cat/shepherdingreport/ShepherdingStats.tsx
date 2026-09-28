@@ -162,11 +162,11 @@ export default function ShepherdingStats({ groups, totals }: { groups: Group[]; 
             aria-expanded={expandedLabel === 'consistent'}
             className="flex-1 flex flex-col gap-1 text-left"
           >
-            <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300 underline decoration-dotted underline-offset-2">
+            <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-green-700 dark:text-green-300 underline decoration-dotted underline-offset-2">
               Consistent
             </span>
             <span
-              className={`flex flex-col items-center gap-0.5 rounded-md border border-blue-300 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 py-2 ${expandedLabel === 'consistent' ? 'ring-2 ring-blue-400 dark:ring-blue-500' : ''}`}
+              className={`flex flex-col items-center gap-0.5 rounded-md border border-green-300 dark:border-green-800 bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 py-2 ${expandedLabel === 'consistent' ? 'ring-2 ring-green-400 dark:ring-green-500' : ''}`}
             >
               <span>6+ / 8 wks</span>
               <span className="text-sm font-bold">{engagementTotals.consistent}</span>
@@ -178,11 +178,11 @@ export default function ShepherdingStats({ groups, totals }: { groups: Group[]; 
             aria-expanded={expandedLabel === 'active'}
             className="flex-1 flex flex-col gap-1 text-left"
           >
-            <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300 underline decoration-dotted underline-offset-2">
+            <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300 underline decoration-dotted underline-offset-2">
               Active
             </span>
             <span
-              className={`flex flex-col items-center gap-0.5 rounded-md border border-indigo-300 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 py-2 ${expandedLabel === 'active' ? 'ring-2 ring-indigo-400 dark:ring-indigo-500' : ''}`}
+              className={`flex flex-col items-center gap-0.5 rounded-md border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 py-2 ${expandedLabel === 'active' ? 'ring-2 ring-amber-400 dark:ring-amber-500' : ''}`}
             >
               <span>3-5 / 8 wks</span>
               <span className="text-sm font-bold">{engagementTotals.active}</span>
@@ -194,11 +194,11 @@ export default function ShepherdingStats({ groups, totals }: { groups: Group[]; 
             aria-expanded={expandedLabel === 'occasional'}
             className="flex-1 flex flex-col gap-1 text-left"
           >
-            <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-300 underline decoration-dotted underline-offset-2">
+            <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-orange-700 dark:text-orange-300 underline decoration-dotted underline-offset-2">
               Occasional
             </span>
             <span
-              className={`flex flex-col items-center gap-0.5 rounded-md border border-violet-300 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 py-2 ${expandedLabel === 'occasional' ? 'ring-2 ring-violet-400 dark:ring-violet-500' : ''}`}
+              className={`flex flex-col items-center gap-0.5 rounded-md border border-orange-300 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 py-2 ${expandedLabel === 'occasional' ? 'ring-2 ring-orange-400 dark:ring-orange-500' : ''}`}
             >
               <span>1-2 / 8 wks</span>
               <span className="text-sm font-bold">{engagementTotals.occasional}</span>
@@ -210,11 +210,11 @@ export default function ShepherdingStats({ groups, totals }: { groups: Group[]; 
             aria-expanded={expandedLabel === 'lapsed'}
             className="flex-1 flex flex-col gap-1 text-left"
           >
-            <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-fuchsia-700 dark:text-fuchsia-300 underline decoration-dotted underline-offset-2">
+            <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-red-700 dark:text-red-300 underline decoration-dotted underline-offset-2">
               Lapsed
             </span>
             <span
-              className={`flex flex-col items-center gap-0.5 rounded-md border border-fuchsia-300 dark:border-fuchsia-800 bg-fuchsia-50 dark:bg-fuchsia-950/40 text-fuchsia-700 dark:text-fuchsia-300 py-2 ${expandedLabel === 'lapsed' ? 'ring-2 ring-fuchsia-400 dark:ring-fuchsia-500' : ''}`}
+              className={`flex flex-col items-center gap-0.5 rounded-md border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 py-2 ${expandedLabel === 'lapsed' ? 'ring-2 ring-red-400 dark:ring-red-500' : ''}`}
             >
               <span>0 / 8 wks</span>
               <span className="text-sm font-bold">{engagementTotals.lapsed}</span>
