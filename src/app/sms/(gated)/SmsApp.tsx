@@ -17,6 +17,8 @@ type Thread = {
   snoozed_until: string | null
   draft_text: string | null
   highlight_note: string | null
+  is_group: boolean
+  participants: { phone: string; contact_name: string | null }[]
 }
 type Message = {
   id: number
@@ -26,6 +28,8 @@ type Message = {
   media_url: string | null
   media_type: string | null
   status: 'sent' | 'delivered' | 'failed' | null
+  sender_phone: string | null
+  sender_name: string | null
 }
 type ScheduledMessage = { id: number; body: string; send_at: string; status: 'pending' | 'failed'; error: string | null }
 type Template = { id: string; label: string; body: string; updated_at: string }
@@ -292,6 +296,10 @@ function buildContextEntries(context: Context, fields: Record<ContextFieldKey, b
 }
 
 function displayName(t: Thread): string {
+  if (t.is_group && t.participants?.length) {
+    const names = t.participants.map((p) => p.contact_name || p.phone)
+    return names.length <= 2 ? names.join(' & ') : `${names[0]} & ${names.length - 1} others`
+  }
   return t.contact_name || t.phone
 }
 
@@ -1290,7 +1298,7 @@ export default function SmsApp() {
             <div className="flex-1 text-center">
               <div className="text-sm font-semibold">{displayName(activeThread)}</div>
               <div className={mono('text-xs')} style={{ color: COLORS.inkSoft }}>
-                {activeThread.phone}
+                {activeThread.is_group ? `${activeThread.participants.length} people` : activeThread.phone}
               </div>
             </div>
             <button
@@ -1510,7 +1518,7 @@ export default function SmsApp() {
             </div>
           )}
 
-          {context && !context.matched && (
+          {context && !context.matched && !activeThread.is_group && (
             <div
               className="mx-4 mt-2 rounded-2xl border px-3 py-2 relative"
               style={{ borderColor: COLORS.line, background: COLORS.surface }}
@@ -1634,6 +1642,11 @@ export default function SmsApp() {
           <div ref={messagesScrollRef} className="flex-1 min-h-0 overflow-y-auto px-4 py-4 flex flex-col gap-2">
             {messages.map((m) => (
               <div key={m.id} className="flex flex-col gap-0.5" style={{ alignItems: m.direction === 'out' ? 'flex-end' : 'flex-start' }}>
+                {activeThread.is_group && m.direction === 'in' && (
+                  <span className="text-xs font-semibold px-1" style={{ color: COLORS.inkSoft }}>
+                    {m.sender_name || m.sender_phone || 'Someone in this group'}
+                  </span>
+                )}
                 <div
                   className="max-w-[75%] px-3.5 py-2 rounded-2xl text-sm leading-snug flex flex-col gap-1.5"
                   style={
