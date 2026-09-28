@@ -57,6 +57,16 @@ const INPUT_FONT = 'font-[family-name:var(--font-connect-card-input)]'
 const inputClass =
   `w-full bg-[#ebebeb] border-0 text-black placeholder-gray-500 rounded-lg px-3 py-3 text-base ${INPUT_FONT} focus:outline-none focus:ring-2 focus:ring-black/20 transition-shadow`
 const labelClass = `block text-black font-bold text-[15px] mb-2 ${HEADING_FONT}`
+
+// Caps the Family Birthdays / Anniversaries date pickers at today. Mobile
+// date pickers open pre-set to today's date, so someone who only scrolls
+// the month/day wheels and never touches the year wheel silently submits
+// the current year -- found 2026-09-28 when a birthday came in dated
+// months in the future. This can't catch a wrong-but-past year (e.g. the
+// right month/day with a stale current year that's still <= today), only
+// an outright future date -- see jobs/congregation/family_dates.py's
+// conflict detection for that remaining class.
+const TODAY_ISO = new Date().toISOString().slice(0, 10)
 const checkboxRowClass = 'flex items-start gap-3'
 // No accent-color override — the live form doesn't set one either (its radio/
 // checkbox "blue" is just the browser's own default accent-color: auto, not
@@ -569,6 +579,7 @@ export default function ConnectCardForm() {
                     )}
                     <input
                       type="date"
+                      max={TODAY_ISO}
                       value={b.date}
                       onChange={e => updateBirthday(i, 'date', e.target.value)}
                       className={inputClass}
@@ -616,6 +627,7 @@ export default function ConnectCardForm() {
                     )}
                     <input
                       type="date"
+                      max={TODAY_ISO}
                       value={a.date}
                       onChange={e => updateAnniversary(i, 'date', e.target.value)}
                       className={inputClass}
