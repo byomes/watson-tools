@@ -117,7 +117,8 @@ export default function CatalystDBBoard() {
         const cur = String(m[key] ?? '')
         if (val === '__active__' && cur !== '1') return false
         if (val === '__inactive__' && cur === '1') return false
-        if (val !== '__active__' && val !== '__inactive__' && cur !== val) return false
+        if (key === 'active' && val === '__deactivated__' && !isDeactivated(m)) return false
+        if (val !== '__active__' && val !== '__inactive__' && val !== '__deactivated__' && cur !== val) return false
       }
       if (firstVisitRange.from || firstVisitRange.to) {
         const fv = String(m.first_visit_date ?? '')
@@ -273,9 +274,14 @@ export default function CatalystDBBoard() {
 
   const visibleCols = COLUMNS.filter((c) => visible.has(c.key))
   const bulkCol = COLUMNS.find((c) => c.key === bulkField)!
-  const deactivatedHiddenCount = !filters.active && members ? members.filter(isDeactivated).length : 0
+  const deactivatedCount = members ? members.filter(isDeactivated).length : 0
+  const viewingDeactivated = filters.active === '__deactivated__'
   const allSelectedDeactivated =
     selected.size > 0 && members != null && Array.from(selected).every((id) => isDeactivated(members.find((m) => m.id === id) ?? {}))
+
+  function viewDeactivated() {
+    setFilters((f) => ({ ...f, active: '__deactivated__' }))
+  }
 
   if (!members)
     return (
@@ -355,6 +361,7 @@ export default function CatalystDBBoard() {
             className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-700 dark:text-slate-300"
           >
             <option value="">{c.label}: All</option>
+            {c.key === 'active' && <option value="__deactivated__">Deactivated</option>}
             {c.type === 'bool'
               ? [
                   <option key="a" value="__active__">Yes</option>,
@@ -391,7 +398,14 @@ export default function CatalystDBBoard() {
         </button>
         <span className="text-xs text-slate-400 dark:text-slate-500 shrink-0">
           {filtered.length} of {members.length}
-          {deactivatedHiddenCount > 0 && ` · ${deactivatedHiddenCount} deactivated hidden (set Active filter to show)`}
+          {deactivatedCount > 0 && !viewingDeactivated && (
+            <>
+              {' · '}
+              <button onClick={viewDeactivated} className="underline underline-offset-2 text-blue-600 dark:text-blue-400 hover:opacity-80">
+                {deactivatedCount} deactivated
+              </button>
+            </>
+          )}
         </span>
       </div>
 
@@ -505,7 +519,14 @@ export default function CatalystDBBoard() {
             </div>
             <span className="text-xs text-slate-400 dark:text-slate-500">
               {filtered.length} of {members.length}
-              {deactivatedHiddenCount > 0 && ` · ${deactivatedHiddenCount} deactivated hidden (set Active filter to show)`}
+              {deactivatedCount > 0 && !viewingDeactivated && (
+                <>
+                  {' · '}
+                  <button onClick={viewDeactivated} className="underline underline-offset-2 text-blue-600 dark:text-blue-400 hover:opacity-80">
+                    {deactivatedCount} deactivated
+                  </button>
+                </>
+              )}
             </span>
           </div>
         )}
