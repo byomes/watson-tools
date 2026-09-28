@@ -6,7 +6,6 @@ import AttendanceBoard from '../attendance/AttendanceBoard'
 import GroupList from '../shepherdingreport/GroupList'
 import ShepherdingStats from '../shepherdingreport/ShepherdingStats'
 import NotesFeed from './NotesFeed'
-import { logoutAction } from './actions'
 import { useDeaconTheme } from '@/lib/deaconTheme'
 import type { Group, Totals } from '@/lib/shepherdingReportShared'
 
@@ -99,16 +98,6 @@ function HelpIcon() {
   )
 }
 
-function LogoutIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
-      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-      <polyline points="16 17 21 12 16 7" />
-      <line x1="21" y1="12" x2="9" y2="12" />
-    </svg>
-  )
-}
-
 function CloseIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
@@ -182,7 +171,7 @@ function HelpTray({ open, onClose }: { open: boolean; onClose: () => void }) {
           </HelpSection>
 
           <HelpSection title="Top &amp; bottom bar">
-            <p>Tap the app name to refresh. The <strong>+</strong> button adds a new person to the roster. The sun/moon icon switches light and dark mode. <strong>Log out</strong> signs you out of the app.</p>
+            <p>Tap the app name to refresh. The <strong>+</strong> button adds a new person to the roster. The sun/moon icon switches light and dark mode.</p>
             <p>The <strong>Watson</strong> button at the bottom right opens a Telegram chat with Watson, the church assistant &mdash; ask it questions about attendance or anyone in the directory any time.</p>
           </HelpSection>
         </div>
@@ -239,23 +228,14 @@ export default function DeaconAppTabs({
           </h1>
           <button
             type="button"
-            onClick={() => logoutAction()}
-            aria-label="Log out"
-            title="Log out"
+            onClick={() => setHelpOpen(true)}
+            aria-label="Help"
+            title="Help"
             className="absolute left-4 top-1/2 -translate-y-1/2 w-[45px] h-[45px] flex items-center justify-center text-gray-500 dark:text-gray-400 active:opacity-60"
           >
-            <LogoutIcon />
+            <HelpIcon />
           </button>
           <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setHelpOpen(true)}
-              aria-label="Help"
-              title="Help"
-              className="w-[45px] h-[45px] flex items-center justify-center text-gray-500 dark:text-gray-400 active:opacity-60"
-            >
-              <HelpIcon />
-            </button>
             <button
               type="button"
               onClick={() => boardRef.current?.openAddPerson()}
