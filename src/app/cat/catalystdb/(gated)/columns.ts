@@ -105,6 +105,7 @@ export const COLUMNS: Col[] = [
   { key: 'birthdate', label: 'Birthdate', type: 'date' },
   { key: 'anniversary', label: 'Anniversary', type: 'date' },
   { key: 'first_visit_date', label: 'First Visit', type: 'date' },
+  { key: 'second_visit_date', label: 'Second Visit', type: 'date' },
   { key: 'started_serving_date', label: 'Serving Since', type: 'date' },
   { key: 'service_pin_notes', label: 'Service Pin Notes', type: 'text' },
   { key: 'unsubscribed', label: 'Unsubscribed', type: 'bool' },
