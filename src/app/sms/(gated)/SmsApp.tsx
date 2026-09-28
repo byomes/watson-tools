@@ -37,6 +37,14 @@ type Template = { id: string; label: string; body: string; updated_at: string }
 type SearchHit = { message_id: number; thread_id: number; body: string; created_at: string; contact_name: string | null; phone: string }
 type Contact = { id: number; name: string; phone: string }
 type Member = { id: number; name: string; phone: string | null }
+type AttentionMember = {
+  id: number
+  name: string
+  phone: string | null
+  bucket: 'at_risk' | 'critical'
+  weeks_absent: number
+  thread_id: number | null
+}
 type Context = {
   matched: boolean
   name?: string
@@ -373,6 +381,9 @@ export default function SmsApp() {
   const [showSnooze, setShowSnooze] = useState(false)
   const [snoozeAt, setSnoozeAt] = useState('')
   const [showSettings, setShowSettings] = useState(false)
+  const [showAttention, setShowAttention] = useState(false)
+  const [attentionMembers, setAttentionMembers] = useState<AttentionMember[]>([])
+  const [attentionLoading, setAttentionLoading] = useState(false)
   const [contextCollapsed, setContextCollapsed] = useState(false)
   const [showLinkMember, setShowLinkMember] = useState(false)
   const [linkMemberQuery, setLinkMemberQuery] = useState('')
@@ -525,6 +536,36 @@ export default function SmsApp() {
   async function loadContext(id: number) {
     const data = await api<Context>(`/api/sms/threads/${id}/context`)
     setContext(data)
+  }
+
+  async function openAttention() {
+    setShowAttention(true)
+    setAttentionLoading(true)
+    try {
+      const data = await api<{ members: AttentionMember[] }>('/api/sms/attention')
+      setAttentionMembers(data.members)
+    } catch {
+      setAttentionMembers([])
+    } finally {
+      setAttentionLoading(false)
+    }
+  }
+
+  // Tap-to-text from the At Risk / Critical panel -- jumps straight into an
+  // existing thread when the member already has one (thread_id from the
+  // member_id soft cross-reference), otherwise prefills the New Message
+  // modal so a first text to them still goes through the same send path.
+  function textAttentionMember(m: AttentionMember) {
+    setShowAttention(false)
+    if (m.thread_id) {
+      openThread(m.thread_id)
+      return
+    }
+    if (!m.phone) return
+    setComposeName(m.name)
+    setComposePhone(m.phone)
+    setComposeContactPicked(true)
+    setComposeOpen(true)
   }
 
   async function linkToMember(id: number, member: Member, action: 'ask' | 'overwrite' | 'keep_both') {
@@ -2118,6 +2159,27 @@ export default function SmsApp() {
 
             <section className="flex flex-col gap-3">
               <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: COLORS.inkSoft, letterSpacing: '0.05em' }}>
+                Pastoral
+              </h3>
+              <button
+                onClick={openAttention}
+                className="rounded-2xl border p-3 flex items-center justify-between text-sm"
+                style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
+              >
+                <span className="flex items-center gap-2">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+                    <path d="M12 9v4" />
+                    <path d="M12 17h.01" />
+                  </svg>
+                  At Risk &amp; Critical
+                </span>
+                <span style={{ color: COLORS.inkSoft }}>&rsaquo;</span>
+              </button>
+            </section>
+
+            <section className="flex flex-col gap-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: COLORS.inkSoft, letterSpacing: '0.05em' }}>
                 Availability
               </h3>
               <div className="rounded-2xl border p-3 flex flex-col gap-3" style={{ borderColor: COLORS.line, background: COLORS.surface }}>
@@ -2363,6 +2425,52 @@ export default function SmsApp() {
               >
                 Send test
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---- AT RISK / CRITICAL MODAL ---- */}
+      {showAttention && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-6 z-20">
+          <div className="w-full max-w-sm max-h-[80vh] rounded-2xl p-5 flex flex-col gap-3" style={{ background: COLORS.surface, color: COLORS.ink }}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">At Risk &amp; Critical</h3>
+              <button onClick={() => setShowAttention(false)} className="text-sm px-1" style={{ color: COLORS.inkSoft }}>
+                Close
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto flex flex-col gap-2">
+              {attentionLoading && (
+                <div className="text-sm py-4 text-center" style={{ color: COLORS.inkSoft }}>Loading…</div>
+              )}
+              {!attentionLoading && attentionMembers.length === 0 && (
+                <div className="text-sm py-4 text-center" style={{ color: COLORS.inkSoft }}>
+                  Nobody&rsquo;s at risk or critical right now.
+                </div>
+              )}
+              {!attentionLoading && attentionMembers.map((m) => (
+                <div
+                  key={m.id}
+                  className="rounded-xl border p-3 flex items-center gap-3"
+                  style={{ borderColor: COLORS.line }}
+                >
+                  <div className="flex-1 flex flex-col gap-0.5 min-w-0">
+                    <span className="text-sm font-medium truncate">{m.name}</span>
+                    <span className="text-xs font-medium" style={{ color: m.bucket === 'critical' ? COLORS.clay : COLORS.inkSoft }}>
+                      {m.bucket === 'critical' ? '\u{1F534} Critical' : '⚠️ At Risk'} &middot; {m.weeks_absent} {m.weeks_absent === 1 ? 'week' : 'weeks'} absent
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => textAttentionMember(m)}
+                    disabled={!m.phone && !m.thread_id}
+                    className="text-xs px-3 py-1.5 rounded-lg text-white flex-none disabled:opacity-40"
+                    style={{ background: COLORS.moss }}
+                  >
+                    Text
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
         </div>
