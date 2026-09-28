@@ -746,14 +746,15 @@ export default function CatalystDBBoard() {
           <button onClick={deactivateSelected} className="rounded-lg bg-red-600 text-white px-3 py-1.5 text-xs font-semibold">
             Deactivate
           </button>
-          <button
-            onClick={deleteSelected}
-            disabled={!allSelectedDeactivated}
-            title={allSelectedDeactivated ? 'Permanently delete the selected member(s)' : 'Deactivate first, then delete'}
-            className="rounded-lg border border-red-600 text-red-600 dark:text-red-400 dark:border-red-400 px-3 py-1.5 text-xs font-semibold hover:bg-red-50 dark:hover:bg-red-950/40 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-          >
-            Delete Permanently
-          </button>
+          {allSelectedDeactivated && (
+            <button
+              onClick={deleteSelected}
+              title="Permanently delete the selected member(s)"
+              className="rounded-lg border border-red-600 text-red-600 dark:text-red-400 dark:border-red-400 px-3 py-1.5 text-xs font-semibold hover:bg-red-50 dark:hover:bg-red-950/40"
+            >
+              Delete Permanently
+            </button>
+          )}
           <button onClick={() => setSelected(new Set())} className="text-xs text-slate-500 dark:text-slate-400 underline">
             Clear
           </button>
