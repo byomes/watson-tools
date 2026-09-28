@@ -68,7 +68,7 @@ function TextIcon() {
   )
 }
 
-function ContactIcons({ member }: { member: Member }) {
+export function ContactIcons({ member }: { member: Member }) {
   if (!member.phone && !member.email) return null
   return (
     <span className="flex items-center gap-4 shrink-0 text-gray-400 dark:text-gray-500">

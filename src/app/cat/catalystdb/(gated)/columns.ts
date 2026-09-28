@@ -64,7 +64,7 @@ export const COLUMNS: Col[] = [
     key: 'connected',
     label: 'Connected',
     type: 'select',
-    options: ['1st time', '2nd time', 'guest', 'regular', 'at risk', 'critical', 'neighbor', '--'],
+    options: ['neighbor', '1st time', '2nd time', 'guest', 'regular', 'at risk', 'critical', 'disconnected', '--'],
     defaultVisible: true,
   },
   {
