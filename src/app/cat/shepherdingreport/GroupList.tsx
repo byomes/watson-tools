@@ -195,7 +195,7 @@ export default function GroupList({ groups }: { groups: Group[] }) {
       </div>
 
       {groups.map((group) => {
-        const flagged = group.members.filter((m) => m.bucket === 'at_risk' || m.bucket === 'critical').length
+        const flagged = group.members.filter((m) => m.bucket === 'at_risk' || m.bucket === 'critical' || m.bucket === 'disconnected').length
         const initialOpen = bulk ? bulk.open : flagged > 0
         return (
           <details

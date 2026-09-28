@@ -6,7 +6,7 @@
 // explicit bucket/engagement value so the totals below always sum to the
 // full roster (see elder_shepherding_report.py's _bucket() and
 // _member_engagement_tiers()).
-export type Bucket = 'critical' | 'at_risk' | 'current'
+export type Bucket = 'disconnected' | 'critical' | 'at_risk' | 'current'
 export type Engagement = 'consistent' | 'active' | 'occasional' | 'lapsed'
 
 export interface Member {
@@ -34,6 +34,7 @@ export interface Totals {
   current: number
   atRisk: number
   critical: number
+  disconnected: number
 }
 
 export interface EngagementTotals {
@@ -50,10 +51,11 @@ export function computeShepherdingTotals(groups: Group[]): Totals {
         if (m.bucket === 'critical') acc.critical += 1
         else if (m.bucket === 'at_risk') acc.atRisk += 1
         else if (m.bucket === 'current') acc.current += 1
+        else if (m.bucket === 'disconnected') acc.disconnected += 1
       }
       return acc
     },
-    { current: 0, atRisk: 0, critical: 0 },
+    { current: 0, atRisk: 0, critical: 0, disconnected: 0 },
   )
 }
 
@@ -77,7 +79,8 @@ export function computeEngagementTotals(groups: Group[]): EngagementTotals {
 // cat/deacons/DeaconBoard.tsx's List tab never drift apart -- mirrors
 // jobs/congregation/elder_shepherding_report.py's bucket labels.
 export const BUCKET_META: Record<Bucket, { label: string; className: string }> = {
-  critical: { label: '4+ wks', className: 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800' },
+  disconnected: { label: '9+ wks', className: 'text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/60 border-slate-400 dark:border-slate-600' },
+  critical: { label: '4-8 wks', className: 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800' },
   at_risk: { label: '2-3 wks', className: 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800' },
   current: { label: '0-1 wk', className: 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-800' },
 }

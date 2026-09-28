@@ -41,7 +41,7 @@ type AttentionMember = {
   id: number
   name: string
   phone: string | null
-  bucket: 'at_risk' | 'critical'
+  bucket: 'at_risk' | 'critical' | 'disconnected'
   weeks_absent: number
   thread_id: number | null
 }
@@ -2172,7 +2172,7 @@ export default function SmsApp() {
                     <path d="M12 9v4" />
                     <path d="M12 17h.01" />
                   </svg>
-                  At Risk &amp; Critical
+                  At Risk, Critical &amp; Disconnected
                 </span>
                 <span style={{ color: COLORS.inkSoft }}>&rsaquo;</span>
               </button>
@@ -2435,7 +2435,7 @@ export default function SmsApp() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-6 z-20">
           <div className="w-full max-w-sm max-h-[80vh] rounded-2xl p-5 flex flex-col gap-3" style={{ background: COLORS.surface, color: COLORS.ink }}>
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold">At Risk &amp; Critical</h3>
+              <h3 className="text-sm font-semibold">At Risk, Critical &amp; Disconnected</h3>
               <button onClick={() => setShowAttention(false)} className="text-sm px-1" style={{ color: COLORS.inkSoft }}>
                 Close
               </button>
@@ -2446,7 +2446,7 @@ export default function SmsApp() {
               )}
               {!attentionLoading && attentionMembers.length === 0 && (
                 <div className="text-sm py-4 text-center" style={{ color: COLORS.inkSoft }}>
-                  Nobody&rsquo;s at risk or critical right now.
+                  Nobody&rsquo;s at risk, critical, or disconnected right now.
                 </div>
               )}
               {!attentionLoading && attentionMembers.map((m) => (
@@ -2457,8 +2457,8 @@ export default function SmsApp() {
                 >
                   <div className="flex-1 flex flex-col gap-0.5 min-w-0">
                     <span className="text-sm font-medium truncate">{m.name}</span>
-                    <span className="text-xs font-medium" style={{ color: m.bucket === 'critical' ? COLORS.clay : COLORS.inkSoft }}>
-                      {m.bucket === 'critical' ? '\u{1F534} Critical' : '⚠️ At Risk'} &middot; {m.weeks_absent} {m.weeks_absent === 1 ? 'week' : 'weeks'} absent
+                    <span className="text-xs font-medium" style={{ color: m.bucket === 'critical' ? COLORS.clay : m.bucket === 'disconnected' ? COLORS.ink : COLORS.inkSoft }}>
+                      {m.bucket === 'critical' ? '\u{1F534} Critical' : m.bucket === 'disconnected' ? '⚫ Disconnected' : '⚠️ At Risk'} &middot; {m.weeks_absent} {m.weeks_absent === 1 ? 'week' : 'weeks'} absent
                     </span>
                   </div>
                   <button

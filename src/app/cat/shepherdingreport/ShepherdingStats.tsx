@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { computeEngagementTotals, type Group, type Member, type Totals } from '@/lib/shepherdingReportShared'
 
-type LabelKey = 'current' | 'atRisk' | 'critical' | 'consistent' | 'active' | 'occasional' | 'lapsed'
+type LabelKey = 'current' | 'atRisk' | 'disconnected' | 'critical' | 'consistent' | 'active' | 'occasional' | 'lapsed'
 
 type MemberWithGroup = Member & { groupName: string }
 
@@ -12,6 +12,7 @@ function membersForLabel(key: LabelKey, allMembers: MemberWithGroup[]): MemberWi
     switch (key) {
       case 'current': return m.bucket === 'current'
       case 'atRisk': return m.bucket === 'at_risk'
+      case 'disconnected': return m.bucket === 'disconnected'
       case 'critical': return m.bucket === 'critical'
       case 'consistent': return m.engagement === 'consistent'
       case 'active': return m.engagement === 'active'
@@ -98,6 +99,22 @@ export default function ShepherdingStats({ groups, totals }: { groups: Group[]; 
           </button>
           <button
             type="button"
+            onClick={() => toggleLabel('disconnected')}
+            aria-expanded={expandedLabel === 'disconnected'}
+            className="flex-1 flex flex-col gap-1 text-left"
+          >
+            <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300 underline decoration-dotted underline-offset-2">
+              Disconnected
+            </span>
+            <span
+              className={`flex flex-col items-center gap-0.5 rounded-md border border-slate-400 dark:border-slate-600 bg-slate-100 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 py-2 ${expandedLabel === 'disconnected' ? 'ring-2 ring-slate-400 dark:ring-slate-500' : ''}`}
+            >
+              <span>9+ wks</span>
+              <span className="text-sm font-bold">{totals.disconnected}</span>
+            </span>
+          </button>
+          <button
+            type="button"
             onClick={() => toggleLabel('critical')}
             aria-expanded={expandedLabel === 'critical'}
             className="flex-1 flex flex-col gap-1 text-left"
@@ -108,12 +125,12 @@ export default function ShepherdingStats({ groups, totals }: { groups: Group[]; 
             <span
               className={`flex flex-col items-center gap-0.5 rounded-md border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 py-2 ${expandedLabel === 'critical' ? 'ring-2 ring-red-400 dark:ring-red-500' : ''}`}
             >
-              <span>4+ wks</span>
+              <span>4-8 wks</span>
               <span className="text-sm font-bold">{totals.critical}</span>
             </span>
           </button>
         </div>
-        {(expandedLabel === 'current' || expandedLabel === 'atRisk' || expandedLabel === 'critical') && (
+        {(expandedLabel === 'current' || expandedLabel === 'atRisk' || expandedLabel === 'disconnected' || expandedLabel === 'critical') && (
           <div className="w-full mt-2 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
             <LabelPeopleList members={membersForLabel(expandedLabel, allMembers)} />
           </div>
@@ -122,7 +139,7 @@ export default function ShepherdingStats({ groups, totals }: { groups: Group[]; 
 
       {/* Same consistent/active/occasional/lapsed classification Watson's
           weekly State of the Church email uses (last 8 Sunday services),
-          styled to match the Current/At Risk/Critical boxes above -- shown
+          styled to match the Current/At Risk/Disconnected/Critical boxes above -- shown
           per-person as a badge under each name's last-seen pill in
           GroupList. Live counts computed client-side from the same
           per-member `engagement` field via computeEngagementTotals. */}
