@@ -16,6 +16,7 @@ type Thread = {
   muted: boolean
   snoozed_until: string | null
   draft_text: string | null
+  highlight_note: string | null
 }
 type Message = {
   id: number
@@ -458,7 +459,7 @@ export default function SmsApp() {
     setArchivedThreads(data.threads)
   }
 
-  async function patchThread(id: number, patch: Partial<Pick<Thread, 'state' | 'muted' | 'snoozed_until' | 'unread' | 'draft_text'>>) {
+  async function patchThread(id: number, patch: Partial<Pick<Thread, 'state' | 'muted' | 'snoozed_until' | 'unread' | 'draft_text' | 'highlight_note'>>) {
     const data = await api<{ thread: Thread }>(`/api/sms/threads/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(patch),
@@ -1216,8 +1217,12 @@ export default function SmsApp() {
                 className="w-full text-left px-5 py-3 border-b flex items-start gap-3"
                 style={{
                   borderColor: COLORS.line,
-                  background: t.unread ? COLORS.tagblueSoft : 'transparent',
-                  boxShadow: t.unread ? `inset 3px 0 0 0 ${COLORS.moss}` : undefined,
+                  background: t.highlight_note ? COLORS.claySoft : t.unread ? COLORS.tagblueSoft : 'transparent',
+                  boxShadow: t.highlight_note
+                    ? `inset 3px 0 0 0 ${COLORS.clay}`
+                    : t.unread
+                      ? `inset 3px 0 0 0 ${COLORS.moss}`
+                      : undefined,
                 }}
               >
                 <div
@@ -1251,6 +1256,11 @@ export default function SmsApp() {
                       {fmtTime(t.last_message_at)}
                     </span>
                   </div>
+                  {t.highlight_note && (
+                    <div className="text-xs font-semibold mb-0.5" style={{ color: COLORS.clay }}>
+                      {t.highlight_note}
+                    </div>
+                  )}
                   <div className="flex items-center justify-between gap-2">
                     <span
                       className={`text-sm truncate ${t.unread ? 'font-semibold' : ''}`}
@@ -1601,6 +1611,23 @@ export default function SmsApp() {
                   )}
                 </div>
               )}
+            </div>
+          )}
+
+          {activeThread.highlight_note && (
+            <div
+              className="flex items-center justify-between gap-2 px-4 py-2 text-sm font-medium border-b"
+              style={{ background: COLORS.claySoft, color: COLORS.clay, borderColor: COLORS.line }}
+            >
+              <span>{activeThread.highlight_note}</span>
+              <button
+                onClick={() => patchThread(activeThread.id, { highlight_note: null })}
+                aria-label="Dismiss note"
+                className="text-xs font-semibold flex-none px-1.5"
+                style={{ color: COLORS.clay }}
+              >
+                Dismiss
+              </button>
             </div>
           )}
 
