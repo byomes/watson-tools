@@ -257,7 +257,16 @@ export default function CatalystDBBoard() {
           see the mobile header block right after this for the small-screen
           equivalent (search + a collapsible filter sheet instead). */}
       <div className="hidden md:flex border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-3 flex-wrap items-center gap-3">
-        <h1 className="text-base font-semibold text-slate-900 dark:text-white shrink-0">Catalyst Database</h1>
+        <h1 className="shrink-0">
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            title="Hard refresh"
+            className="text-base font-semibold text-slate-900 dark:text-white hover:opacity-70"
+          >
+            Catalyst Database
+          </button>
+        </h1>
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -344,7 +353,16 @@ export default function CatalystDBBoard() {
           button below rather than an inline one competing for header space. */}
       <div className="flex md:hidden flex-col border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
         <div className="flex items-center gap-2 px-4 py-3">
-          <h1 className="text-base font-semibold text-slate-900 dark:text-white flex-1">Catalyst DB</h1>
+          <h1 className="flex-1">
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              title="Hard refresh"
+              className="text-base font-semibold text-slate-900 dark:text-white"
+            >
+              Catalyst DB
+            </button>
+          </h1>
           <button
             onClick={() => setMobileSelecting((s) => !s)}
             className="text-xs font-medium text-slate-600 dark:text-slate-300 px-2 py-1"
