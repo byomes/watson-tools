@@ -358,6 +358,11 @@ export default function SmsApp() {
   const [composeSending, setComposeSending] = useState(false)
   const [composeContacts, setComposeContacts] = useState<Contact[]>([])
   const [composeContactPicked, setComposeContactPicked] = useState(false)
+  // Which extra-recipient row (if any) currently has an open contact-picker
+  // dropdown, mirroring composeContacts/composeContactPicked above but for
+  // the "Add another person" rows used to start a group text.
+  const [activeExtraContactIndex, setActiveExtraContactIndex] = useState<number | null>(null)
+  const [extraContacts, setExtraContacts] = useState<Contact[]>([])
   const [composeShowSchedule, setComposeShowSchedule] = useState(false)
   const [composeScheduleAt, setComposeScheduleAt] = useState('')
   const [addingTemplate, setAddingTemplate] = useState(false)
@@ -621,6 +626,23 @@ export default function SmsApp() {
     }, 250)
     return () => clearTimeout(timer)
   }, [composeName, composeOpen, composeContactPicked])
+
+  // Same contact-picker autocomplete as above, for whichever extra-recipient
+  // row is currently being edited. activeExtraContactIndex is cleared on
+  // pick (and on row removal) so it behaves like composeContactPicked.
+  useEffect(() => {
+    const row = activeExtraContactIndex === null ? null : extraRecipients[activeExtraContactIndex]
+    if (!composeOpen || !row || !row.name.trim()) {
+      setExtraContacts([])
+      return
+    }
+    const timer = setTimeout(() => {
+      api<{ contacts: Contact[] }>(`/api/sms/contacts?q=${encodeURIComponent(row.name.trim())}`)
+        .then((data) => setExtraContacts(data.contacts))
+        .catch(() => {})
+    }, 250)
+    return () => clearTimeout(timer)
+  }, [extraRecipients, activeExtraContactIndex, composeOpen])
 
   // Member search for linking an unmatched thread's number to an existing
   // congregation.db profile -- unlike the compose contact-picker above,
@@ -930,6 +952,8 @@ export default function SmsApp() {
     setComposeContactPicked(false)
     setComposeShowSchedule(false)
     setComposeScheduleAt('')
+    setActiveExtraContactIndex(null)
+    setExtraContacts([])
   }
 
   function pickContact(c: Contact) {
@@ -937,6 +961,12 @@ export default function SmsApp() {
     setComposePhone(c.phone)
     setComposeContactPicked(true)
     setComposeContacts([])
+  }
+
+  function pickExtraContact(i: number, c: Contact) {
+    setExtraRecipients((prev) => prev.map((p, idx) => (idx === i ? { name: c.name, phone: c.phone } : p)))
+    setActiveExtraContactIndex(null)
+    setExtraContacts([])
   }
 
   async function sendNewMessage() {
@@ -2175,15 +2205,39 @@ export default function SmsApp() {
             />
             {extraRecipients.map((r, i) => (
               <div key={i} className="flex gap-2">
-                <input
-                  value={r.name}
-                  onChange={(e) =>
-                    setExtraRecipients((prev) => prev.map((p, idx) => (idx === i ? { ...p, name: e.target.value } : p)))
-                  }
-                  placeholder="Name (optional)"
-                  className="flex-1 border rounded-lg px-3 py-2 text-sm"
-                  style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
-                />
+                <div className="relative flex-1">
+                  <input
+                    value={r.name}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      setExtraRecipients((prev) => prev.map((p, idx) => (idx === i ? { ...p, name: val } : p)))
+                      setActiveExtraContactIndex(i)
+                    }}
+                    placeholder="Name -- search contacts or type your own"
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                    style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
+                  />
+                  {activeExtraContactIndex === i && extraContacts.length > 0 && (
+                    <div
+                      className="absolute left-0 right-0 top-full mt-1 z-10 rounded-lg border max-h-40 overflow-y-auto flex flex-col"
+                      style={{ background: COLORS.surface, borderColor: COLORS.line }}
+                    >
+                      {extraContacts.map((c) => (
+                        <button
+                          key={c.id}
+                          onClick={() => pickExtraContact(i, c)}
+                          className="text-left px-3 py-2 text-sm flex flex-col"
+                          style={{ borderBottom: `1px solid ${COLORS.line}` }}
+                        >
+                          <span>{c.name}</span>
+                          <span className={mono('text-xs')} style={{ color: COLORS.inkSoft }}>
+                            {c.phone}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <input
                   value={r.phone}
                   onChange={(e) =>
@@ -2195,7 +2249,11 @@ export default function SmsApp() {
                   style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
                 />
                 <button
-                  onClick={() => setExtraRecipients((prev) => prev.filter((_, idx) => idx !== i))}
+                  onClick={() => {
+                    setExtraRecipients((prev) => prev.filter((_, idx) => idx !== i))
+                    setActiveExtraContactIndex(null)
+                    setExtraContacts([])
+                  }}
                   className="text-xs px-2"
                   style={{ color: COLORS.inkSoft }}
                   aria-label="Remove recipient"
