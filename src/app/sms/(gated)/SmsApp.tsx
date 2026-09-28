@@ -19,6 +19,7 @@ type Thread = {
   highlight_note: string | null
   is_group: boolean
   participants: { phone: string; contact_name: string | null }[]
+  group_name: string | null
 }
 type Message = {
   id: number
@@ -296,9 +297,12 @@ function buildContextEntries(context: Context, fields: Record<ContextFieldKey, b
 }
 
 function displayName(t: Thread): string {
-  if (t.is_group && t.participants?.length) {
-    const names = t.participants.map((p) => p.contact_name || p.phone)
-    return names.length <= 2 ? names.join(' & ') : `${names[0]} & ${names.length - 1} others`
+  if (t.is_group) {
+    if (t.group_name) return t.group_name
+    if (t.participants?.length) {
+      const names = t.participants.map((p) => p.contact_name || p.phone)
+      return names.length <= 2 ? names.join(' & ') : `${names[0]} & ${names.length - 1} others`
+    }
   }
   return t.contact_name || t.phone
 }
@@ -328,6 +332,8 @@ export default function SmsApp() {
   const [threads, setThreads] = useState<Thread[]>([])
   const [query, setQuery] = useState('')
   const [activeId, setActiveId] = useState<number | null>(null)
+  const [editingGroupName, setEditingGroupName] = useState(false)
+  const [groupNameDraft, setGroupNameDraft] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [compose, setCompose] = useState('')
   const [scheduled, setScheduled] = useState<ScheduledMessage[]>([])
@@ -345,6 +351,9 @@ export default function SmsApp() {
   const [composeOpen, setComposeOpen] = useState(false)
   const [composePhone, setComposePhone] = useState('')
   const [composeName, setComposeName] = useState('')
+  // Additional recipients beyond the primary phone/name fields above --
+  // present, this becomes a "start a group text" send (see sendNewMessage).
+  const [extraRecipients, setExtraRecipients] = useState<{ phone: string; name: string }[]>([])
   const [composeText, setComposeText] = useState('')
   const [composeSending, setComposeSending] = useState(false)
   const [composeContacts, setComposeContacts] = useState<Contact[]>([])
@@ -467,7 +476,7 @@ export default function SmsApp() {
     setArchivedThreads(data.threads)
   }
 
-  async function patchThread(id: number, patch: Partial<Pick<Thread, 'state' | 'muted' | 'snoozed_until' | 'unread' | 'draft_text' | 'highlight_note'>>) {
+  async function patchThread(id: number, patch: Partial<Pick<Thread, 'state' | 'muted' | 'snoozed_until' | 'unread' | 'draft_text' | 'highlight_note' | 'group_name'>>) {
     const data = await api<{ thread: Thread }>(`/api/sms/threads/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(patch),
@@ -749,6 +758,7 @@ export default function SmsApp() {
     setSnoozeAt('')
     setAttachedImage(null)
     setEditingScheduledId(null)
+    setEditingGroupName(false)
     setContext(null)
     setThreads((prev) => prev.map((t) => (t.id === id ? { ...t, unread: 0 } : t)))
     patchThread(id, { unread: 0 }).catch(() => {})
@@ -914,6 +924,7 @@ export default function SmsApp() {
     setComposeOpen(false)
     setComposePhone('')
     setComposeName('')
+    setExtraRecipients([])
     setComposeText('')
     setComposeContacts([])
     setComposeContactPicked(false)
@@ -933,6 +944,22 @@ export default function SmsApp() {
     if (composeShowSchedule && !composeScheduleAt) return
     setComposeSending(true)
     try {
+      // More than one person -> a group text, resolved server-side the
+      // same way an inbound group message is (matched by participant set,
+      // see jobs/sms/bridge.py's get_or_create_thread_multi) so it merges
+      // correctly with that group's replies either way. One person keeps
+      // sending the original phone/name shape unchanged.
+      const others = extraRecipients.filter((r) => r.phone.trim())
+      const recipientsPayload =
+        others.length > 0
+          ? {
+              recipients: [
+                { phone: composePhone.trim(), name: composeName.trim() || undefined },
+                ...others.map((r) => ({ phone: r.phone.trim(), name: r.name.trim() || undefined })),
+              ],
+            }
+          : { phone: composePhone.trim(), name: composeName.trim() || undefined }
+
       let threadId: number
       if (composeShowSchedule) {
         const localDate = new Date(composeScheduleAt)
@@ -940,22 +967,13 @@ export default function SmsApp() {
         const sendAt = localDate.toISOString().slice(0, 19).replace('T', ' ')
         const data = await api<{ thread: Thread }>('/api/sms/schedule', {
           method: 'POST',
-          body: JSON.stringify({
-            phone: composePhone.trim(),
-            name: composeName.trim() || undefined,
-            text: composeText.trim(),
-            send_at: sendAt,
-          }),
+          body: JSON.stringify({ ...recipientsPayload, text: composeText.trim(), send_at: sendAt }),
         })
         threadId = data.thread.id
       } else {
         const data = await api<{ thread: Thread }>('/api/sms/send', {
           method: 'POST',
-          body: JSON.stringify({
-            phone: composePhone.trim(),
-            name: composeName.trim() || undefined,
-            text: composeText.trim(),
-          }),
+          body: JSON.stringify({ ...recipientsPayload, text: composeText.trim() }),
         })
         threadId = data.thread.id
       }
@@ -1296,7 +1314,36 @@ export default function SmsApp() {
               ← Messages
             </button>
             <div className="flex-1 text-center">
-              <div className="text-sm font-semibold">{displayName(activeThread)}</div>
+              {editingGroupName ? (
+                <input
+                  autoFocus
+                  value={groupNameDraft}
+                  onChange={(e) => setGroupNameDraft(e.target.value)}
+                  onBlur={() => {
+                    patchThread(activeThread.id, { group_name: groupNameDraft.trim() || null }).catch(() => {})
+                    setEditingGroupName(false)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+                    if (e.key === 'Escape') setEditingGroupName(false)
+                  }}
+                  placeholder="Name this group"
+                  className="text-sm font-semibold text-center border-b bg-transparent outline-none w-full"
+                  style={{ borderColor: COLORS.line, color: COLORS.ink }}
+                />
+              ) : (
+                <button
+                  onClick={() => {
+                    if (!activeThread.is_group) return
+                    setGroupNameDraft(activeThread.group_name ?? '')
+                    setEditingGroupName(true)
+                  }}
+                  className="text-sm font-semibold"
+                  disabled={!activeThread.is_group}
+                >
+                  {displayName(activeThread)}
+                </button>
+              )}
               <div className={mono('text-xs')} style={{ color: COLORS.inkSoft }}>
                 {activeThread.is_group ? `${activeThread.participants.length} people` : activeThread.phone}
               </div>
@@ -2126,6 +2173,44 @@ export default function SmsApp() {
               className="border rounded-lg px-3 py-2 text-sm"
               style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
             />
+            {extraRecipients.map((r, i) => (
+              <div key={i} className="flex gap-2">
+                <input
+                  value={r.name}
+                  onChange={(e) =>
+                    setExtraRecipients((prev) => prev.map((p, idx) => (idx === i ? { ...p, name: e.target.value } : p)))
+                  }
+                  placeholder="Name (optional)"
+                  className="flex-1 border rounded-lg px-3 py-2 text-sm"
+                  style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
+                />
+                <input
+                  value={r.phone}
+                  onChange={(e) =>
+                    setExtraRecipients((prev) => prev.map((p, idx) => (idx === i ? { ...p, phone: e.target.value } : p)))
+                  }
+                  placeholder="Phone number"
+                  inputMode="tel"
+                  className="flex-1 border rounded-lg px-3 py-2 text-sm"
+                  style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
+                />
+                <button
+                  onClick={() => setExtraRecipients((prev) => prev.filter((_, idx) => idx !== i))}
+                  className="text-xs px-2"
+                  style={{ color: COLORS.inkSoft }}
+                  aria-label="Remove recipient"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+            <button
+              onClick={() => setExtraRecipients((prev) => [...prev, { phone: '', name: '' }])}
+              className="text-xs font-medium self-start"
+              style={{ color: COLORS.moss }}
+            >
+              + Add another person
+            </button>
             <textarea
               ref={composeTextGrowRef}
               value={composeText}
