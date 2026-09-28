@@ -155,7 +155,7 @@ function HelpTray({ open, onClose }: { open: boolean; onClose: () => void }) {
           </HelpSection>
 
           <HelpSection title="Report">
-            <p><strong>Connected</strong> shows how many weeks it&apos;s been since someone attended &mdash; Current (0-1 wk), At Risk (2-3 wks), Disconnected (9+ wks), or Critical (4-8 wks). Tap a box to see who&apos;s in it.</p>
+            <p><strong>Connected</strong> shows how many weeks it&apos;s been since someone attended &mdash; Current (0-1 wk), At Risk (2-3 wks), Critical (4-8 wks), or Disconnected (9+ wks). Tap a box to see who&apos;s in it.</p>
             <p><strong>Consistency</strong> looks at their last 8 Sundays &mdash; Consistent, Active, Occasional, or Lapsed.</p>
             <p>If someone was actually there and the app has it wrong, tap their weeks-since badge to pick the correct date.</p>
           </HelpSection>

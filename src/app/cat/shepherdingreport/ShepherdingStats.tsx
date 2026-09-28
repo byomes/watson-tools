@@ -99,22 +99,6 @@ export default function ShepherdingStats({ groups, totals }: { groups: Group[]; 
           </button>
           <button
             type="button"
-            onClick={() => toggleLabel('disconnected')}
-            aria-expanded={expandedLabel === 'disconnected'}
-            className="flex-1 flex flex-col gap-1 text-left"
-          >
-            <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300 underline decoration-dotted underline-offset-2">
-              Disconnected
-            </span>
-            <span
-              className={`flex flex-col items-center gap-0.5 rounded-md border border-slate-400 dark:border-slate-600 bg-slate-100 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 py-2 ${expandedLabel === 'disconnected' ? 'ring-2 ring-slate-400 dark:ring-slate-500' : ''}`}
-            >
-              <span>9+ wks</span>
-              <span className="text-sm font-bold">{totals.disconnected}</span>
-            </span>
-          </button>
-          <button
-            type="button"
             onClick={() => toggleLabel('critical')}
             aria-expanded={expandedLabel === 'critical'}
             className="flex-1 flex flex-col gap-1 text-left"
@@ -127,6 +111,22 @@ export default function ShepherdingStats({ groups, totals }: { groups: Group[]; 
             >
               <span>4-8 wks</span>
               <span className="text-sm font-bold">{totals.critical}</span>
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => toggleLabel('disconnected')}
+            aria-expanded={expandedLabel === 'disconnected'}
+            className="flex-1 flex flex-col gap-1 text-left"
+          >
+            <span className="text-center text-[11px] font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300 underline decoration-dotted underline-offset-2">
+              Disconnected
+            </span>
+            <span
+              className={`flex flex-col items-center gap-0.5 rounded-md border border-slate-400 dark:border-slate-600 bg-slate-100 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 py-2 ${expandedLabel === 'disconnected' ? 'ring-2 ring-slate-400 dark:ring-slate-500' : ''}`}
+            >
+              <span>9+ wks</span>
+              <span className="text-sm font-bold">{totals.disconnected}</span>
             </span>
           </button>
         </div>
