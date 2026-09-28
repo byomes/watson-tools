@@ -2204,57 +2204,59 @@ export default function SmsApp() {
               style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
             />
             {extraRecipients.map((r, i) => (
-              <div key={i} className="flex gap-2">
-                <div className="relative flex-1">
+              <div key={i} className="flex gap-2 items-start">
+                <div className="flex flex-col gap-2 flex-1">
+                  <div className="relative">
+                    <input
+                      value={r.name}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        setExtraRecipients((prev) => prev.map((p, idx) => (idx === i ? { ...p, name: val } : p)))
+                        setActiveExtraContactIndex(i)
+                      }}
+                      placeholder="Name -- search contacts or type your own"
+                      className="w-full border rounded-lg px-3 py-2 text-sm"
+                      style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
+                    />
+                    {activeExtraContactIndex === i && extraContacts.length > 0 && (
+                      <div
+                        className="absolute left-0 right-0 top-full mt-1 z-10 rounded-lg border max-h-40 overflow-y-auto flex flex-col"
+                        style={{ background: COLORS.surface, borderColor: COLORS.line }}
+                      >
+                        {extraContacts.map((c) => (
+                          <button
+                            key={c.id}
+                            onClick={() => pickExtraContact(i, c)}
+                            className="text-left px-3 py-2 text-sm flex flex-col"
+                            style={{ borderBottom: `1px solid ${COLORS.line}` }}
+                          >
+                            <span>{c.name}</span>
+                            <span className={mono('text-xs')} style={{ color: COLORS.inkSoft }}>
+                              {c.phone}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <input
-                    value={r.name}
-                    onChange={(e) => {
-                      const val = e.target.value
-                      setExtraRecipients((prev) => prev.map((p, idx) => (idx === i ? { ...p, name: val } : p)))
-                      setActiveExtraContactIndex(i)
-                    }}
-                    placeholder="Name -- search contacts or type your own"
+                    value={r.phone}
+                    onChange={(e) =>
+                      setExtraRecipients((prev) => prev.map((p, idx) => (idx === i ? { ...p, phone: e.target.value } : p)))
+                    }
+                    placeholder="Phone number"
+                    inputMode="tel"
                     className="w-full border rounded-lg px-3 py-2 text-sm"
                     style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
                   />
-                  {activeExtraContactIndex === i && extraContacts.length > 0 && (
-                    <div
-                      className="absolute left-0 right-0 top-full mt-1 z-10 rounded-lg border max-h-40 overflow-y-auto flex flex-col"
-                      style={{ background: COLORS.surface, borderColor: COLORS.line }}
-                    >
-                      {extraContacts.map((c) => (
-                        <button
-                          key={c.id}
-                          onClick={() => pickExtraContact(i, c)}
-                          className="text-left px-3 py-2 text-sm flex flex-col"
-                          style={{ borderBottom: `1px solid ${COLORS.line}` }}
-                        >
-                          <span>{c.name}</span>
-                          <span className={mono('text-xs')} style={{ color: COLORS.inkSoft }}>
-                            {c.phone}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </div>
-                <input
-                  value={r.phone}
-                  onChange={(e) =>
-                    setExtraRecipients((prev) => prev.map((p, idx) => (idx === i ? { ...p, phone: e.target.value } : p)))
-                  }
-                  placeholder="Phone number"
-                  inputMode="tel"
-                  className="flex-1 border rounded-lg px-3 py-2 text-sm"
-                  style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
-                />
                 <button
                   onClick={() => {
                     setExtraRecipients((prev) => prev.filter((_, idx) => idx !== i))
                     setActiveExtraContactIndex(null)
                     setExtraContacts([])
                   }}
-                  className="text-xs px-2"
+                  className="text-xs px-2 py-2"
                   style={{ color: COLORS.inkSoft }}
                   aria-label="Remove recipient"
                 >
