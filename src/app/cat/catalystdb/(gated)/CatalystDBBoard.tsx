@@ -57,6 +57,7 @@ export default function CatalystDBBoard() {
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [filters, setFilters] = useState<Record<string, string>>({})
+  const [firstVisitRange, setFirstVisitRange] = useState<{ from: string; to: string }>({ from: '', to: '' })
   const [sort, setSort] = useState<{ key: string; dir: 1 | -1 }>({ key: 'name', dir: 1 })
   const [visible, setVisible] = useState(DEFAULT_VISIBLE)
   const [showColPicker, setShowColPicker] = useState(false)
@@ -105,6 +106,12 @@ export default function CatalystDBBoard() {
         if (val === '__inactive__' && cur === '1') return false
         if (val !== '__active__' && val !== '__inactive__' && cur !== val) return false
       }
+      if (firstVisitRange.from || firstVisitRange.to) {
+        const fv = String(m.first_visit_date ?? '')
+        if (!fv) return false
+        if (firstVisitRange.from && fv < firstVisitRange.from) return false
+        if (firstVisitRange.to && fv > firstVisitRange.to) return false
+      }
       return true
     })
     rows = rows.slice().sort((a, b) => {
@@ -113,7 +120,7 @@ export default function CatalystDBBoard() {
       return av < bv ? -sort.dir : av > bv ? sort.dir : 0
     })
     return rows
-  }, [members, search, filters, sort])
+  }, [members, search, filters, firstVisitRange, sort])
 
   function toggleSort(key: string) {
     setSort((s) => (s.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: 1 }))
@@ -276,8 +283,11 @@ export default function CatalystDBBoard() {
           )}
         </div>
         <button
-          onClick={() => setFilters({})}
-          disabled={!Object.values(filters).some((v) => v)}
+          onClick={() => {
+            setFilters({})
+            setFirstVisitRange({ from: '', to: '' })
+          }}
+          disabled={!Object.values(filters).some((v) => v) && !firstVisitRange.from && !firstVisitRange.to}
           className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Reset Filters
@@ -302,6 +312,22 @@ export default function CatalystDBBoard() {
                 ))}
           </select>
         ))}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-slate-500 dark:text-slate-400">First visit</span>
+          <input
+            type="date"
+            value={firstVisitRange.from}
+            onChange={(e) => setFirstVisitRange((r) => ({ ...r, from: e.target.value }))}
+            className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-700 dark:text-slate-300"
+          />
+          <span className="text-xs text-slate-400 dark:text-slate-500">to</span>
+          <input
+            type="date"
+            value={firstVisitRange.to}
+            onChange={(e) => setFirstVisitRange((r) => ({ ...r, to: e.target.value }))}
+            className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-700 dark:text-slate-300"
+          />
+        </div>
         <button
           onClick={() => setAdding(true)}
           className="rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-3 py-1.5 text-xs font-semibold hover:opacity-90 shrink-0"
@@ -330,7 +356,7 @@ export default function CatalystDBBoard() {
             className="relative rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300"
           >
             Filters
-            {Object.values(filters).some(Boolean) && (
+            {(Object.values(filters).some(Boolean) || firstVisitRange.from || firstVisitRange.to) && (
               <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-blue-500" />
             )}
           </button>
@@ -346,8 +372,11 @@ export default function CatalystDBBoard() {
         {mobileFiltersOpen && (
           <div className="px-4 pb-3 flex flex-col gap-2 border-t border-slate-100 dark:border-slate-800 pt-3">
             <button
-              onClick={() => setFilters({})}
-              disabled={!Object.values(filters).some((v) => v)}
+              onClick={() => {
+                setFilters({})
+                setFirstVisitRange({ from: '', to: '' })
+              }}
+              disabled={!Object.values(filters).some((v) => v) && !firstVisitRange.from && !firstVisitRange.to}
               className="w-full rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Reset Filters
@@ -391,6 +420,22 @@ export default function CatalystDBBoard() {
                     ))}
               </select>
             ))}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-500 dark:text-slate-400 shrink-0">First visit</span>
+              <input
+                type="date"
+                value={firstVisitRange.from}
+                onChange={(e) => setFirstVisitRange((r) => ({ ...r, from: e.target.value }))}
+                className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-2 text-sm text-slate-700 dark:text-slate-300"
+              />
+              <span className="text-sm text-slate-400 dark:text-slate-500 shrink-0">to</span>
+              <input
+                type="date"
+                value={firstVisitRange.to}
+                onChange={(e) => setFirstVisitRange((r) => ({ ...r, to: e.target.value }))}
+                className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-2 text-sm text-slate-700 dark:text-slate-300"
+              />
+            </div>
             <span className="text-xs text-slate-400 dark:text-slate-500">{filtered.length} of {members.length}</span>
           </div>
         )}
