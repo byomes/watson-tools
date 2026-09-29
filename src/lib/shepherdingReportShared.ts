@@ -98,6 +98,11 @@ export const ENGAGEMENT_META: Record<Engagement, { label: string; className: str
   lapsed: { label: 'Lapsed', className: 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800' },
 }
 
+export interface AttendanceWeek {
+  service_date: string
+  present: boolean
+}
+
 export function weeksLabel(daysSince: number): string {
   const weeks = Math.floor(daysSince / 7)
   return `${weeks} wk${weeks === 1 ? '' : 's'}`
