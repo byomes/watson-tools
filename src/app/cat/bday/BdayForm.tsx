@@ -139,7 +139,8 @@ export default function BdayForm() {
       <p className={`text-black font-normal text-[15px] leading-relaxed ${HEADING_FONT}`}>
         We want to celebrate with you and your family! Please add the
         birthdays and anniversary in your household below so we can keep
-        them on file and make a bit of a fuss when the day comes.
+        them on file and make a bit of a fuss when the day comes. Please
+        use first AND last names so we can match them to the right person.
       </p>
 
       {error && (
@@ -163,11 +164,12 @@ export default function BdayForm() {
       </div>
 
       <div>
-        <label className={labelClass} htmlFor="submittedByName">Your Name *</label>
+        <label className={labelClass} htmlFor="submittedByName">Your First and Last Name *</label>
         <input
           id="submittedByName"
           type="text"
           required
+          placeholder="First and Last Name"
           autoComplete="name"
           maxLength={CHAR_LIMIT}
           value={submittedByName}
@@ -182,16 +184,19 @@ export default function BdayForm() {
 
       <fieldset className="space-y-3">
         <legend className={labelClass}>Family Birthdays</legend>
+        <p className="text-xs text-gray-500 -mt-2">
+          First and last name for each person, please.
+        </p>
         <div className="space-y-3">
           {birthdays.map((b, i) => (
             <div key={i} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 items-start">
               <div>
                 {i === 0 && (
-                  <label className="block text-black font-bold text-xs mb-1">Name</label>
+                  <label className="block text-black font-bold text-xs mb-1">First and Last Name</label>
                 )}
                 <input
                   type="text"
-                  placeholder="Name"
+                  placeholder="First and Last Name"
                   value={b.name}
                   onChange={e => updateBirthday(i, 'name', e.target.value)}
                   className={inputClass}
@@ -233,6 +238,9 @@ export default function BdayForm() {
 
       <fieldset className="space-y-3">
         <legend className={labelClass}>Anniversaries</legend>
+        <p className="text-xs text-gray-500 -mt-2">
+          First and last name for both spouses, please.
+        </p>
         <div className="space-y-3">
           {anniversaries.map((a, i) => (
             <div key={i} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 items-start">
