@@ -98,18 +98,34 @@ export default function AttendanceWeeksModal({
                   <div key={w.service_date} className="flex-1 flex flex-col items-center justify-end h-full gap-1.5">
                     <div
                       className={`w-full rounded-md border ${
-                        w.present
-                          ? 'h-full bg-green-500 dark:bg-green-500 border-green-600 dark:border-green-500'
-                          : 'h-2 bg-transparent border-dashed border-gray-300 dark:border-gray-600'
+                        w.campus === 'Online'
+                          ? 'h-full bg-blue-500 dark:bg-blue-500 border-blue-600 dark:border-blue-400'
+                          : w.campus === 'Wilmington'
+                            ? 'h-full bg-green-500 dark:bg-green-500 border-green-600 dark:border-green-500'
+                            : 'h-2 bg-transparent border-dashed border-gray-300 dark:border-gray-600'
                       }`}
                       role="img"
-                      aria-label={`${shortDate(w.service_date)}: ${w.present ? 'present' : 'absent'}`}
+                      aria-label={`${shortDate(w.service_date)}: ${w.campus ? w.campus : 'absent'}`}
                     />
                     <span className="text-[10px] text-gray-400 dark:text-gray-500 leading-none">
                       {shortDate(w.service_date)}
                     </span>
                   </div>
                 ))}
+              </div>
+              <div className="flex items-center gap-4 mt-4 text-[11px] text-gray-500 dark:text-gray-400">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-sm bg-green-500 dark:bg-green-500 border border-green-600 dark:border-green-500" />
+                  Wilmington
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-sm bg-blue-500 dark:bg-blue-500 border border-blue-600 dark:border-blue-400" />
+                  Online
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-sm bg-transparent border border-dashed border-gray-300 dark:border-gray-600" />
+                  Absent
+                </span>
               </div>
             </>
           )}

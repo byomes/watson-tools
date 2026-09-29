@@ -101,6 +101,7 @@ export const ENGAGEMENT_META: Record<Engagement, { label: string; className: str
 export interface AttendanceWeek {
   service_date: string
   present: boolean
+  campus: 'Wilmington' | 'Online' | null
 }
 
 export function weeksLabel(daysSince: number): string {
