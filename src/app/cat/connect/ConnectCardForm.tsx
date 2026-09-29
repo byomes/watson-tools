@@ -14,12 +14,16 @@ interface StoredProfile {
 
 interface BirthdayEntry {
   name: string
-  date: string
+  month: string
+  day: string
+  year: string
 }
 
 interface AnniversaryEntry {
   names: string
-  date: string
+  month: string
+  day: string
+  year: string
 }
 
 const STORAGE_KEY = 'catalyst_connect_card_profile'
@@ -58,15 +62,39 @@ const inputClass =
   `w-full bg-[#ebebeb] border-0 text-black placeholder-gray-500 rounded-lg px-3 py-3 text-base ${INPUT_FONT} focus:outline-none focus:ring-2 focus:ring-black/20 transition-shadow`
 const labelClass = `block text-black font-bold text-[15px] mb-2 ${HEADING_FONT}`
 
-// Caps the Family Birthdays / Anniversaries date pickers at today. Mobile
-// date pickers open pre-set to today's date, so someone who only scrolls
-// the month/day wheels and never touches the year wheel silently submits
-// the current year -- found 2026-09-28 when a birthday came in dated
-// months in the future. This can't catch a wrong-but-past year (e.g. the
-// right month/day with a stale current year that's still <= today), only
-// an outright future date -- see jobs/congregation/family_dates.py's
-// conflict detection for that remaining class.
+// Still used as a submit-time guard against a future date (see handleSubmit
+// below). Family Birthdays / Anniversaries used to use a native
+// <input type="date"> capped at this value, but that alone wasn't enough:
+// a mobile date picker (especially iOS Safari's wheel) opens pre-set to
+// today's date, so someone who only scrolls the month/day wheels and never
+// touches the year wheel silently submits the current year -- found
+// 2026-09-28 when a birthday came in dated months in the future, and
+// 2026-09-29 across several more with a same-day/month, current-year
+// birthdate. Replaced with three separate Month/Day/Year selects below,
+// each starting on a blank placeholder (see DateSelects) -- there's no
+// wheel to leave untouched, and a blank year can't be submitted at all.
 const TODAY_ISO = new Date().toISOString().slice(0, 10)
+const CURRENT_YEAR = new Date().getFullYear()
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
+// Descending so recent decades are near the top of the dropdown -- no year
+// is preselected either way, this only affects scroll distance. 1900 is a
+// generous floor for a birthdate or anniversary submitted to this form.
+const YEARS = Array.from({ length: CURRENT_YEAR - 1900 + 1 }, (_, i) => CURRENT_YEAR - i)
+
+function daysInMonthFor(monthStr: string, yearStr: string): number {
+  const month = monthStr ? parseInt(monthStr, 10) : 0
+  if (!month) return 31
+  const year = yearStr ? parseInt(yearStr, 10) : CURRENT_YEAR
+  return new Date(year, month, 0).getDate()
+}
+
+function toIsoDate(month: string, day: string, year: string): string {
+  if (!month || !day || !year) return ''
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+}
 const checkboxRowClass = 'flex items-start gap-3'
 // No accent-color override — the live form doesn't set one either (its radio/
 // checkbox "blue" is just the browser's own default accent-color: auto, not
@@ -117,6 +145,39 @@ function CharCounter({ value }: { value: string }) {
   return (
     <div className="text-right text-xs text-gray-400 mt-1">
       {value.length}/{CHAR_LIMIT}
+    </div>
+  )
+}
+
+function DateSelects({
+  month, day, year, onChange,
+}: {
+  month: string
+  day: string
+  year: string
+  onChange: (field: 'month' | 'day' | 'year', value: string) => void
+}) {
+  const dayCount = daysInMonthFor(month, year)
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      <select value={month} onChange={e => onChange('month', e.target.value)} className={inputClass}>
+        <option value="">Month</option>
+        {MONTHS.map((m, i) => (
+          <option key={m} value={i + 1}>{m}</option>
+        ))}
+      </select>
+      <select value={day} onChange={e => onChange('day', e.target.value)} className={inputClass}>
+        <option value="">Day</option>
+        {Array.from({ length: dayCount }, (_, i) => i + 1).map(d => (
+          <option key={d} value={d}>{d}</option>
+        ))}
+      </select>
+      <select value={year} onChange={e => onChange('year', e.target.value)} className={inputClass}>
+        <option value="">Year</option>
+        {YEARS.map(y => (
+          <option key={y} value={y}>{y}</option>
+        ))}
+      </select>
     </div>
   )
 }
@@ -204,7 +265,7 @@ export default function ConnectCardForm() {
   }
 
   function addBirthday() {
-    setBirthdays(prev => [...prev, { name: '', date: '' }])
+    setBirthdays(prev => [...prev, { name: '', month: '', day: '', year: '' }])
   }
 
   function updateBirthday(index: number, field: keyof BirthdayEntry, value: string) {
@@ -216,7 +277,7 @@ export default function ConnectCardForm() {
   }
 
   function addAnniversary() {
-    setAnniversaries(prev => [...prev, { names: '', date: '' }])
+    setAnniversaries(prev => [...prev, { names: '', month: '', day: '', year: '' }])
   }
 
   function updateAnniversary(index: number, field: keyof AnniversaryEntry, value: string) {
@@ -230,6 +291,18 @@ export default function ConnectCardForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+
+    const cleanBirthdays = birthdays
+      .filter(b => b.name.trim() || (b.month && b.day && b.year))
+      .map(b => ({ name: b.name.trim(), date: toIsoDate(b.month, b.day, b.year) }))
+    const cleanAnniversaries = anniversaries
+      .filter(a => a.names.trim() || (a.month && a.day && a.year))
+      .map(a => ({ names: a.names.trim(), date: toIsoDate(a.month, a.day, a.year) }))
+    if ([...cleanBirthdays, ...cleanAnniversaries].some(entry => entry.date && entry.date > TODAY_ISO)) {
+      setError('One of the birthdate/anniversary dates entered is in the future -- please double-check the month, day, and year.')
+      return
+    }
+
     setSubmitting(true)
 
     try {
@@ -248,8 +321,8 @@ export default function ConnectCardForm() {
           howHeard: howHeard || null,
           restrictToLeadership,
           prayerRequest: prayerRequest || null,
-          birthdays: birthdays.filter(b => b.name.trim() || b.date.trim()),
-          anniversaries: anniversaries.filter(a => a.names.trim() || a.date.trim()),
+          birthdays: cleanBirthdays,
+          anniversaries: cleanAnniversaries,
           website,
           renderedAt: renderedAtRef.current,
           userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
@@ -560,7 +633,7 @@ export default function ConnectCardForm() {
 
             <div className="space-y-3">
               {birthdays.map((b, i) => (
-                <div key={i} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 items-start">
+                <div key={i} className="grid grid-cols-1 sm:grid-cols-[1fr_1.4fr_auto] gap-2 items-start">
                   <div>
                     {i === 0 && (
                       <label className="block text-black font-bold text-xs mb-1">Name</label>
@@ -577,12 +650,11 @@ export default function ConnectCardForm() {
                     {i === 0 && (
                       <label className="block text-black font-bold text-xs mb-1">Birthdate</label>
                     )}
-                    <input
-                      type="date"
-                      max={TODAY_ISO}
-                      value={b.date}
-                      onChange={e => updateBirthday(i, 'date', e.target.value)}
-                      className={inputClass}
+                    <DateSelects
+                      month={b.month}
+                      day={b.day}
+                      year={b.year}
+                      onChange={(field, value) => updateBirthday(i, field, value)}
                     />
                   </div>
                   <div className={i === 0 ? 'sm:pt-[26px]' : ''}>
@@ -608,7 +680,7 @@ export default function ConnectCardForm() {
 
             <div className="space-y-3 pt-2">
               {anniversaries.map((a, i) => (
-                <div key={i} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 items-start">
+                <div key={i} className="grid grid-cols-1 sm:grid-cols-[1fr_1.4fr_auto] gap-2 items-start">
                   <div>
                     {i === 0 && (
                       <label className="block text-black font-bold text-xs mb-1">Couple&apos;s Names</label>
@@ -625,12 +697,11 @@ export default function ConnectCardForm() {
                     {i === 0 && (
                       <label className="block text-black font-bold text-xs mb-1">Anniversary Date</label>
                     )}
-                    <input
-                      type="date"
-                      max={TODAY_ISO}
-                      value={a.date}
-                      onChange={e => updateAnniversary(i, 'date', e.target.value)}
-                      className={inputClass}
+                    <DateSelects
+                      month={a.month}
+                      day={a.day}
+                      year={a.year}
+                      onChange={(field, value) => updateAnniversary(i, field, value)}
                     />
                   </div>
                   <div className={i === 0 ? 'sm:pt-[26px]' : ''}>
