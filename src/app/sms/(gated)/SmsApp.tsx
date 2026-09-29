@@ -76,6 +76,7 @@ type Broadcast = {
   recipient_count: number
   sent_count: number
   failed_count: number
+  spread_hours: number | null
   error: string | null
   created_at: string
 }
@@ -260,6 +261,23 @@ function fmtTime(iso: string | null): string {
   const sameDay = d.toDateString() === now.toDateString()
   if (sameDay) return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
+// Rough client-side estimate only (mirrors jobs/sms/broadcast_pacing.py's
+// default 8-45s per-recipient gap, ~26.5s average) -- the real spread is
+// randomized server-side at confirm time, this is just so Bill isn't
+// guessing whether "142 recipients" means 2 minutes or 2 hours before he
+// schedules it. Not shown as exact since the true value depends on the
+// live env-tunable gap, which this doesn't fetch.
+function estimateSpreadLabel(recipientCount: number, spreadHours: number | null): string {
+  if (recipientCount <= 1) return ''
+  const totalSeconds = spreadHours ? spreadHours * 3600 : (recipientCount - 1) * 26.5
+  const minutes = Math.round(totalSeconds / 60)
+  if (minutes < 1) return 'under a minute'
+  if (minutes < 60) return `about ${minutes} min`
+  const hours = Math.floor(minutes / 60)
+  const remMinutes = minutes % 60
+  return remMinutes === 0 ? `about ${hours}h` : `about ${hours}h ${remMinutes}m`
 }
 
 function fmtScheduled(utc: string): string {
@@ -451,6 +469,12 @@ export default function SmsApp() {
   const [manualResults, setManualResults] = useState<Contact[]>([])
   const [broadcastBody, setBroadcastBody] = useState('')
   const [broadcastSendAt, setBroadcastSendAt] = useState('')
+  // null = quick (default 8-45s/recipient gap); a number = spread the
+  // whole list evenly across that many hours instead, respecting quiet
+  // hours (jobs/sms/broadcast_pacing.py) -- the more this looks like Bill
+  // texting people one at a time over a day, the less any single-number
+  // fan-out pattern stands out to carrier spam filters.
+  const [spreadHours, setSpreadHours] = useState<number | null>(null)
   const [broadcastPreview, setBroadcastPreview] = useState<{ recipient_count: number; recipients: BroadcastRecipient[] } | null>(null)
   const [broadcastPreviewLoading, setBroadcastPreviewLoading] = useState(false)
   const [removedPhones, setRemovedPhones] = useState<Set<string>>(new Set())
@@ -611,6 +635,7 @@ export default function SmsApp() {
     setManualResults([])
     setBroadcastBody('')
     setBroadcastSendAt('')
+    setSpreadHours(null)
     setBroadcastPreview(null)
     setRemovedPhones(new Set())
     setSaveAsGroup(false)
@@ -818,6 +843,7 @@ export default function SmsApp() {
                 manual: manualRecipients.map((m) => ({ member_id: m.member_id, phone: m.phone, name: m.name, mode: 'include' })),
               }),
           exclude_phones: Array.from(removedPhones),
+          spread_hours: spreadHours,
         }),
       })
 
@@ -2557,6 +2583,37 @@ export default function SmsApp() {
               />
             </section>
 
+            <section className="flex flex-col gap-2">
+              <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: COLORS.inkSoft, letterSpacing: '0.05em' }}>
+                How fast
+              </h3>
+              <div className="flex flex-wrap gap-1.5">
+                {([
+                  { label: 'Quick', value: null, hint: 'a few minutes' },
+                  { label: 'A few hours', value: 4, hint: '~4h' },
+                  { label: 'Across the day', value: 10, hint: '~10h, quiet hours respected' },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.label}
+                    onClick={() => setSpreadHours(opt.value)}
+                    className="text-xs font-medium px-2.5 py-1.5 rounded-lg border"
+                    style={
+                      spreadHours === opt.value
+                        ? { background: COLORS.moss, borderColor: COLORS.moss, color: 'white' }
+                        : { borderColor: COLORS.line, color: COLORS.ink }
+                    }
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs" style={{ color: COLORS.inkSoft }}>
+                {spreadHours
+                  ? `Sent one at a time, spread over about ${spreadHours}h, never between 9pm-8am — the more this reads as you individually texting people through the day, the less it looks like a mass blast to your carrier.`
+                  : 'Sent one at a time, a few seconds to under a minute apart — fine for a small group, but a big send this fast can start to look like bulk messaging.'}
+              </p>
+            </section>
+
             {broadcastError && (
               <p className="text-xs font-medium" style={{ color: '#B4443A' }}>{broadcastError}</p>
             )}
@@ -2596,6 +2653,12 @@ export default function SmsApp() {
                 <span className="text-xs" style={{ color: COLORS.inkSoft }}>{removedPhones.size} removed</span>
               )}
             </div>
+            {finalRecipientCount > 1 && (
+              <p className="text-xs -mt-2" style={{ color: COLORS.inkSoft }}>
+                Sent one at a time, at random intervals, over {estimateSpreadLabel(finalRecipientCount, spreadHours)} — not all at
+                once, so this doesn&rsquo;t read as a mass text.
+              </p>
+            )}
 
             <div className="flex flex-col gap-1 rounded-2xl border p-2 max-h-80 overflow-y-auto" style={{ borderColor: COLORS.line }}>
               {reviewRecipients.map((r) => {

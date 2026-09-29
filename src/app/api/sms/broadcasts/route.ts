@@ -45,6 +45,7 @@ export async function POST(req: Request) {
       manual_only: body?.manual_only,
       manual: Array.isArray(body?.manual) ? body.manual : undefined,
       exclude_phones: Array.isArray(body?.exclude_phones) ? body.exclude_phones : undefined,
+      spread_hours: typeof body?.spread_hours === 'number' ? body.spread_hours : undefined,
     }),
   })
   const data = await res.json().catch(() => ({}))
