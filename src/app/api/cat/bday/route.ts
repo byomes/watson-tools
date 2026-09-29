@@ -44,6 +44,12 @@ export async function POST(req: NextRequest) {
   const birthdaysRaw = cleanEntries(data.birthdays, 'name')
   const anniversariesRaw = cleanEntries(data.anniversaries, 'names')
 
+  // Required -- not just a matching nicety, the page's own copy now asks
+  // for it directly, so the backend enforces it too rather than trusting
+  // the form's `required` attribute alone.
+  if (!submittedByName) {
+    return NextResponse.json({ error: 'Your name is required.' }, { status: 400 })
+  }
   if (birthdaysRaw.length === 0 && anniversariesRaw.length === 0) {
     return NextResponse.json({ error: 'Add at least one birthday or anniversary.' }, { status: 400 })
   }
@@ -52,7 +58,7 @@ export async function POST(req: NextRequest) {
     method: 'POST',
     headers: { 'X-Watson-Key': process.env.BDAY_API_KEY ?? '' },
     body: JSON.stringify({
-      submittedByName: submittedByName || null,
+      submittedByName,
       birthdays: birthdaysRaw.map(e => ({ name: e.value, date: e.date })),
       anniversaries: anniversariesRaw.map(e => ({ names: e.value, date: e.date })),
     }),

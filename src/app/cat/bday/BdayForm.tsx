@@ -119,7 +119,7 @@ export default function BdayForm() {
         <h1 className={`flex items-center gap-[0.3em] whitespace-nowrap text-[clamp(1.05rem,5vw,1.75rem)] font-extrabold tracking-[-0.7px] text-[#222222] ${HEADING_FONT}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/catalyst-c-logo.jpg" alt="" className="h-[1em] w-[1em] rounded-md shrink-0" />
-          Catalyst Birthdays &amp; Anniversaries
+          Catalyst Birthdays
         </h1>
         <p className={`text-green-700 text-sm bg-green-50 border border-green-200 rounded-lg px-4 py-3 ${INPUT_FONT}`}>
           Thanks! We can&apos;t wait to celebrate with you.
@@ -133,13 +133,13 @@ export default function BdayForm() {
       <h1 className={`flex items-center gap-[0.3em] whitespace-nowrap text-[clamp(1.05rem,5vw,1.75rem)] font-extrabold tracking-[-0.7px] text-[#222222] ${HEADING_FONT}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/catalyst-c-logo.jpg" alt="" className="h-[1em] w-[1em] rounded-md shrink-0" />
-        Catalyst Birthdays &amp; Anniversaries
+        Catalyst Birthdays
       </h1>
 
       <p className={`text-black font-normal text-[15px] leading-relaxed ${HEADING_FONT}`}>
-        We want to celebrate with you and your family! Add every birthday and
-        anniversary in your household below so we can keep them on file and
-        make a bit of a fuss when the day comes.
+        We want to celebrate with you and your family! Please add the
+        birthdays and anniversary in your household below so we can keep
+        them on file and make a bit of a fuss when the day comes.
       </p>
 
       {error && (
@@ -163,10 +163,11 @@ export default function BdayForm() {
       </div>
 
       <div>
-        <label className={labelClass} htmlFor="submittedByName">Your Name</label>
+        <label className={labelClass} htmlFor="submittedByName">Your Name *</label>
         <input
           id="submittedByName"
           type="text"
+          required
           autoComplete="name"
           maxLength={CHAR_LIMIT}
           value={submittedByName}
@@ -174,13 +175,13 @@ export default function BdayForm() {
           className={inputClass}
         />
         <p className="text-xs text-gray-500 mt-1">
-          Optional — helps us match these to the right family.
+          So we can match these to the right family.
         </p>
         <CharCounter value={submittedByName} />
       </div>
 
       <fieldset className="space-y-3">
-        <legend className={labelClass}>Birthdays</legend>
+        <legend className={labelClass}>Family Birthdays</legend>
         <div className="space-y-3">
           {birthdays.map((b, i) => (
             <div key={i} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 items-start">
