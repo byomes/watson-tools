@@ -68,7 +68,17 @@ function TextIcon() {
   )
 }
 
-export function ContactIcons({ member }: { member: Member }) {
+// For the personal ("webapp") copy of the deacon app -- routes the text
+// icon into the Watson SMS PWA's own thread for this person (creating one
+// via the New Message prefill if they don't have one yet) instead of the
+// stock Messages app, since that PWA is tied to the church's public number
+// rather than a deacon's personal cell.
+function webAppSmsHref(member: Member): string {
+  const params = new URLSearchParams({ phone: member.phone ?? '', name: member.name })
+  return `/sms?${params.toString()}`
+}
+
+export function ContactIcons({ member, smsMode = 'native' }: { member: Member; smsMode?: 'native' | 'webapp' }) {
   if (!member.phone && !member.email) return null
   return (
     <span className="flex items-center gap-4 shrink-0 text-gray-400 dark:text-gray-500">
@@ -82,7 +92,7 @@ export function ContactIcons({ member }: { member: Member }) {
             <PhoneIcon />
           </a>
           <a
-            href={telHref('sms', member.phone)}
+            href={smsMode === 'webapp' ? webAppSmsHref(member) : telHref('sms', member.phone)}
             aria-label={`Text ${member.name}`}
             className="p-1.5 -m-1.5 active:text-blue-600 dark:active:text-blue-400"
           >
@@ -168,7 +178,7 @@ function LastSeenBadge({ member, className }: { member: Member; className: strin
 // updates race. Remounting sidesteps the race entirely, and a plain
 // uncontrolled <details> still lets a tap on any one summary work natively
 // in between bulk actions.
-export default function GroupList({ groups }: { groups: Group[] }) {
+export default function GroupList({ groups, smsMode }: { groups: Group[]; smsMode?: 'native' | 'webapp' }) {
   const [bulk, setBulk] = useState<{ open: boolean; gen: number } | null>(null)
 
   const setAll = (open: boolean) => {
@@ -219,7 +229,7 @@ export default function GroupList({ groups }: { groups: Group[] }) {
                     className="px-4 py-4 flex items-center gap-3 text-sm"
                   >
                     <span className="flex-1 min-w-0 truncate text-gray-900 dark:text-gray-100">{m.name}</span>
-                    <ContactIcons member={m} />
+                    <ContactIcons member={m} smsMode={smsMode} />
                     <span className="flex flex-col items-end gap-1 shrink-0">
                       <LastSeenBadge member={m} className={meta.className} />
                       <EngagementBadge engagement={m.engagement} />

@@ -568,6 +568,27 @@ export default function SmsApp() {
     setComposeOpen(true)
   }
 
+  // Same tap-to-text idea, but driven by a ?phone= deep link from outside
+  // this app (e.g. the deacon app's text icon) instead of the Attention
+  // panel -- match on the last 10 digits since the deacon roster and this
+  // app format phone numbers differently ("(302) 559-3728" vs "+13025593728").
+  function last10(phone: string): string {
+    return phone.replace(/\D/g, '').slice(-10)
+  }
+
+  function openByPhone(phone: string, name: string) {
+    const target = last10(phone)
+    const match = target && threads.find((t) => !t.is_group && last10(t.phone) === target)
+    if (match) {
+      openThread(match.id)
+      return
+    }
+    setComposeName(name)
+    setComposePhone(phone)
+    setComposeContactPicked(Boolean(name))
+    setComposeOpen(true)
+  }
+
   async function linkToMember(id: number, member: Member, action: 'ask' | 'overwrite' | 'keep_both') {
     setLinking(true)
     try {
@@ -713,6 +734,24 @@ export default function SmsApp() {
       openThread(threadId)
       const url = new URL(window.location.href)
       url.searchParams.delete('thread')
+      window.history.replaceState({}, '', url.toString())
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading])
+
+  // Deep-link from an external "text this person" link, e.g. /sms?phone=...
+  // &name=... from the deacon app's text icon -- jumps into their thread
+  // (or prefills New Message if they don't have one yet) instead of landing
+  // on the plain list.
+  useEffect(() => {
+    if (loading) return
+    const params = new URLSearchParams(window.location.search)
+    const phone = params.get('phone')
+    if (phone) {
+      openByPhone(phone, params.get('name') ?? '')
+      const url = new URL(window.location.href)
+      url.searchParams.delete('phone')
+      url.searchParams.delete('name')
       window.history.replaceState({}, '', url.toString())
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
