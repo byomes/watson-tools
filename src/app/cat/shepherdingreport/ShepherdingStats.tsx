@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { computeEngagementTotals, type Group, type Member, type Totals } from '@/lib/shepherdingReportShared'
 import { ContactIcons } from './GroupList'
+import AttendanceWeeksModal from './AttendanceWeeksModal'
 
 type LabelKey = 'current' | 'atRisk' | 'disconnected' | 'critical' | 'consistent' | 'active' | 'occasional' | 'lapsed'
 
@@ -30,7 +31,7 @@ function membersForLabel(key: LabelKey, allMembers: MemberWithGroup[]): MemberWi
 // group. ContactIcons is the same tel/sms/mailto component GroupList uses
 // per-person, so a deacon can act on someone straight from a tapped stat
 // box instead of having to also open the full named list below.
-function LabelPeopleList({ members }: { members: MemberWithGroup[] }) {
+function LabelPeopleList({ members, onSelect }: { members: MemberWithGroup[]; onSelect: (m: MemberWithGroup) => void }) {
   if (members.length === 0) {
     return (
       <p className="text-xs text-gray-400 dark:text-gray-500 px-3 py-2">
@@ -42,7 +43,13 @@ function LabelPeopleList({ members }: { members: MemberWithGroup[] }) {
     <ul className="divide-y divide-gray-100 dark:divide-gray-800">
       {members.map((m) => (
         <li key={m.id} className="px-3 py-2 flex items-center gap-3 text-sm">
-          <span className="flex-1 min-w-0 truncate text-gray-900 dark:text-gray-100">{m.name}</span>
+          <button
+            type="button"
+            onClick={() => onSelect(m)}
+            className="flex-1 min-w-0 truncate text-left text-gray-900 dark:text-gray-100 underline decoration-dotted decoration-gray-300 dark:decoration-gray-600 underline-offset-2 active:opacity-60"
+          >
+            {m.name}
+          </button>
           <ContactIcons member={m} />
           <span className="shrink-0 text-xs text-gray-400 dark:text-gray-500">{m.groupName}</span>
         </li>
@@ -57,6 +64,7 @@ function LabelPeopleList({ members }: { members: MemberWithGroup[] }) {
 export default function ShepherdingStats({ groups, totals }: { groups: Group[]; totals: Totals }) {
   const engagementTotals = computeEngagementTotals(groups)
   const [expandedLabel, setExpandedLabel] = useState<LabelKey | null>(null)
+  const [selected, setSelected] = useState<MemberWithGroup | null>(null)
   const toggleLabel = (key: LabelKey) => setExpandedLabel((prev) => (prev === key ? null : key))
   const allMembers: MemberWithGroup[] = groups.flatMap((g) => g.members.map((m) => ({ ...m, groupName: g.name })))
 
@@ -137,7 +145,7 @@ export default function ShepherdingStats({ groups, totals }: { groups: Group[]; 
         </div>
         {(expandedLabel === 'current' || expandedLabel === 'atRisk' || expandedLabel === 'disconnected' || expandedLabel === 'critical') && (
           <div className="w-full mt-2 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-            <LabelPeopleList members={membersForLabel(expandedLabel, allMembers)} />
+            <LabelPeopleList members={membersForLabel(expandedLabel, allMembers)} onSelect={setSelected} />
           </div>
         )}
       </div>
@@ -223,10 +231,18 @@ export default function ShepherdingStats({ groups, totals }: { groups: Group[]; 
         </div>
         {(expandedLabel === 'consistent' || expandedLabel === 'active' || expandedLabel === 'occasional' || expandedLabel === 'lapsed') && (
           <div className="w-full mt-2 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-            <LabelPeopleList members={membersForLabel(expandedLabel, allMembers)} />
+            <LabelPeopleList members={membersForLabel(expandedLabel, allMembers)} onSelect={setSelected} />
           </div>
         )}
       </div>
+
+      {selected && (
+        <AttendanceWeeksModal
+          memberId={selected.id}
+          memberName={selected.name}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </>
   )
 }
