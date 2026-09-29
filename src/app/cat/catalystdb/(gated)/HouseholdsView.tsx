@@ -231,12 +231,12 @@ export default function HouseholdsView({
         className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-700 dark:text-slate-300 disabled:opacity-50"
       >
         <option value="">— Unassigned —</option>
+        <option value="__new__">+ New household</option>
         {householdOptions.map((o) => (
           <option key={o.id} value={o.id}>
             {o.label}
           </option>
         ))}
-        <option value="__new__">+ New household</option>
       </select>
     )
   }
