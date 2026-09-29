@@ -60,7 +60,25 @@ type Context = {
   started_serving_date?: string | null
 }
 
-type View = 'list' | 'thread' | 'templates' | 'settings'
+type View = 'list' | 'thread' | 'templates' | 'settings' | 'broadcast' | 'broadcastHistory'
+
+type GroupFilter = { deacons?: string[]; teams?: string[]; roles?: string[]; campuses?: string[] }
+type SmsGroup = { id: number; name: string; filter: GroupFilter; active_only: boolean; manual_only: boolean; recipient_count: number }
+type GroupOptions = { deacons: string[]; teams: string[]; roles: string[]; campuses: string[] }
+type BroadcastRecipient = { member_id: number | null; phone: string; contact_name: string | null }
+type Broadcast = {
+  id: number
+  group_id: number | null
+  group_name: string | null
+  body: string
+  send_at: string
+  status: 'scheduled' | 'sending' | 'sent' | 'failed' | 'canceled'
+  recipient_count: number
+  sent_count: number
+  failed_count: number
+  error: string | null
+  created_at: string
+}
 
 const CONTEXT_FIELDS = [
   { key: 'last_attended', label: 'Last attended' },
@@ -411,6 +429,39 @@ export default function SmsApp() {
   const composeGrowRef = useAutoGrowTextarea(compose)
   const composeTextGrowRef = useAutoGrowTextarea(composeText)
 
+  // ---- Broadcast (group text-out) state ----
+  const [broadcastStep, setBroadcastStep] = useState<'compose' | 'review'>('compose')
+  // 'filtered': deacon/team/role/campus + active-only decide who's in.
+  // 'manual': ignore all of that -- the hand-picked list below IS the
+  // whole audience (an empty filter means "no restriction", i.e.
+  // everyone, so there is no way to express "just these people" by
+  // combining an empty filter with manual adds -- see manual_only in
+  // jobs/sms/api.py's _resolve_adhoc).
+  const [audienceMode, setAudienceMode] = useState<'filtered' | 'manual'>('filtered')
+  const [groupOptions, setGroupOptions] = useState<GroupOptions | null>(null)
+  const [savedGroups, setSavedGroups] = useState<SmsGroup[]>([])
+  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null)
+  const [selDeacons, setSelDeacons] = useState<string[]>([])
+  const [selTeams, setSelTeams] = useState<string[]>([])
+  const [selRoles, setSelRoles] = useState<string[]>([])
+  const [selCampuses, setSelCampuses] = useState<string[]>([])
+  const [broadcastActiveOnly, setBroadcastActiveOnly] = useState(true)
+  const [manualRecipients, setManualRecipients] = useState<{ member_id: number | null; phone: string; name: string }[]>([])
+  const [manualQuery, setManualQuery] = useState('')
+  const [manualResults, setManualResults] = useState<Contact[]>([])
+  const [broadcastBody, setBroadcastBody] = useState('')
+  const [broadcastSendAt, setBroadcastSendAt] = useState('')
+  const [broadcastPreview, setBroadcastPreview] = useState<{ recipient_count: number; recipients: BroadcastRecipient[] } | null>(null)
+  const [broadcastPreviewLoading, setBroadcastPreviewLoading] = useState(false)
+  const [removedPhones, setRemovedPhones] = useState<Set<string>>(new Set())
+  const [saveAsGroup, setSaveAsGroup] = useState(false)
+  const [saveGroupName, setSaveGroupName] = useState('')
+  const [broadcastScheduling, setBroadcastScheduling] = useState(false)
+  const [broadcastError, setBroadcastError] = useState<string | null>(null)
+  const [broadcasts, setBroadcasts] = useState<Broadcast[]>([])
+  const [broadcastsLoading, setBroadcastsLoading] = useState(false)
+  const broadcastBodyGrowRef = useAutoGrowTextarea(broadcastBody)
+
   useEffect(() => {
     setContextFields(loadContextSettings())
     setAccentTheme(loadAccentTheme())
@@ -536,6 +587,265 @@ export default function SmsApp() {
   async function loadContext(id: number) {
     const data = await api<Context>(`/api/sms/threads/${id}/context`)
     setContext(data)
+  }
+
+  // ---- Broadcast (group text-out) ----
+  //
+  // Bill authors the exact wording and defines the group; Watson only
+  // resolves who's in it and fans the send out on schedule -- see
+  // feedback_ai_never_originates_relational_language. Delivery is always
+  // individual 1:1 texts (jobs/sms/broadcast_sender.py), never a group-MMS
+  // thread, so no recipient sees anyone else's number.
+
+  function resetBroadcastComposer() {
+    setBroadcastStep('compose')
+    setAudienceMode('filtered')
+    setSelectedGroupId(null)
+    setSelDeacons([])
+    setSelTeams([])
+    setSelRoles([])
+    setSelCampuses([])
+    setBroadcastActiveOnly(true)
+    setManualRecipients([])
+    setManualQuery('')
+    setManualResults([])
+    setBroadcastBody('')
+    setBroadcastSendAt('')
+    setBroadcastPreview(null)
+    setRemovedPhones(new Set())
+    setSaveAsGroup(false)
+    setSaveGroupName('')
+    setBroadcastError(null)
+  }
+
+  async function openBroadcast() {
+    resetBroadcastComposer()
+    setView('broadcast')
+    try {
+      const [opts, groups] = await Promise.all([
+        api<GroupOptions>('/api/sms/groups/options'),
+        api<{ groups: SmsGroup[] }>('/api/sms/groups'),
+      ])
+      setGroupOptions(opts)
+      setSavedGroups(groups.groups)
+    } catch {
+      // transient -- the group builder just shows empty picker lists; Bill can retry by reopening
+    }
+  }
+
+  async function pickSavedGroup(id: number | null) {
+    setSelectedGroupId(id)
+    setManualRecipients([])
+    setRemovedPhones(new Set())
+    if (id === null) {
+      setAudienceMode('filtered')
+      setSelDeacons([])
+      setSelTeams([])
+      setSelRoles([])
+      setSelCampuses([])
+      setBroadcastActiveOnly(true)
+      return
+    }
+    const g = savedGroups.find((sg) => sg.id === id)
+    if (!g) return
+    setAudienceMode(g.manual_only ? 'manual' : 'filtered')
+    setSelDeacons(g.filter.deacons ?? [])
+    setSelTeams(g.filter.teams ?? [])
+    setSelRoles(g.filter.roles ?? [])
+    setSelCampuses(g.filter.campuses ?? [])
+    setBroadcastActiveOnly(g.active_only)
+    try {
+      const data = await api<{ overrides: { member_id: number | null; phone: string; contact_name: string | null; mode: string }[] }>(
+        `/api/sms/groups/${id}/members`,
+      )
+      setManualRecipients(
+        data.overrides.filter((o) => o.mode === 'include').map((o) => ({ member_id: o.member_id, phone: o.phone, name: o.contact_name || '' })),
+      )
+    } catch {
+      // transient -- hand-picked additions on this saved group just won't preload
+    }
+  }
+
+  function toggleDim(list: string[], setList: (v: string[]) => void, value: string) {
+    setSelectedGroupId(null) // editing filters starts a fresh (unsaved) group definition
+    setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value])
+  }
+
+  const currentFilter = useMemo<GroupFilter>(
+    () => ({ deacons: selDeacons, teams: selTeams, roles: selRoles, campuses: selCampuses }),
+    [selDeacons, selTeams, selRoles, selCampuses],
+  )
+
+  const isEveryone = selDeacons.length === 0 && selTeams.length === 0 && selRoles.length === 0 && selCampuses.length === 0
+
+  // Live recipient-count preview as the group definition changes, debounced
+  // so every checkbox click doesn't fire its own request.
+  useEffect(() => {
+    if (view !== 'broadcast' || broadcastStep !== 'compose') return
+    const timer = setTimeout(async () => {
+      setBroadcastPreviewLoading(true)
+      try {
+        const data = await api<{ recipient_count: number; recipients: BroadcastRecipient[] }>('/api/sms/groups/preview', {
+          method: 'POST',
+          body: JSON.stringify({
+            filter: currentFilter,
+            active_only: broadcastActiveOnly,
+            manual_only: audienceMode === 'manual',
+            manual: manualRecipients.map((m) => ({ member_id: m.member_id, phone: m.phone, name: m.name, mode: 'include' })),
+          }),
+        })
+        setBroadcastPreview(data)
+      } catch {
+        // transient -- count just won't update this tick
+      } finally {
+        setBroadcastPreviewLoading(false)
+      }
+    }, 350)
+    return () => clearTimeout(timer)
+  }, [view, broadcastStep, currentFilter, broadcastActiveOnly, manualRecipients, audienceMode])
+
+  useEffect(() => {
+    if (!manualQuery.trim()) {
+      setManualResults([])
+      return
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const data = await api<{ contacts: Contact[] }>(`/api/sms/contacts?q=${encodeURIComponent(manualQuery)}`)
+        setManualResults(data.contacts)
+      } catch {
+        setManualResults([])
+      }
+    }, 250)
+    return () => clearTimeout(timer)
+  }, [manualQuery])
+
+  // Editing the manual list after picking a saved group turns this into a
+  // fresh (unsaved) one-off definition -- otherwise confirmBroadcast would
+  // send only group_id and silently drop the edit (see the preview effect
+  // above, which always includes manualRecipients regardless of
+  // selectedGroupId; the confirm path has to match that).
+  function addManualRecipient(c: Contact) {
+    if (manualRecipients.some((m) => m.phone === c.phone)) return
+    setSelectedGroupId(null)
+    setManualRecipients((prev) => [...prev, { member_id: c.id, phone: c.phone, name: c.name }])
+    setManualQuery('')
+    setManualResults([])
+  }
+
+  function removeManualRecipient(phone: string) {
+    setSelectedGroupId(null)
+    setManualRecipients((prev) => prev.filter((m) => m.phone !== phone))
+  }
+
+  function goToReview() {
+    setBroadcastError(null)
+    if (!broadcastBody.trim()) {
+      setBroadcastError('Write the message first.')
+      return
+    }
+    if (!broadcastSendAt) {
+      setBroadcastError('Pick a send time.')
+      return
+    }
+    if (audienceMode === 'manual' && manualRecipients.length === 0) {
+      setBroadcastError('Add at least one person.')
+      return
+    }
+    if (!broadcastPreview || broadcastPreview.recipient_count === 0) {
+      setBroadcastError('This group has no recipients yet (no phone on file, or everything filtered out).')
+      return
+    }
+    setRemovedPhones(new Set())
+    setBroadcastStep('review')
+  }
+
+  function toggleRemoved(phone: string) {
+    setRemovedPhones((prev) => {
+      const next = new Set(prev)
+      if (next.has(phone)) next.delete(phone)
+      else next.add(phone)
+      return next
+    })
+  }
+
+  const reviewRecipients = broadcastPreview?.recipients ?? []
+  const finalRecipientCount = reviewRecipients.filter((r) => !removedPhones.has(r.phone)).length
+
+  async function confirmBroadcast() {
+    const localDate = new Date(broadcastSendAt)
+    if (Number.isNaN(localDate.getTime()) || localDate <= new Date()) {
+      setBroadcastError('Send time must be in the future.')
+      return
+    }
+    const sendAt = localDate.toISOString().slice(0, 19).replace('T', ' ')
+
+    setBroadcastScheduling(true)
+    setBroadcastError(null)
+    try {
+      let groupId = selectedGroupId
+      if (saveAsGroup && !groupId) {
+        if (!saveGroupName.trim()) {
+          setBroadcastError('Name this group to save it.')
+          setBroadcastScheduling(false)
+          return
+        }
+        const created = await api<{ group: SmsGroup }>('/api/sms/groups', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: saveGroupName.trim(),
+            filter: currentFilter,
+            active_only: broadcastActiveOnly,
+            manual_only: audienceMode === 'manual',
+            manual: manualRecipients.map((m) => ({ member_id: m.member_id, phone: m.phone, name: m.name, mode: 'include' })),
+          }),
+        })
+        groupId = created.group.id
+        setSavedGroups((prev) => [...prev, created.group])
+      }
+
+      await api<{ broadcast: Broadcast }>('/api/sms/broadcasts', {
+        method: 'POST',
+        body: JSON.stringify({
+          body: broadcastBody.trim(),
+          send_at: sendAt,
+          ...(groupId
+            ? { group_id: groupId }
+            : {
+                filter: currentFilter,
+                active_only: broadcastActiveOnly,
+                manual_only: audienceMode === 'manual',
+                manual: manualRecipients.map((m) => ({ member_id: m.member_id, phone: m.phone, name: m.name, mode: 'include' })),
+              }),
+          exclude_phones: Array.from(removedPhones),
+        }),
+      })
+
+      resetBroadcastComposer()
+      await openBroadcastHistory()
+    } catch (err) {
+      setBroadcastError(err instanceof Error ? err.message : 'Failed to schedule broadcast.')
+    } finally {
+      setBroadcastScheduling(false)
+    }
+  }
+
+  async function openBroadcastHistory() {
+    setView('broadcastHistory')
+    setBroadcastsLoading(true)
+    try {
+      const data = await api<{ broadcasts: Broadcast[] }>('/api/sms/broadcasts')
+      setBroadcasts(data.broadcasts)
+    } catch {
+      setBroadcasts([])
+    } finally {
+      setBroadcastsLoading(false)
+    }
+  }
+
+  async function cancelBroadcast(id: number) {
+    setBroadcasts((prev) => prev.map((b) => (b.id === id ? { ...b, status: 'canceled' } : b)))
+    await api(`/api/sms/broadcasts/${id}`, { method: 'DELETE' }).catch(() => {})
   }
 
   async function openAttention() {
@@ -2028,6 +2338,370 @@ export default function SmsApp() {
         </div>
       )}
 
+      {/* ---- BROADCAST VIEW ---- */}
+      {view === 'broadcast' && broadcastStep === 'compose' && (
+        <div className="flex flex-col min-h-screen">
+          <div className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: COLORS.line }}>
+            <button onClick={() => setView('settings')} style={{ color: COLORS.moss }} className="font-medium text-sm">
+              ← Settings
+            </button>
+            <h2 className={fraunces('flex-1 text-center text-sm font-semibold')}>Broadcast</h2>
+            <div className="w-16" />
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-5">
+            {savedGroups.length > 0 && (
+              <section className="flex flex-col gap-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: COLORS.inkSoft, letterSpacing: '0.05em' }}>
+                  Saved groups
+                </h3>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    onClick={() => pickSavedGroup(null)}
+                    className="text-xs font-medium px-2.5 py-1 rounded-full border"
+                    style={
+                      selectedGroupId === null
+                        ? { background: COLORS.moss, borderColor: COLORS.moss, color: 'white' }
+                        : { borderColor: COLORS.line, color: COLORS.ink }
+                    }
+                  >
+                    New group
+                  </button>
+                  {savedGroups.map((g) => (
+                    <button
+                      key={g.id}
+                      onClick={() => pickSavedGroup(g.id)}
+                      className="text-xs font-medium px-2.5 py-1 rounded-full border"
+                      style={
+                        selectedGroupId === g.id
+                          ? { background: COLORS.moss, borderColor: COLORS.moss, color: 'white' }
+                          : { borderColor: COLORS.line, color: COLORS.ink }
+                      }
+                    >
+                      {g.name} ({g.recipient_count})
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <section className="flex flex-col gap-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: COLORS.inkSoft, letterSpacing: '0.05em' }}>
+                Who gets it
+              </h3>
+              <div className="flex gap-1.5">
+                <button
+                  onClick={() => {
+                    setSelectedGroupId(null)
+                    setAudienceMode('filtered')
+                  }}
+                  className="flex-1 text-xs font-medium px-2.5 py-1.5 rounded-lg border"
+                  style={
+                    audienceMode === 'filtered'
+                      ? { background: COLORS.moss, borderColor: COLORS.moss, color: 'white' }
+                      : { borderColor: COLORS.line, color: COLORS.ink }
+                  }
+                >
+                  Filtered group
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedGroupId(null)
+                    setAudienceMode('manual')
+                  }}
+                  className="flex-1 text-xs font-medium px-2.5 py-1.5 rounded-lg border"
+                  style={
+                    audienceMode === 'manual'
+                      ? { background: COLORS.moss, borderColor: COLORS.moss, color: 'white' }
+                      : { borderColor: COLORS.line, color: COLORS.ink }
+                  }
+                >
+                  Just these people
+                </button>
+              </div>
+              {audienceMode === 'filtered' && isEveryone && (
+                <p className="text-xs" style={{ color: COLORS.inkSoft }}>
+                  No filters selected — this is everyone (active members with a phone on file).
+                </p>
+              )}
+              {audienceMode === 'filtered' && (['deacons', 'teams', 'roles', 'campuses'] as const).map((dim) => {
+                const labels: Record<typeof dim, string> = {
+                  deacons: 'Deacon group',
+                  teams: 'Serving team',
+                  roles: 'Leadership role',
+                  campuses: 'Campus',
+                } as Record<typeof dim, string>
+                const selected = { deacons: selDeacons, teams: selTeams, roles: selRoles, campuses: selCampuses }[dim]
+                const setSelected = { deacons: setSelDeacons, teams: setSelTeams, roles: setSelRoles, campuses: setSelCampuses }[dim]
+                const options = groupOptions?.[dim] ?? []
+                if (options.length === 0) return null
+                return (
+                  <div key={dim} className="flex flex-col gap-1.5">
+                    <span className="text-xs font-medium" style={{ color: COLORS.inkSoft }}>{labels[dim]}</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {options.map((opt) => (
+                        <button
+                          key={opt}
+                          onClick={() => toggleDim(selected, setSelected, opt)}
+                          className="text-xs px-2.5 py-1 rounded-full border"
+                          style={
+                            selected.includes(opt)
+                              ? { background: COLORS.tagblueSoft, borderColor: COLORS.tagblue, color: COLORS.tagblue }
+                              : { borderColor: COLORS.line, color: COLORS.inkSoft }
+                          }
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+              {audienceMode === 'filtered' && (
+                <label className="flex items-center gap-2 text-xs" style={{ color: COLORS.inkSoft }}>
+                  <input
+                    type="checkbox"
+                    checked={broadcastActiveOnly}
+                    onChange={(e) => {
+                      setSelectedGroupId(null)
+                      setBroadcastActiveOnly(e.target.checked)
+                    }}
+                  />
+                  Active members only
+                </label>
+              )}
+            </section>
+
+            <section className="flex flex-col gap-2">
+              <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: COLORS.inkSoft, letterSpacing: '0.05em' }}>
+                {audienceMode === 'manual' ? 'People to text' : 'Add specific people to the group'}
+              </h3>
+              <div className="relative">
+                <input
+                  value={manualQuery}
+                  onChange={(e) => setManualQuery(e.target.value)}
+                  placeholder="Search by name…"
+                  className="w-full rounded-lg border px-3 py-2 text-sm"
+                  style={{ borderColor: COLORS.line, background: COLORS.surfaceAlt, color: COLORS.ink }}
+                />
+                {manualResults.length > 0 && (
+                  <div
+                    className="absolute z-10 mt-1 w-full rounded-lg border shadow-sm max-h-48 overflow-y-auto"
+                    style={{ borderColor: COLORS.line, background: COLORS.surface }}
+                  >
+                    {manualResults.map((c) => (
+                      <button
+                        key={c.id}
+                        onClick={() => addManualRecipient(c)}
+                        className="w-full text-left px-3 py-2 text-sm"
+                        style={{ color: COLORS.ink }}
+                      >
+                        {c.name} <span style={{ color: COLORS.inkSoft }}>{c.phone}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {manualRecipients.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {manualRecipients.map((m) => (
+                    <span
+                      key={m.phone}
+                      className="text-xs px-2.5 py-1 rounded-full border flex items-center gap-1.5"
+                      style={{ borderColor: COLORS.line, color: COLORS.ink }}
+                    >
+                      {m.name || m.phone}
+                      <button onClick={() => removeManualRecipient(m.phone)} aria-label={`Remove ${m.name || m.phone}`}>✕</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <div
+              className="rounded-2xl border p-3 flex items-center justify-between text-sm font-medium"
+              style={{ borderColor: COLORS.line, background: COLORS.surfaceAlt, color: COLORS.ink }}
+            >
+              <span>Recipients</span>
+              <span style={{ color: COLORS.moss }}>
+                {broadcastPreviewLoading ? '…' : (broadcastPreview?.recipient_count ?? 0)}
+              </span>
+            </div>
+
+            <section className="flex flex-col gap-2">
+              <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: COLORS.inkSoft, letterSpacing: '0.05em' }}>
+                Message
+              </h3>
+              <textarea
+                ref={broadcastBodyGrowRef}
+                value={broadcastBody}
+                onChange={(e) => setBroadcastBody(e.target.value)}
+                placeholder="Write your own exact wording — this goes out as-is, to every recipient"
+                rows={3}
+                className="rounded-2xl border px-3.5 py-2.5 text-sm outline-none resize-none overflow-y-auto"
+                style={{ borderColor: broadcastBody ? COLORS.moss : COLORS.line, background: COLORS.surfaceAlt, color: COLORS.ink }}
+              />
+            </section>
+
+            <section className="flex flex-col gap-2">
+              <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: COLORS.inkSoft, letterSpacing: '0.05em' }}>
+                Send at
+              </h3>
+              <input
+                type="datetime-local"
+                value={broadcastSendAt}
+                min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+                onChange={(e) => setBroadcastSendAt(e.target.value)}
+                className="rounded-lg border px-3 py-2 text-sm"
+                style={{ borderColor: COLORS.line, background: COLORS.surfaceAlt, color: COLORS.ink }}
+              />
+            </section>
+
+            {broadcastError && (
+              <p className="text-xs font-medium" style={{ color: '#B4443A' }}>{broadcastError}</p>
+            )}
+
+            <button
+              onClick={goToReview}
+              className="text-sm font-semibold px-4 py-3 rounded-2xl text-white"
+              style={{ background: COLORS.moss }}
+            >
+              Review recipients →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {view === 'broadcast' && broadcastStep === 'review' && (
+        <div className="flex flex-col min-h-screen">
+          <div className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: COLORS.line }}>
+            <button onClick={() => setBroadcastStep('compose')} style={{ color: COLORS.moss }} className="font-medium text-sm">
+              ← Edit
+            </button>
+            <h2 className={fraunces('flex-1 text-center text-sm font-semibold')}>Confirm broadcast</h2>
+            <div className="w-16" />
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+            <div className="rounded-2xl border p-3 flex flex-col gap-2" style={{ borderColor: COLORS.line, background: COLORS.surface }}>
+              <p className="text-sm whitespace-pre-wrap" style={{ color: COLORS.ink }}>{broadcastBody}</p>
+              <p className="text-xs" style={{ color: COLORS.inkSoft }}>
+                Sends {broadcastSendAt ? fmtScheduled(new Date(broadcastSendAt).toISOString().slice(0, 19).replace('T', ' ')) : ''}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between text-sm font-medium">
+              <span style={{ color: COLORS.ink }}>{finalRecipientCount} recipients</span>
+              {removedPhones.size > 0 && (
+                <span className="text-xs" style={{ color: COLORS.inkSoft }}>{removedPhones.size} removed</span>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-1 rounded-2xl border p-2 max-h-80 overflow-y-auto" style={{ borderColor: COLORS.line }}>
+              {reviewRecipients.map((r) => {
+                const removed = removedPhones.has(r.phone)
+                return (
+                  <div
+                    key={r.phone}
+                    className="flex items-center justify-between px-2 py-1.5 text-sm rounded-lg"
+                    style={{ opacity: removed ? 0.45 : 1 }}
+                  >
+                    <span style={{ color: COLORS.ink, textDecoration: removed ? 'line-through' : 'none' }}>
+                      {r.contact_name || r.phone}
+                    </span>
+                    <button
+                      onClick={() => toggleRemoved(r.phone)}
+                      className="text-xs font-medium px-2 py-0.5 rounded-full border"
+                      style={{ borderColor: COLORS.line, color: COLORS.inkSoft }}
+                    >
+                      {removed ? 'Undo' : 'Remove'}
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+
+            {!selectedGroupId && (
+              <label className="flex flex-col gap-2 rounded-2xl border p-3" style={{ borderColor: COLORS.line }}>
+                <span className="flex items-center gap-2 text-sm" style={{ color: COLORS.ink }}>
+                  <input type="checkbox" checked={saveAsGroup} onChange={(e) => setSaveAsGroup(e.target.checked)} />
+                  Save this group for reuse
+                </span>
+                {saveAsGroup && (
+                  <input
+                    value={saveGroupName}
+                    onChange={(e) => setSaveGroupName(e.target.value)}
+                    placeholder="Group name"
+                    className="rounded-lg border px-3 py-2 text-sm"
+                    style={{ borderColor: COLORS.line, background: COLORS.surfaceAlt, color: COLORS.ink }}
+                  />
+                )}
+              </label>
+            )}
+
+            {broadcastError && (
+              <p className="text-xs font-medium" style={{ color: '#B4443A' }}>{broadcastError}</p>
+            )}
+
+            <button
+              onClick={confirmBroadcast}
+              disabled={broadcastScheduling || finalRecipientCount === 0}
+              className="text-sm font-semibold px-4 py-3 rounded-2xl text-white disabled:opacity-40"
+              style={{ background: COLORS.moss }}
+            >
+              {broadcastScheduling ? 'Scheduling…' : `Schedule broadcast to ${finalRecipientCount}`}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ---- BROADCAST HISTORY VIEW ---- */}
+      {view === 'broadcastHistory' && (
+        <div className="flex flex-col min-h-screen">
+          <div className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: COLORS.line }}>
+            <button onClick={() => setView('settings')} style={{ color: COLORS.moss }} className="font-medium text-sm">
+              ← Settings
+            </button>
+            <h2 className={fraunces('flex-1 text-center text-sm font-semibold')}>Broadcast history</h2>
+            <div className="w-16" />
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
+            {broadcastsLoading && <p className="text-sm text-center py-8" style={{ color: COLORS.inkSoft }}>Loading…</p>}
+            {!broadcastsLoading && broadcasts.length === 0 && (
+              <p className="text-sm text-center py-8" style={{ color: COLORS.inkSoft }}>No broadcasts yet.</p>
+            )}
+            {broadcasts.map((b) => {
+              const statusColor =
+                b.status === 'sent' ? COLORS.moss
+                : b.status === 'failed' ? '#B4443A'
+                : b.status === 'canceled' ? COLORS.inkSoft
+                : COLORS.clay
+              return (
+                <div key={b.id} className="rounded-2xl border p-3 flex flex-col gap-1.5" style={{ borderColor: COLORS.line, background: COLORS.surface }}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: statusColor }}>{b.status}</span>
+                    <span className="text-xs" style={{ color: COLORS.inkSoft }}>{fmtScheduled(b.send_at)}</span>
+                  </div>
+                  <p className="text-sm line-clamp-2" style={{ color: COLORS.ink }}>{b.body}</p>
+                  <div className="flex items-center justify-between text-xs" style={{ color: COLORS.inkSoft }}>
+                    <span>
+                      {b.group_name || 'Ad-hoc group'} · {b.recipient_count} recipients
+                      {(b.status === 'sending' || b.status === 'sent' || b.status === 'failed') && ` (${b.sent_count} sent${b.failed_count ? `, ${b.failed_count} failed` : ''})`}
+                    </span>
+                    {b.status === 'scheduled' && (
+                      <button onClick={() => cancelBroadcast(b.id)} className="font-medium" style={{ color: '#B4443A' }}>
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {/* ---- TEMPLATES VIEW ---- */}
       {view === 'templates' && (
         <div className="flex flex-col min-h-screen">
@@ -2193,6 +2867,34 @@ export default function SmsApp() {
                   Saved templates
                 </span>
                 <span style={{ color: COLORS.inkSoft }}>{templates.length} &rsaquo;</span>
+              </button>
+              <button
+                onClick={openBroadcast}
+                className="rounded-2xl border p-3 flex items-center justify-between text-sm"
+                style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
+              >
+                <span className="flex items-center gap-2">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="2" />
+                    <path d="M16.24 7.76a6 6 0 0 1 0 8.49M7.76 16.24a6 6 0 0 1 0-8.49M19.07 4.93a10 10 0 0 1 0 14.14M4.93 19.07a10 10 0 0 1 0-14.14" />
+                  </svg>
+                  Broadcast a message
+                </span>
+                <span style={{ color: COLORS.inkSoft }}>&rsaquo;</span>
+              </button>
+              <button
+                onClick={openBroadcastHistory}
+                className="rounded-2xl border p-3 flex items-center justify-between text-sm"
+                style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
+              >
+                <span className="flex items-center gap-2">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 7v5l3 3" />
+                  </svg>
+                  Broadcast history
+                </span>
+                <span style={{ color: COLORS.inkSoft }}>&rsaquo;</span>
               </button>
             </section>
 
