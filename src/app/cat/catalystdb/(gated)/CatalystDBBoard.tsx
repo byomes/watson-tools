@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { COLUMNS, FILTERABLE, type Col } from './columns'
 import MemberDetail from './MemberDetail'
+import HouseholdsView from './HouseholdsView'
 
 type Member = Record<string, string | number | null>
 
@@ -67,6 +68,7 @@ export default function CatalystDBBoard() {
   const [filters, setFilters] = useState<Record<string, string>>({})
   const [firstVisitRange, setFirstVisitRange] = useState<{ from: string; to: string }>({ from: '', to: '' })
   const [sort, setSort] = useState<{ key: string; dir: 1 | -1 }>({ key: 'name', dir: 1 })
+  const [view, setView] = useState<'members' | 'households'>('members')
   const [visible, setVisible] = useState(DEFAULT_VISIBLE)
   const [showColPicker, setShowColPicker] = useState(false)
   const colPickerRef = useRef<HTMLDivElement>(null)
@@ -319,94 +321,115 @@ export default function CatalystDBBoard() {
             Catalyst Database
           </button>
         </h1>
+        <div className="flex items-center gap-1 rounded-lg border border-slate-300 dark:border-slate-700 p-0.5 shrink-0">
+          {(['members', 'households'] as const).map((v) => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium capitalize ${
+                view === v
+                  ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+              }`}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search name, email, phone, notes…"
           className="flex-1 min-w-[180px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400"
         />
-        <div className="relative" ref={colPickerRef}>
-          <button
-            onClick={() => setShowColPicker((s) => !s)}
-            className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-          >
-            Columns
-          </button>
-          {showColPicker && (
-            <div className="absolute left-0 mt-1 w-56 max-h-80 overflow-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg z-20 p-2">
-              {COLUMNS.map((c) => (
-                <label key={c.key} className="flex items-center gap-2 px-2 py-1 text-xs text-slate-700 dark:text-slate-300 rounded hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer">
-                  <input type="checkbox" checked={visible.has(c.key)} onChange={() => toggleCol(c.key)} />
-                  {c.label}
-                </label>
-              ))}
+        {view === 'members' && (
+          <>
+            <div className="relative" ref={colPickerRef}>
+              <button
+                onClick={() => setShowColPicker((s) => !s)}
+                className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+              >
+                Columns
+              </button>
+              {showColPicker && (
+                <div className="absolute left-0 mt-1 w-56 max-h-80 overflow-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg z-20 p-2">
+                  {COLUMNS.map((c) => (
+                    <label key={c.key} className="flex items-center gap-2 px-2 py-1 text-xs text-slate-700 dark:text-slate-300 rounded hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer">
+                      <input type="checkbox" checked={visible.has(c.key)} onChange={() => toggleCol(c.key)} />
+                      {c.label}
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-        <button
-          onClick={() => {
-            setFilters({})
-            setFirstVisitRange({ from: '', to: '' })
-          }}
-          disabled={!Object.values(filters).some((v) => v) && !firstVisitRange.from && !firstVisitRange.to}
-          className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          Reset Filters
-        </button>
-        {FILTERABLE.map((c) => (
-          <select
-            key={c.key}
-            value={filters[c.key] ?? ''}
-            onChange={(e) => setFilters((f) => ({ ...f, [c.key]: e.target.value }))}
-            className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-700 dark:text-slate-300"
-          >
-            <option value="">{c.label}: All</option>
-            {c.key === 'active' && <option value="__deactivated__">Deactivated</option>}
-            {c.type === 'bool'
-              ? [
-                  <option key="a" value="__active__">Yes</option>,
-                  <option key="i" value="__inactive__">No</option>,
-                ]
-              : c.options?.map((o) => (
-                  <option key={o} value={o}>
-                    {o}
-                  </option>
-                ))}
-          </select>
-        ))}
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-slate-500 dark:text-slate-400">First visit</span>
-          <input
-            type="date"
-            value={firstVisitRange.from}
-            onChange={(e) => setFirstVisitRange((r) => ({ ...r, from: e.target.value }))}
-            className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-700 dark:text-slate-300"
-          />
-          <span className="text-xs text-slate-400 dark:text-slate-500">to</span>
-          <input
-            type="date"
-            value={firstVisitRange.to}
-            onChange={(e) => setFirstVisitRange((r) => ({ ...r, to: e.target.value }))}
-            className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-700 dark:text-slate-300"
-          />
-        </div>
+            <button
+              onClick={() => {
+                setFilters({})
+                setFirstVisitRange({ from: '', to: '' })
+              }}
+              disabled={!Object.values(filters).some((v) => v) && !firstVisitRange.from && !firstVisitRange.to}
+              className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Reset Filters
+            </button>
+            {FILTERABLE.map((c) => (
+              <select
+                key={c.key}
+                value={filters[c.key] ?? ''}
+                onChange={(e) => setFilters((f) => ({ ...f, [c.key]: e.target.value }))}
+                className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-700 dark:text-slate-300"
+              >
+                <option value="">{c.label}: All</option>
+                {c.key === 'active' && <option value="__deactivated__">Deactivated</option>}
+                {c.type === 'bool'
+                  ? [
+                      <option key="a" value="__active__">Yes</option>,
+                      <option key="i" value="__inactive__">No</option>,
+                    ]
+                  : c.options?.map((o) => (
+                      <option key={o} value={o}>
+                        {o}
+                      </option>
+                    ))}
+              </select>
+            ))}
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-slate-500 dark:text-slate-400">First visit</span>
+              <input
+                type="date"
+                value={firstVisitRange.from}
+                onChange={(e) => setFirstVisitRange((r) => ({ ...r, from: e.target.value }))}
+                className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-700 dark:text-slate-300"
+              />
+              <span className="text-xs text-slate-400 dark:text-slate-500">to</span>
+              <input
+                type="date"
+                value={firstVisitRange.to}
+                onChange={(e) => setFirstVisitRange((r) => ({ ...r, to: e.target.value }))}
+                className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-700 dark:text-slate-300"
+              />
+            </div>
+          </>
+        )}
         <button
           onClick={() => setAdding(true)}
           className="rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-3 py-1.5 text-xs font-semibold hover:opacity-90 shrink-0"
         >
           + Add Member
         </button>
-        <span className="text-xs text-slate-400 dark:text-slate-500 shrink-0">
-          {filtered.length} of {members.length}
-          {deactivatedCount > 0 && !viewingDeactivated && (
-            <>
-              {' · '}
-              <button onClick={viewDeactivated} className="underline underline-offset-2 text-blue-600 dark:text-blue-400 hover:opacity-80">
-                {deactivatedCount} deactivated
-              </button>
-            </>
-          )}
-        </span>
+        {view === 'members' && (
+          <span className="text-xs text-slate-400 dark:text-slate-500 shrink-0">
+            {filtered.length} of {members.length}
+            {deactivatedCount > 0 && !viewingDeactivated && (
+              <>
+                {' · '}
+                <button onClick={viewDeactivated} className="underline underline-offset-2 text-blue-600 dark:text-blue-400 hover:opacity-80">
+                  {deactivatedCount} deactivated
+                </button>
+              </>
+            )}
+          </span>
+        )}
       </div>
 
       {/* Mobile header — card-list conventions from Airtable/Notion/Coda's
@@ -426,21 +449,40 @@ export default function CatalystDBBoard() {
               Catalyst DB
             </button>
           </h1>
-          <button
-            onClick={() => setMobileSelecting((s) => !s)}
-            className="text-xs font-medium text-slate-600 dark:text-slate-300 px-2 py-1"
-          >
-            {mobileSelecting ? 'Cancel' : 'Select'}
-          </button>
-          <button
-            onClick={() => setMobileFiltersOpen((s) => !s)}
-            className="relative rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300"
-          >
-            Filters
-            {(Object.values(filters).some(Boolean) || firstVisitRange.from || firstVisitRange.to) && (
-              <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-blue-500" />
-            )}
-          </button>
+          {view === 'members' && (
+            <button
+              onClick={() => setMobileSelecting((s) => !s)}
+              className="text-xs font-medium text-slate-600 dark:text-slate-300 px-2 py-1"
+            >
+              {mobileSelecting ? 'Cancel' : 'Select'}
+            </button>
+          )}
+          {view === 'members' && (
+            <button
+              onClick={() => setMobileFiltersOpen((s) => !s)}
+              className="relative rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300"
+            >
+              Filters
+              {(Object.values(filters).some(Boolean) || firstVisitRange.from || firstVisitRange.to) && (
+                <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-blue-500" />
+              )}
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-1 px-4 pb-3">
+          {(['members', 'households'] as const).map((v) => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              className={`rounded-lg px-2.5 py-1 text-xs font-medium capitalize border ${
+                view === v
+                  ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white'
+                  : 'text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700'
+              }`}
+            >
+              {v}
+            </button>
+          ))}
         </div>
         <div className="px-4 pb-3">
           <input
@@ -450,7 +492,7 @@ export default function CatalystDBBoard() {
             className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400"
           />
         </div>
-        {mobileFiltersOpen && (
+        {view === 'members' && mobileFiltersOpen && (
           <div className="px-4 pb-3 flex flex-col gap-2 border-t border-slate-100 dark:border-slate-800 pt-3">
             <button
               onClick={() => {
@@ -551,7 +593,18 @@ export default function CatalystDBBoard() {
         </div>
       )}
 
+      {view === 'households' && (
+        <HouseholdsView
+          members={members}
+          search={search}
+          setMembers={setMembers}
+          setError={setError}
+          onOpenMember={setOpenId}
+        />
+      )}
+
       {/* Desktop grid */}
+      {view === 'members' && (
       <div className="hidden md:block flex-1 overflow-auto">
         <table className="min-w-full text-sm border-collapse">
           <thead className="sticky top-0 z-10">
@@ -659,6 +712,7 @@ export default function CatalystDBBoard() {
           </tbody>
         </table>
       </div>
+      )}
 
       {/* Mobile card list — Airtable/Notion/Coda's mobile database views all
           replace the grid with a scrollable list of cards (name + a
@@ -667,6 +721,7 @@ export default function CatalystDBBoard() {
           "Select" mode (toggled in the header above) swaps the tap target
           to a checkbox so batch edit still works with a thumb, reusing the
           exact same bulk-action bar below. */}
+      {view === 'members' && (
       <div className="flex md:hidden flex-1 overflow-auto flex-col gap-2 p-3">
         {filtered.map((m) => {
           const id = m.id as number
@@ -716,6 +771,7 @@ export default function CatalystDBBoard() {
           <div className="text-center text-sm text-slate-400 dark:text-slate-500 py-10">No members match.</div>
         )}
       </div>
+      )}
 
       {!mobileSelecting && (
         <button
@@ -727,7 +783,7 @@ export default function CatalystDBBoard() {
         </button>
       )}
 
-      {selected.size > 0 && (
+      {view === 'members' && selected.size > 0 && (
         <div className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-3 flex items-center gap-2 flex-wrap">
           <span className="text-sm font-medium text-slate-700 dark:text-slate-300 shrink-0">{selected.size} selected</span>
           <select value={bulkField} onChange={(e) => { setBulkField(e.target.value); setBulkValue('') }} className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-700 dark:text-slate-300">
