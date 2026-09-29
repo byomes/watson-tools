@@ -311,16 +311,6 @@ export default function CatalystDBBoard() {
           see the mobile header block right after this for the small-screen
           equivalent (search + a collapsible filter sheet instead). */}
       <div className="hidden md:flex border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-3 flex-wrap items-center gap-3">
-        <h1 className="shrink-0">
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            title="Hard refresh"
-            className="text-base font-semibold text-slate-900 dark:text-white hover:opacity-70"
-          >
-            Catalyst Database
-          </button>
-        </h1>
         <div className="flex items-center gap-1 rounded-lg border border-slate-300 dark:border-slate-700 p-0.5 shrink-0">
           {(['members', 'households'] as const).map((v) => (
             <button
@@ -438,17 +428,7 @@ export default function CatalystDBBoard() {
           toggle instead of always-visible checkboxes, and a floating "+"
           button below rather than an inline one competing for header space. */}
       <div className="flex md:hidden flex-col border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-        <div className="flex items-center gap-2 px-4 py-3">
-          <h1 className="flex-1">
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              title="Hard refresh"
-              className="text-base font-semibold text-slate-900 dark:text-white"
-            >
-              Catalyst DB
-            </button>
-          </h1>
+        <div className="flex items-center justify-end gap-2 px-4 py-3 empty:hidden">
           {view === 'members' && (
             <button
               onClick={() => setMobileSelecting((s) => !s)}
