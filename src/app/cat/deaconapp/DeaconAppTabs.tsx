@@ -282,7 +282,7 @@ export default function DeaconAppTabs({
               )}
 
               {shepherdingTotals && shepherdingGroups && (
-                <ShepherdingStats groups={shepherdingGroups} totals={shepherdingTotals} />
+                <ShepherdingStats groups={shepherdingGroups} totals={shepherdingTotals} smsMode={smsMode} />
               )}
 
               {shepherdingGroups && <GroupList groups={shepherdingGroups} smsMode={smsMode} />}

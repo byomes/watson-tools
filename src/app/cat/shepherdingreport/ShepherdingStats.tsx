@@ -31,7 +31,7 @@ function membersForLabel(key: LabelKey, allMembers: MemberWithGroup[]): MemberWi
 // group. ContactIcons is the same tel/sms/mailto component GroupList uses
 // per-person, so a deacon can act on someone straight from a tapped stat
 // box instead of having to also open the full named list below.
-function LabelPeopleList({ members, onSelect }: { members: MemberWithGroup[]; onSelect: (m: MemberWithGroup) => void }) {
+function LabelPeopleList({ members, onSelect, smsMode }: { members: MemberWithGroup[]; onSelect: (m: MemberWithGroup) => void; smsMode?: 'native' | 'webapp' }) {
   if (members.length === 0) {
     return (
       <p className="text-xs text-gray-400 dark:text-gray-500 px-3 py-2">
@@ -50,7 +50,7 @@ function LabelPeopleList({ members, onSelect }: { members: MemberWithGroup[]; on
           >
             {m.name}
           </button>
-          <ContactIcons member={m} />
+          <ContactIcons member={m} smsMode={smsMode} />
           <span className="shrink-0 text-xs text-gray-400 dark:text-gray-500">{m.groupName}</span>
         </li>
       ))}
@@ -60,8 +60,11 @@ function LabelPeopleList({ members, onSelect }: { members: MemberWithGroup[]; on
 
 // Rendered by both cat/shepherdingreport/page.tsx (the standalone report)
 // and cat/deaconapp/DeaconAppTabs.tsx's Report tab -- same live totals,
-// same tap-to-expand behavior, one place to keep them in sync.
-export default function ShepherdingStats({ groups, totals }: { groups: Group[]; totals: Totals }) {
+// same tap-to-expand behavior, one place to keep them in sync. smsMode
+// passes through to the stat-box people list's ContactIcons the same way
+// GroupList's does, so deaconapp-bill's text icons point at the Watson SMS
+// PWA here too instead of silently falling back to the stock sms: link.
+export default function ShepherdingStats({ groups, totals, smsMode }: { groups: Group[]; totals: Totals; smsMode?: 'native' | 'webapp' }) {
   const engagementTotals = computeEngagementTotals(groups)
   const [expandedLabel, setExpandedLabel] = useState<LabelKey | null>(null)
   const [selected, setSelected] = useState<MemberWithGroup | null>(null)
@@ -145,7 +148,7 @@ export default function ShepherdingStats({ groups, totals }: { groups: Group[]; 
         </div>
         {(expandedLabel === 'current' || expandedLabel === 'atRisk' || expandedLabel === 'disconnected' || expandedLabel === 'critical') && (
           <div className="w-full mt-2 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-            <LabelPeopleList members={membersForLabel(expandedLabel, allMembers)} onSelect={setSelected} />
+            <LabelPeopleList members={membersForLabel(expandedLabel, allMembers)} onSelect={setSelected} smsMode={smsMode} />
           </div>
         )}
       </div>
@@ -231,7 +234,7 @@ export default function ShepherdingStats({ groups, totals }: { groups: Group[]; 
         </div>
         {(expandedLabel === 'consistent' || expandedLabel === 'active' || expandedLabel === 'occasional' || expandedLabel === 'lapsed') && (
           <div className="w-full mt-2 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-            <LabelPeopleList members={membersForLabel(expandedLabel, allMembers)} onSelect={setSelected} />
+            <LabelPeopleList members={membersForLabel(expandedLabel, allMembers)} onSelect={setSelected} smsMode={smsMode} />
           </div>
         )}
       </div>
