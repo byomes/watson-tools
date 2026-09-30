@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { COLUMNS, FILTERABLE, type Col } from './columns'
 import MemberDetail from './MemberDetail'
 import HouseholdsView from './HouseholdsView'
+import MergeConfirm from './MergeConfirm'
 
 type Member = Record<string, string | number | null>
 
@@ -83,6 +84,9 @@ export default function CatalystDBBoard() {
   const [openId, setOpenId] = useState<number | null>(null)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   const [mobileSelecting, setMobileSelecting] = useState(false)
+  const [merging, setMerging] = useState(false)
+  const [mergeBusy, setMergeBusy] = useState(false)
+  const [mergeError, setMergeError] = useState<string | null>(null)
 
   useEffect(() => {
     api('state')
@@ -257,6 +261,21 @@ export default function CatalystDBBoard() {
       setOpenId(null)
     } catch (e) {
       setError(String((e as Error).message ?? e))
+    }
+  }
+
+  async function mergeSelected(keepId: number, mergeId: number, finalName: string, addAlias: boolean) {
+    setMergeBusy(true)
+    setMergeError(null)
+    try {
+      const { member } = await api('merge', { keep_id: keepId, merge_id: mergeId, name: finalName, add_alias: addAlias })
+      setMembers((m) => m && m.filter((row) => row.id !== mergeId).map((row) => (row.id === keepId ? member : row)))
+      setSelected(new Set())
+      setMerging(false)
+    } catch (e) {
+      setMergeError(String((e as Error).message ?? e))
+    } finally {
+      setMergeBusy(false)
     }
   }
 
@@ -803,6 +822,15 @@ export default function CatalystDBBoard() {
           <button onClick={deactivateSelected} className="rounded-lg bg-red-600 text-white px-3 py-1.5 text-xs font-semibold">
             Deactivate
           </button>
+          {selected.size === 2 && (
+            <button
+              onClick={() => { setMergeError(null); setMerging(true) }}
+              title="Merge these two records into one"
+              className="rounded-lg border border-amber-600 text-amber-700 dark:text-amber-400 dark:border-amber-500 px-3 py-1.5 text-xs font-semibold hover:bg-amber-50 dark:hover:bg-amber-950/40"
+            >
+              Merge…
+            </button>
+          )}
           {allSelectedDeactivated && (
             <button
               onClick={deleteSelected}
@@ -817,6 +845,25 @@ export default function CatalystDBBoard() {
           </button>
         </div>
       )}
+
+      {merging && selected.size === 2 && (() => {
+        const ids = Array.from(selected)
+        const a = members.find((m) => m.id === ids[0])
+        const b = members.find((m) => m.id === ids[1])
+        if (!a || !b) {
+          setMerging(false)
+          return null
+        }
+        return (
+          <MergeConfirm
+            pair={[a, b]}
+            busy={mergeBusy}
+            error={mergeError}
+            onCancel={() => { setMerging(false); setMergeError(null) }}
+            onConfirm={mergeSelected}
+          />
+        )
+      })()}
     </div>
   )
 }
