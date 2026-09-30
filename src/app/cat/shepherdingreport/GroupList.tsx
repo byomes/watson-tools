@@ -96,6 +96,7 @@ export function ContactIcons({ member, smsMode = 'native' }: { member: Member; s
             href={smsMode === 'webapp' ? webAppSmsHref(member) : telHref('sms', member.phone)}
             aria-label={`Text ${member.name}`}
             className="p-1.5 -m-1.5 active:text-blue-600 dark:active:text-blue-400"
+            {...(smsMode === 'webapp' ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
           >
             <TextIcon />
           </a>
