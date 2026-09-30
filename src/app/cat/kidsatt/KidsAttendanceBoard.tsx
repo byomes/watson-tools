@@ -75,21 +75,22 @@ function KidRow({
     <li className="flex items-center justify-between py-2.5 gap-3">
       <span className="text-black dark:text-white text-[15px]">{kid.name}</span>
       <div className="flex items-center gap-2 shrink-0">
-        {kid.present && (
-          <select
-            value={currentClass}
-            disabled={pending}
-            onChange={(e) => onMove(kid, e.target.value)}
-            aria-label={`Move ${kid.name} to a different class`}
-            className="text-xs border border-gray-300 dark:border-gray-600 rounded-md px-1.5 py-1 text-black dark:text-white bg-white dark:bg-gray-800 disabled:opacity-50"
-          >
-            {classNames.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        )}
+        {/* Reclassifying a kid is independent of logging attendance -- this
+            works the same whether they're present or absent today, and
+            never marks them present on its own. */}
+        <select
+          value={currentClass}
+          disabled={pending}
+          onChange={(e) => onMove(kid, e.target.value)}
+          aria-label={`Move ${kid.name} to a different class`}
+          className="text-xs border border-gray-300 dark:border-gray-600 rounded-md px-1.5 py-1 text-black dark:text-white bg-white dark:bg-gray-800 disabled:opacity-50"
+        >
+          {classNames.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
         <Toggle on={kid.present} disabled={pending} onClick={() => onToggle(kid)} />
         <button
           type="button"
