@@ -5,7 +5,12 @@ import { useState, useEffect } from 'react'
 interface Servant {
   name: string
   member_id: number
-  person_id: number
+  person_id?: number
+}
+
+interface SearchResult {
+  name: string
+  member_id: number
 }
 
 const DEFAULT_SERVANTS: Record<string, Servant> = {
@@ -20,7 +25,7 @@ export default function KidsServantForm() {
   const [servants, setServants] = useState<Record<string, Servant>>(DEFAULT_SERVANTS)
   const [searchOpen, setSearchOpen] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<Servant[]>([])
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -63,8 +68,8 @@ export default function KidsServantForm() {
     }
   }
 
-  const selectServant = (className: string, servant: Servant) => {
-    setServants(prev => ({ ...prev, [className]: servant }))
+  const selectServant = (className: string, result: SearchResult) => {
+    setServants(prev => ({ ...prev, [className]: { name: result.name, member_id: result.member_id } }))
     setSearchOpen(null)
     setSearchQuery('')
     setSearchResults([])
