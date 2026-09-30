@@ -3,8 +3,6 @@ import Database from 'better-sqlite3'
 import { requirePin } from '@/lib/requirePin'
 import path from 'path'
 
-const dbPath = path.join(process.env.HOME || '/home/billyomes', 'watson', 'data', 'congregation.db')
-
 export async function GET(req: NextRequest) {
   await requirePin(req)
 
@@ -13,32 +11,41 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ results: [] })
   }
 
-  const db = new Database(dbPath, { readonly: true })
+  const congregationPath = path.join(process.env.HOME || '/home/billyomes', 'watson', 'data', 'congregation.db')
+  const watsonPath = path.join(process.env.HOME || '/home/billyomes', 'watson', 'data', 'watson.db')
+
+  const congregationDb = new Database(congregationPath, { readonly: true })
+  const watsonDb = new Database(watsonPath, { readonly: true })
 
   try {
-    const results = db
+    const members = congregationDb
       .prepare(
-        `SELECT DISTINCT m.id as member_id, m.name, p.id as person_id
-         FROM members m
-         LEFT JOIN watson_people p ON p.member_id = m.id
-         WHERE m.active NOT IN ('disconnected', 'deceased')
-         AND m.name NOT LIKE '%CAMPUS%'
-         AND m.name NOT LIKE '%SYSTEM%'
-         AND m.name NOT LIKE '%TEST%'
-         AND (m.name LIKE ? OR p.phone LIKE ?)
-         ORDER BY m.name
+        `SELECT id as member_id, name
+         FROM members
+         WHERE active NOT IN ('disconnected', 'deceased')
+         AND name NOT LIKE '%CAMPUS%'
+         AND name NOT LIKE '%SYSTEM%'
+         AND name NOT LIKE '%TEST%'
+         AND name LIKE ?
+         ORDER BY name
          LIMIT 20`
       )
-      .all(`%${q}%`, `%${q}%`)
+      .all(`%${q}%`)
 
-    const mapped = results.map((r: any) => ({
-      name: r.name,
-      member_id: r.member_id,
-      person_id: r.person_id || 0,
-    }))
+    const results = (members as any[]).map(m => {
+      const person = watsonDb
+        .prepare('SELECT id as person_id, phone FROM people WHERE member_id = ?')
+        .get(m.member_id)
+      return {
+        name: m.name,
+        member_id: m.member_id,
+        person_id: person?.person_id || 0,
+      }
+    })
 
-    return NextResponse.json({ results: mapped })
+    return NextResponse.json({ results })
   } finally {
-    db.close()
+    congregationDb.close()
+    watsonDb.close()
   }
 }
