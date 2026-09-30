@@ -61,6 +61,7 @@ function KidRow({
   pending,
   onToggle,
   onMove,
+  onRemove,
 }: {
   kid: Kid
   currentClass: string
@@ -68,6 +69,7 @@ function KidRow({
   pending: boolean
   onToggle: (kid: Kid) => void
   onMove: (kid: Kid, className: string) => void
+  onRemove: (kid: Kid) => void
 }) {
   return (
     <li className="flex items-center justify-between py-2.5 gap-3">
@@ -89,6 +91,16 @@ function KidRow({
           </select>
         )}
         <Toggle on={kid.present} disabled={pending} onClick={() => onToggle(kid)} />
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => onRemove(kid)}
+          aria-label={`Remove ${kid.name} from this class`}
+          title="Remove from this class"
+          className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950 dark:hover:text-red-400 disabled:opacity-50"
+        >
+          ✕
+        </button>
       </div>
     </li>
   )
@@ -101,6 +113,7 @@ function ClassSection({
   pending,
   onToggle,
   onMove,
+  onRemove,
 }: {
   group: ClassGroup
   classNames: string[]
@@ -108,6 +121,7 @@ function ClassSection({
   pending: Set<number>
   onToggle: (kid: Kid) => void
   onMove: (kid: Kid, className: string) => void
+  onRemove: (kid: Kid) => void
 }) {
   const visible = group.kids.filter((k) => k.name.toLowerCase().includes(filter.toLowerCase()))
 
@@ -130,6 +144,7 @@ function ClassSection({
               pending={pending.has(k.id)}
               onToggle={onToggle}
               onMove={onMove}
+              onRemove={onRemove}
             />
           ))}
           {visible.length === 0 && (
@@ -228,6 +243,35 @@ export default function KidsAttendanceBoard() {
     await fetchState(data.service_date)
   }
 
+  const handleRemove = async (kid: Kid) => {
+    if (!data) return
+    if (!window.confirm(`Remove ${kid.name} from this class? They won't show up in Kids Attendance again until they check in or are moved back in.`)) {
+      return
+    }
+
+    setPending((prev) => new Set(prev).add(kid.id))
+    setError(null)
+
+    const res = await fetch('/api/cat/kidsatt/remove', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kid_id: kid.id, service_date: data.service_date }),
+    })
+
+    setPending((prev) => {
+      const next = new Set(prev)
+      next.delete(kid.id)
+      return next
+    })
+
+    if (!res.ok) {
+      setError(`Could not remove ${kid.name}. Try again.`)
+      return
+    }
+
+    await fetchState(data.service_date)
+  }
+
   if (!data) {
     return <p className="text-gray-500 dark:text-gray-400">{error ?? 'Loading…'}</p>
   }
@@ -266,6 +310,7 @@ export default function KidsAttendanceBoard() {
           pending={pending}
           onToggle={handleToggle}
           onMove={handleMove}
+          onRemove={handleRemove}
         />
       ))}
     </div>
