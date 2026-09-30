@@ -28,7 +28,13 @@ export default async function CatalystDBPage() {
   return (
     <div className="flex flex-col h-screen">
       <div className="flex items-center justify-between gap-3 px-4 py-5 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 shrink-0">
-        <h1 className="text-lg font-semibold text-slate-900 dark:text-white">Catalyst Database</h1>
+        <a
+          href="/cat/catalystdb"
+          title="Refresh"
+          className="text-lg font-semibold text-slate-900 dark:text-white hover:opacity-70 active:opacity-50"
+        >
+          Catalyst Database
+        </a>
         <div className="flex items-center gap-4">
           <form action={logoutAction}>
             <button
