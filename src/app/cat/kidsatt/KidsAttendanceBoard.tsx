@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import AddKidForm from './AddKidForm'
 
 interface Kid {
   id: number
@@ -115,6 +116,11 @@ function ClassSection({
   onToggle,
   onMove,
   onRemove,
+  serviceDate,
+  isAdding,
+  onStartAdd,
+  onCancelAdd,
+  onAdded,
 }: {
   group: ClassGroup
   classNames: string[]
@@ -123,18 +129,39 @@ function ClassSection({
   onToggle: (kid: Kid) => void
   onMove: (kid: Kid, className: string) => void
   onRemove: (kid: Kid) => void
+  serviceDate: string
+  isAdding: boolean
+  onStartAdd: () => void
+  onCancelAdd: () => void
+  onAdded: () => void
 }) {
   const visible = group.kids.filter((k) => k.name.toLowerCase().includes(filter.toLowerCase()))
 
   return (
     <section className="mb-4">
-      <details>
+      <details open={isAdding}>
         <summary className="text-lg font-semibold text-black dark:text-white mb-2 cursor-pointer select-none">
           {group.class_name}{' '}
           <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
             ({group.present_count}/{group.kids.length} present)
           </span>
         </summary>
+        {isAdding ? (
+          <AddKidForm
+            className={group.class_name}
+            serviceDate={serviceDate}
+            onDone={onAdded}
+            onCancel={onCancelAdd}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={onStartAdd}
+            className="mb-2 text-xs font-medium text-blue-600 dark:text-blue-400 underline underline-offset-2"
+          >
+            + Add a kid
+          </button>
+        )}
         <ul className="divide-y divide-gray-200 dark:divide-gray-800 border-y border-gray-200 dark:border-gray-800 mt-2">
           {visible.map((k) => (
             <KidRow
@@ -162,6 +189,7 @@ export default function KidsAttendanceBoard() {
   const [filter, setFilter] = useState('')
   const [pending, setPending] = useState<Set<number>>(new Set())
   const [error, setError] = useState<string | null>(null)
+  const [addingClass, setAddingClass] = useState<string | null>(null)
 
   const fetchState = async (date: string) => {
     setError(null)
@@ -282,7 +310,7 @@ export default function KidsAttendanceBoard() {
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Service date</label>
       <select
         value={data.service_date}
-        onChange={(e) => fetchState(e.target.value)}
+        onChange={(e) => { setAddingClass(null); fetchState(e.target.value) }}
         className="w-full mb-4 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-black dark:text-white bg-white dark:bg-gray-800"
       >
         {sundayOptions.map((d) => (
@@ -312,6 +340,11 @@ export default function KidsAttendanceBoard() {
           onToggle={handleToggle}
           onMove={handleMove}
           onRemove={handleRemove}
+          serviceDate={data.service_date}
+          isAdding={addingClass === group.class_name}
+          onStartAdd={() => setAddingClass(group.class_name)}
+          onCancelAdd={() => setAddingClass(null)}
+          onAdded={() => { setAddingClass(null); fetchState(data.service_date) }}
         />
       ))}
     </div>
