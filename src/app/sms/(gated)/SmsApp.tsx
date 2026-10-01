@@ -156,6 +156,32 @@ const ACCENT_THEMES = [
 type AccentKey = (typeof ACCENT_THEMES)[number]['key'] | 'custom'
 const DEFAULT_CUSTOM_HEX = '#3C5C89'
 
+// Splits a message body on bare URLs and renders each as a clickable link,
+// underlined in the bubble's own text color (currentColor) so it reads
+// correctly against both the outbound (moss/white) and inbound
+// (surfaceAlt/ink) bubble backgrounds without a separate per-theme link
+// color. Plain-text segments pass through unchanged.
+const _URL_RE = /(https?:\/\/[^\s<>"')\]]+)/gi
+function linkifyBody(body: string) {
+  // split() with a capturing-group regex alternates [text, match, text,
+  // match, ...] -- odd indices are always the matched URLs. Re-testing
+  // each part against _URL_RE instead would be wrong: a global regex's
+  // .test() is stateful (tracks lastIndex across calls), so repeated calls
+  // here would silently skip or duplicate matches.
+  const parts = body.split(_URL_RE)
+  return parts.map((part, i) =>
+    i % 2 === 1 ? (
+      // eslint-disable-next-line react/no-array-index-key
+      <a key={i} href={part} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
+        {part}
+      </a>
+    ) : (
+      // eslint-disable-next-line react/no-array-index-key
+      <span key={i}>{part}</span>
+    )
+  )
+}
+
 function loadAccentTheme(): AccentKey {
   try {
     const stored = localStorage.getItem('sms_accent_theme')
@@ -2152,7 +2178,7 @@ export default function SmsApp() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={m.media_url} alt="Attachment" className="rounded-lg max-w-full" />
                   )}
-                  {m.body && <span>{m.body}</span>}
+                  {m.body && <span>{linkifyBody(m.body)}</span>}
                 </div>
                 {m.direction === 'out' && m.status === 'failed' && (
                   <span className="text-xs px-1" style={{ color: COLORS.clay }}>
