@@ -2,25 +2,39 @@
 
 import { useRef, useState } from 'react'
 
+interface IngestStats {
+  rows_seen: number
+  checkin_rows_inserted: number
+  kids_created: number
+  ambiguous_name_matches: number
+  queued_for_donna: number
+}
+
+interface ImportResult {
+  filename: string
+  ingest?: IngestStats
+  ingest_error?: string
+}
+
 // Self-contained button + dialog -- carries its own open/close state so
 // page.tsx (a server component) can drop it next to the title with no
-// wiring of its own. Upload-only for now: it just gets the CSV safely
-// onto the Watson box (see /api/cat/kidsatt/import); parsing it into
-// actual attendance rows is a follow-up once a real export has been
-// uploaded through this dialog.
+// wiring of its own. The upload API route (see /api/cat/kidsatt/import)
+// saves the CSV AND runs it straight through kids_checkin_csv_import.py
+// server-side, so by the time this gets a response the attendance is
+// already live -- this just reports what happened.
 export default function BatchImportButton() {
   const [open, setOpen] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [savedName, setSavedName] = useState<string | null>(null)
+  const [result, setResult] = useState<ImportResult | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   function reset() {
     setFile(null)
     setBusy(false)
     setError(null)
-    setSavedName(null)
+    setResult(null)
     if (inputRef.current) inputRef.current.value = ''
   }
 
@@ -42,7 +56,7 @@ export default function BatchImportButton() {
       setError(body.error ?? 'Could not upload this file. Try again.')
       return
     }
-    setSavedName(body.filename ?? file.name)
+    setResult({ filename: body.filename ?? file.name, ingest: body.ingest, ingest_error: body.ingest_error })
   }
 
   return (
@@ -83,16 +97,37 @@ export default function BatchImportButton() {
             </div>
 
             <div className="px-4 py-5">
-              {savedName ? (
+              {result ? (
                 <>
-                  <p className="text-sm text-green-700 dark:text-green-400 mb-4">
-                    Uploaded <span className="font-mono text-xs break-all">{savedName}</span>. It&apos;s saved and
-                    ready to be processed.
-                  </p>
+                  {result.ingest ? (
+                    <p className="text-sm text-green-700 dark:text-green-400 mb-1">
+                      Imported {result.ingest.checkin_rows_inserted} of {result.ingest.rows_seen} check-ins
+                      {result.ingest.kids_created > 0 && `, added ${result.ingest.kids_created} new kid${result.ingest.kids_created === 1 ? '' : 's'}`}.
+                    </p>
+                  ) : (
+                    <p className="text-sm text-green-700 dark:text-green-400 mb-1">
+                      Uploaded <span className="font-mono text-xs break-all">{result.filename}</span>.
+                    </p>
+                  )}
+                  {result.ingest && result.ingest.queued_for_donna > 0 && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                      {result.ingest.queued_for_donna} kid{result.ingest.queued_for_donna === 1 ? '' : 's'} queued for Donna&apos;s household review.
+                    </p>
+                  )}
+                  {result.ingest && result.ingest.ambiguous_name_matches > 0 && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mb-1">
+                      {result.ingest.ambiguous_name_matches} name{result.ingest.ambiguous_name_matches === 1 ? '' : 's'} matched more than one kid in the database — worth a manual check.
+                    </p>
+                  )}
+                  {result.ingest_error && (
+                    <p className="text-xs text-red-600 dark:text-red-400 mb-1">
+                      File saved, but import failed: {result.ingest_error}
+                    </p>
+                  )}
                   <button
                     type="button"
                     onClick={close}
-                    className="rounded-lg bg-black dark:bg-white text-white dark:text-black px-3 py-1.5 text-xs font-semibold"
+                    className="mt-3 rounded-lg bg-black dark:bg-white text-white dark:text-black px-3 py-1.5 text-xs font-semibold"
                   >
                     Done
                   </button>
