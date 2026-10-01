@@ -8,6 +8,7 @@ interface IngestStats {
   kids_created: number
   ambiguous_name_matches: number
   queued_for_donna: number
+  skipped_already_checked_in: number
 }
 
 interface ImportResult {
@@ -102,7 +103,8 @@ export default function BatchImportButton() {
                   {result.ingest ? (
                     <p className="text-sm text-green-700 dark:text-green-400 mb-1">
                       Imported {result.ingest.checkin_rows_inserted} of {result.ingest.rows_seen} check-ins
-                      {result.ingest.kids_created > 0 && `, added ${result.ingest.kids_created} new kid${result.ingest.kids_created === 1 ? '' : 's'}`}.
+                      {result.ingest.kids_created > 0 && `, added ${result.ingest.kids_created} new kid${result.ingest.kids_created === 1 ? '' : 's'}`}
+                      {result.ingest.skipped_already_checked_in > 0 && ` (${result.ingest.skipped_already_checked_in} already on file, skipped)`}.
                     </p>
                   ) : (
                     <p className="text-sm text-green-700 dark:text-green-400 mb-1">
