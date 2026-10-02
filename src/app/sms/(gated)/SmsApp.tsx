@@ -2167,7 +2167,7 @@ export default function SmsApp() {
                   </span>
                 )}
                 <div
-                  className="max-w-[75%] px-3.5 py-2 rounded-2xl text-sm leading-snug flex flex-col gap-1.5"
+                  className="max-w-[75%] px-3.5 py-2 rounded-2xl text-base leading-snug flex flex-col gap-1.5"
                   style={
                     m.direction === 'out'
                       ? { background: COLORS.moss, color: 'white' }
