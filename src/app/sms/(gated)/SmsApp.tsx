@@ -455,6 +455,10 @@ export default function SmsApp() {
   const [linkError, setLinkError] = useState<string | null>(null)
   const [vacationMode, setVacationMode] = useState(false)
   const [sabbathSilence, setSabbathSilence] = useState(true)
+  const [sabbathAutoresponderOn, setSabbathAutoresponderOn] = useState(false)
+  const [sabbathAutoresponderBody, setSabbathAutoresponderBody] = useState('')
+  const [vacationAutoresponderOn, setVacationAutoresponderOn] = useState(false)
+  const [vacationAutoresponderBody, setVacationAutoresponderBody] = useState('')
   const [savingSettings, setSavingSettings] = useState(false)
   const [contextFields, setContextFields] = useState<Record<ContextFieldKey, boolean>>(() =>
     Object.fromEntries(CONTEXT_FIELDS.map((f) => [f.key, true])) as Record<ContextFieldKey, boolean>,
@@ -612,21 +616,42 @@ export default function SmsApp() {
     setBatteryPct(data.heartbeat?.battery_pct ?? null)
   }
 
-  async function loadAppSettings() {
-    const data = await api<{ vacation_mode: boolean; sabbath_silence: boolean }>('/api/sms/settings')
+  function applyAppSettings(data: {
+    vacation_mode: boolean
+    sabbath_silence: boolean
+    sabbath_autoresponder_on: boolean
+    sabbath_autoresponder_body: string | null
+    vacation_autoresponder_on: boolean
+    vacation_autoresponder_body: string | null
+  }) {
     setVacationMode(data.vacation_mode)
     setSabbathSilence(data.sabbath_silence)
+    setSabbathAutoresponderOn(data.sabbath_autoresponder_on)
+    setSabbathAutoresponderBody(data.sabbath_autoresponder_body ?? '')
+    setVacationAutoresponderOn(data.vacation_autoresponder_on)
+    setVacationAutoresponderBody(data.vacation_autoresponder_body ?? '')
   }
 
-  async function updateAppSetting(patch: { vacation_mode?: boolean; sabbath_silence?: boolean }) {
+  async function loadAppSettings() {
+    const data = await api<Parameters<typeof applyAppSettings>[0]>('/api/sms/settings')
+    applyAppSettings(data)
+  }
+
+  async function updateAppSetting(patch: {
+    vacation_mode?: boolean
+    sabbath_silence?: boolean
+    sabbath_autoresponder_on?: boolean
+    sabbath_autoresponder_body?: string
+    vacation_autoresponder_on?: boolean
+    vacation_autoresponder_body?: string
+  }) {
     setSavingSettings(true)
     try {
-      const data = await api<{ vacation_mode: boolean; sabbath_silence: boolean }>('/api/sms/settings', {
+      const data = await api<Parameters<typeof applyAppSettings>[0]>('/api/sms/settings', {
         method: 'PATCH',
         body: JSON.stringify(patch),
       })
-      setVacationMode(data.vacation_mode)
-      setSabbathSilence(data.sabbath_silence)
+      applyAppSettings(data)
     } catch {
       // transient network hiccup -- toggle just won't visually update; user can retry
     } finally {
@@ -3046,6 +3071,33 @@ export default function SmsApp() {
                 </label>
               </div>
             </section>
+
+            <section className="flex flex-col gap-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: COLORS.inkSoft, letterSpacing: '0.05em' }}>
+                Auto-reply
+              </h3>
+              <p className="text-xs" style={{ color: COLORS.inkSoft }}>
+                When filled in and turned on, this exact text sends automatically to a first-time texter during that silence window &mdash; no tap needed. Each sender only gets it once per Sabbath or per vacation.
+              </p>
+              <AutoresponderCard
+                colors={COLORS}
+                label="Sabbath auto-reply"
+                enabled={sabbathAutoresponderOn}
+                body={sabbathAutoresponderBody}
+                saving={savingSettings}
+                onToggle={(checked) => updateAppSetting({ sabbath_autoresponder_on: checked })}
+                onSaveBody={(text) => updateAppSetting({ sabbath_autoresponder_body: text })}
+              />
+              <AutoresponderCard
+                colors={COLORS}
+                label="Vacation auto-reply"
+                enabled={vacationAutoresponderOn}
+                body={vacationAutoresponderBody}
+                saving={savingSettings}
+                onToggle={(checked) => updateAppSetting({ vacation_autoresponder_on: checked })}
+                onSaveBody={(text) => updateAppSetting({ vacation_autoresponder_body: text })}
+              />
+            </section>
           </div>
         </div>
       )}
@@ -3358,6 +3410,73 @@ function NewTemplateCard({
           style={{ background: colors.moss }}
         >
           Create
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function AutoresponderCard({
+  colors,
+  label,
+  enabled,
+  body,
+  saving,
+  onToggle,
+  onSaveBody,
+}: {
+  colors: Palette
+  label: string
+  enabled: boolean
+  body: string
+  saving: boolean
+  onToggle: (checked: boolean) => void
+  onSaveBody: (text: string) => Promise<void>
+}) {
+  const [draft, setDraft] = useState(body)
+  const [savingBody, setSavingBody] = useState(false)
+  const dirty = draft !== body
+
+  useEffect(() => {
+    if (!dirty) setDraft(body)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [body])
+
+  return (
+    <div className="rounded-2xl border p-3 flex flex-col gap-2" style={{ borderColor: colors.line, background: colors.surface }}>
+      <label className="flex items-center justify-between gap-3">
+        <span className="text-sm">{label}</span>
+        <input
+          type="checkbox"
+          disabled={saving}
+          checked={enabled}
+          onChange={(e) => onToggle(e.target.checked)}
+          className="flex-none"
+        />
+      </label>
+      <textarea
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        placeholder="e.g. Thanks for reaching out -- I'm off the grid for Sabbath today and will reply tomorrow."
+        rows={3}
+        className="text-sm border rounded-lg px-3 py-2 outline-none"
+        style={{ borderColor: colors.line, background: colors.bg, color: colors.ink }}
+      />
+      <div className="flex justify-end">
+        <button
+          onClick={async () => {
+            setSavingBody(true)
+            try {
+              await onSaveBody(draft)
+            } finally {
+              setSavingBody(false)
+            }
+          }}
+          disabled={!dirty || savingBody}
+          className="text-xs px-3 py-1.5 rounded-lg text-white disabled:opacity-40"
+          style={{ background: colors.moss }}
+        >
+          Save
         </button>
       </div>
     </div>
