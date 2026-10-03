@@ -1053,10 +1053,28 @@ export default function SmsApp() {
 
   // Always land on the newest message -- opening a thread, sending, or the
   // periodic poll picking up a reply should never leave you scrolled up.
-  useEffect(() => {
+  function scrollMessagesToBottom() {
     const el = messagesScrollRef.current
     if (el) el.scrollTop = el.scrollHeight
+  }
+  useEffect(() => {
+    scrollMessagesToBottom()
   }, [messages])
+
+  // The scroll pane is a flex-1 sibling of the scheduled-message chips,
+  // context panel, and composer -- all of which load in or resize *after*
+  // the effect above already ran (scheduled items and context arrive from
+  // separate requests in openThread, the composer grows as a draft loads).
+  // Each of those shrinks the pane's available height without changing
+  // `messages`, which used to leave the newest message peeking out below
+  // the fold, hidden under the composer. Re-pin on any such resize.
+  useEffect(() => {
+    const el = messagesScrollRef.current
+    if (!el) return
+    const observer = new ResizeObserver(scrollMessagesToBottom)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   // Debounced so a full search query doesn't fire one request per keystroke.
   useEffect(() => {
@@ -2217,7 +2235,12 @@ export default function SmsApp() {
                 >
                   {m.media_url && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={m.media_url} alt="Attachment" className="rounded-lg max-w-full" />
+                    <img
+                      src={m.media_url}
+                      alt="Attachment"
+                      className="rounded-lg max-w-full"
+                      onLoad={scrollMessagesToBottom}
+                    />
                   )}
                   {m.body && <span>{linkifyBody(m.body)}</span>}
                 </div>
