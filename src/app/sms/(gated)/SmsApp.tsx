@@ -2655,6 +2655,12 @@ export default function SmsApp() {
                 className="rounded-2xl border px-3.5 py-2.5 text-sm outline-none resize-none overflow-y-auto"
                 style={{ borderColor: broadcastBody ? COLORS.moss : COLORS.line, background: COLORS.surfaceAlt, color: COLORS.ink }}
               />
+              <span
+                className="self-end text-xs"
+                style={{ color: broadcastBody.length > 160 ? COLORS.clay : COLORS.inkSoft }}
+              >
+                {broadcastBody.length} / 160 characters
+              </span>
             </section>
 
             <section className="flex flex-col gap-2">
