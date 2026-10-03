@@ -1493,11 +1493,16 @@ export default function SmsApp() {
     }
   }
 
-  const visibleThreads = threads.filter((t) => {
-    const q = query.trim().toLowerCase()
-    if (!q) return true
-    return displayName(t).toLowerCase().includes(q) || (t.last_message_preview ?? '').toLowerCase().includes(q)
-  })
+  const visibleThreads = threads
+    .filter((t) => {
+      const q = query.trim().toLowerCase()
+      if (!q) return true
+      return displayName(t).toLowerCase().includes(q) || (t.last_message_preview ?? '').toLowerCase().includes(q)
+    })
+    // New (unread) and prepared (a Watson-prepped draft waiting to send) threads
+    // float to the top, ahead of the normal most-recent-first order from the
+    // API -- a stable sort keeps that recency order within each group.
+    .sort((a, b) => Number(!(a.unread || a.draft_text)) - Number(!(b.unread || b.draft_text)))
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: COLORS.bg, color: COLORS.ink }}>
