@@ -2681,7 +2681,7 @@ export default function SmsApp() {
               <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: COLORS.inkSoft, letterSpacing: '0.05em' }}>
                 How fast
               </h3>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap items-center gap-1.5">
                 {([
                   { label: 'Quick', value: null, hint: 'a few minutes' },
                   { label: 'A few hours', value: 4, hint: '~4h' },
@@ -2700,6 +2700,30 @@ export default function SmsApp() {
                     {opt.label}
                   </button>
                 ))}
+                <div className="flex items-center gap-1.5 text-xs" style={{ color: COLORS.inkSoft }}>
+                  <span>or</span>
+                  <input
+                    type="number"
+                    min={0.5}
+                    step={0.5}
+                    max={72}
+                    placeholder="hours"
+                    value={spreadHours !== null && spreadHours !== 4 && spreadHours !== 10 ? spreadHours : ''}
+                    onChange={(e) => {
+                      const raw = e.target.value
+                      if (raw === '') {
+                        setSpreadHours(null)
+                        return
+                      }
+                      const n = Number(raw)
+                      if (!Number.isFinite(n) || n <= 0) return
+                      setSpreadHours(n)
+                    }}
+                    className="w-16 rounded-lg border px-2 py-1 text-xs"
+                    style={{ borderColor: COLORS.line, background: COLORS.surfaceAlt, color: COLORS.ink }}
+                  />
+                  <span>custom hours</span>
+                </div>
               </div>
               <p className="text-xs" style={{ color: COLORS.inkSoft }}>
                 {spreadHours
