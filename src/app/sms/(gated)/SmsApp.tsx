@@ -62,9 +62,10 @@ type Context = {
 
 type View = 'list' | 'thread' | 'templates' | 'settings' | 'broadcast' | 'broadcastHistory'
 
-type GroupFilter = { deacons?: string[]; teams?: string[]; roles?: string[]; campuses?: string[] }
+type GroupFilter = { deacons?: string[]; teams?: string[]; roles?: string[]; campuses?: string[]; events?: number[] }
 type SmsGroup = { id: number; name: string; filter: GroupFilter; active_only: boolean; manual_only: boolean; recipient_count: number }
-type GroupOptions = { deacons: string[]; teams: string[]; roles: string[]; campuses: string[] }
+type EventOption = { id: number; name: string; date: string }
+type GroupOptions = { deacons: string[]; teams: string[]; roles: string[]; campuses: string[]; events: EventOption[] }
 type BroadcastRecipient = { member_id: number | null; phone: string; contact_name: string | null }
 type Broadcast = {
   id: number
@@ -493,6 +494,7 @@ export default function SmsApp() {
   const [selTeams, setSelTeams] = useState<string[]>([])
   const [selRoles, setSelRoles] = useState<string[]>([])
   const [selCampuses, setSelCampuses] = useState<string[]>([])
+  const [selEvents, setSelEvents] = useState<number[]>([])
   const [broadcastActiveOnly, setBroadcastActiveOnly] = useState(true)
   const [manualRecipients, setManualRecipients] = useState<{ member_id: number | null; phone: string; name: string }[]>([])
   const [manualQuery, setManualQuery] = useState('')
@@ -680,6 +682,7 @@ export default function SmsApp() {
     setSelTeams([])
     setSelRoles([])
     setSelCampuses([])
+    setSelEvents([])
     setBroadcastActiveOnly(true)
     setManualRecipients([])
     setManualQuery('')
@@ -719,6 +722,7 @@ export default function SmsApp() {
       setSelTeams([])
       setSelRoles([])
       setSelCampuses([])
+      setSelEvents([])
       setBroadcastActiveOnly(true)
       return
     }
@@ -729,6 +733,7 @@ export default function SmsApp() {
     setSelTeams(g.filter.teams ?? [])
     setSelRoles(g.filter.roles ?? [])
     setSelCampuses(g.filter.campuses ?? [])
+    setSelEvents(g.filter.events ?? [])
     setBroadcastActiveOnly(g.active_only)
     try {
       const data = await api<{ overrides: { member_id: number | null; phone: string; contact_name: string | null; mode: string }[] }>(
@@ -747,12 +752,18 @@ export default function SmsApp() {
     setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value])
   }
 
+  function toggleEvent(id: number) {
+    setSelectedGroupId(null) // editing filters starts a fresh (unsaved) group definition
+    setSelEvents((list) => (list.includes(id) ? list.filter((v) => v !== id) : [...list, id]))
+  }
+
   const currentFilter = useMemo<GroupFilter>(
-    () => ({ deacons: selDeacons, teams: selTeams, roles: selRoles, campuses: selCampuses }),
-    [selDeacons, selTeams, selRoles, selCampuses],
+    () => ({ deacons: selDeacons, teams: selTeams, roles: selRoles, campuses: selCampuses, events: selEvents }),
+    [selDeacons, selTeams, selRoles, selCampuses, selEvents],
   )
 
-  const isEveryone = selDeacons.length === 0 && selTeams.length === 0 && selRoles.length === 0 && selCampuses.length === 0
+  const isEveryone =
+    selDeacons.length === 0 && selTeams.length === 0 && selRoles.length === 0 && selCampuses.length === 0 && selEvents.length === 0
 
   // Live recipient-count preview as the group definition changes, debounced
   // so every checkbox click doesn't fire its own request.
@@ -2534,6 +2545,32 @@ export default function SmsApp() {
                   </div>
                 )
               })}
+              {audienceMode === 'filtered' && (groupOptions?.events?.length ?? 0) > 0 && (
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs font-medium" style={{ color: COLORS.inkSoft }}>Event signups</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {groupOptions!.events.map((ev) => (
+                      <button
+                        key={ev.id}
+                        onClick={() => toggleEvent(ev.id)}
+                        className="text-xs px-2.5 py-1 rounded-full border"
+                        style={
+                          selEvents.includes(ev.id)
+                            ? { background: COLORS.tagblueSoft, borderColor: COLORS.tagblue, color: COLORS.tagblue }
+                            : { borderColor: COLORS.line, color: COLORS.inkSoft }
+                        }
+                      >
+                        {ev.name}{ev.date ? ` — ${ev.date}` : ''}
+                      </button>
+                    ))}
+                  </div>
+                  {selEvents.length > 0 && (
+                    <p className="text-xs" style={{ color: COLORS.inkSoft }}>
+                      Signups for the selected event(s) are included regardless of active/inactive status.
+                    </p>
+                  )}
+                </div>
+              )}
               {audienceMode === 'filtered' && (
                 <label className="flex items-center gap-2 text-xs" style={{ color: COLORS.inkSoft }}>
                   <input
