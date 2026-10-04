@@ -70,6 +70,7 @@ export default function CatalystDBBoard() {
   const [firstVisitRange, setFirstVisitRange] = useState<{ from: string; to: string }>({ from: '', to: '' })
   const [sort, setSort] = useState<{ key: string; dir: 1 | -1 }>({ key: 'name', dir: 1 })
   const [view, setView] = useState<'members' | 'households'>('members')
+  const [collapsedHouseholds, setCollapsedHouseholds] = useState<Set<string>>(new Set())
   const [visible, setVisible] = useState(DEFAULT_VISIBLE)
   const [showColPicker, setShowColPicker] = useState(false)
   const colPickerRef = useRef<HTMLDivElement>(null)
@@ -141,6 +142,11 @@ export default function CatalystDBBoard() {
     })
     return rows
   }, [members, search, filters, firstVisitRange, sort])
+
+  const householdIds = useMemo(
+    () => Array.from(new Set((members ?? []).map((m) => String(m.household_id ?? '').trim()).filter(Boolean))),
+    [members]
+  )
 
   function toggleSort(key: string) {
     setSort((s) => (s.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: 1 }))
@@ -351,6 +357,22 @@ export default function CatalystDBBoard() {
           placeholder="Search name, email, phone, notes…"
           className="flex-1 min-w-[180px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400"
         />
+        {view === 'households' && (
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={() => setCollapsedHouseholds(new Set())}
+              className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+            >
+              Expand all
+            </button>
+            <button
+              onClick={() => setCollapsedHouseholds(new Set(householdIds))}
+              className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+            >
+              Collapse all
+            </button>
+          </div>
+        )}
         {view === 'members' && (
           <>
             <div className="relative" ref={colPickerRef}>
@@ -491,6 +513,22 @@ export default function CatalystDBBoard() {
             className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400"
           />
         </div>
+        {view === 'households' && (
+          <div className="flex gap-2 px-4 pb-3">
+            <button
+              onClick={() => setCollapsedHouseholds(new Set())}
+              className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-300"
+            >
+              Expand all
+            </button>
+            <button
+              onClick={() => setCollapsedHouseholds(new Set(householdIds))}
+              className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-300"
+            >
+              Collapse all
+            </button>
+          </div>
+        )}
         {view === 'members' && mobileFiltersOpen && (
           <div className="px-4 pb-3 flex flex-col gap-2 border-t border-slate-100 dark:border-slate-800 pt-3">
             <button
@@ -599,6 +637,8 @@ export default function CatalystDBBoard() {
           setMembers={setMembers}
           setError={setError}
           onOpenMember={setOpenId}
+          collapsed={collapsedHouseholds}
+          setCollapsed={setCollapsedHouseholds}
         />
       )}
 

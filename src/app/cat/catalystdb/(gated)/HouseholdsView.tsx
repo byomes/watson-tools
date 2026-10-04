@@ -115,14 +115,27 @@ export default function HouseholdsView({
   setMembers,
   setError,
   onOpenMember,
+  collapsed,
+  setCollapsed,
 }: {
   members: Member[]
   search: string
   setMembers: React.Dispatch<React.SetStateAction<Member[] | null>>
   setError: (msg: string) => void
   onOpenMember: (id: number) => void
+  collapsed: Set<string>
+  setCollapsed: React.Dispatch<React.SetStateAction<Set<string>>>
 }) {
   const [busy, setBusy] = useState<Set<number>>(new Set())
+
+  function toggleCollapsed(id: string) {
+    setCollapsed((c) => {
+      const next = new Set(c)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   async function setField(id: number, field: Field, value: string) {
     setBusy((b) => new Set(b).add(id))
@@ -328,23 +341,39 @@ export default function HouseholdsView({
         and to set their role, or use a household&rsquo;s search box below its members to add someone by name.
       </p>
 
-      {visibleGroups.map((g) => (
-        <div
-          key={g.id}
-          className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shrink-0"
-        >
-          <div className="px-3 py-2 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
-            <EditableTitle value={g.title} onSave={(next) => renameHousehold(g.members.map((m) => m.id as number), g.customName, next)} />
-            <span className="shrink-0 text-xs text-slate-400 dark:text-slate-500">
-              {g.id} · {g.members.length} {g.members.length === 1 ? 'member' : 'members'}
-            </span>
+      {visibleGroups.map((g) => {
+        const isCollapsed = collapsed.has(g.id)
+        return (
+          <div
+            key={g.id}
+            className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shrink-0"
+          >
+            <div className="px-3 py-2 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <button
+                  onClick={() => toggleCollapsed(g.id)}
+                  title={isCollapsed ? 'Expand' : 'Collapse'}
+                  className="shrink-0 w-5 h-5 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
+                >
+                  {isCollapsed ? '▸' : '▾'}
+                </button>
+                <EditableTitle value={g.title} onSave={(next) => renameHousehold(g.members.map((m) => m.id as number), g.customName, next)} />
+              </div>
+              <span className="shrink-0 text-xs text-slate-400 dark:text-slate-500">
+                {g.id} · {g.members.length} {g.members.length === 1 ? 'member' : 'members'}
+              </span>
+            </div>
+            {!isCollapsed && (
+              <>
+                {g.members.map((m) => (
+                  <MemberRow key={m.id as number} member={m} />
+                ))}
+                <AddMemberSearch groupId={g.id} />
+              </>
+            )}
           </div>
-          {g.members.map((m) => (
-            <MemberRow key={m.id as number} member={m} />
-          ))}
-          <AddMemberSearch groupId={g.id} />
-        </div>
-      ))}
+        )
+      })}
 
       {visibleUnassigned.length > 0 && (
         <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden shrink-0">
