@@ -499,6 +499,22 @@ export default function CatalystDBBoard() {
               )}
             </button>
           )}
+          {view === 'households' && (
+            <>
+              <button
+                onClick={() => setCollapsedHouseholds(new Set())}
+                className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300"
+              >
+                Expand all
+              </button>
+              <button
+                onClick={() => setCollapsedHouseholds(new Set(householdIds))}
+                className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300"
+              >
+                Collapse all
+              </button>
+            </>
+          )}
         </div>
         <div className="flex items-center gap-1 px-4 pb-3">
           {(['members', 'households'] as const).map((v) => (
@@ -523,22 +539,6 @@ export default function CatalystDBBoard() {
             className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400"
           />
         </div>
-        {view === 'households' && (
-          <div className="flex gap-2 px-4 pb-3">
-            <button
-              onClick={() => setCollapsedHouseholds(new Set())}
-              className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-300"
-            >
-              Expand all
-            </button>
-            <button
-              onClick={() => setCollapsedHouseholds(new Set(householdIds))}
-              className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-300"
-            >
-              Collapse all
-            </button>
-          </div>
-        )}
         {view === 'members' && mobileFiltersOpen && (
           <div className="px-4 pb-3 flex flex-col gap-2 border-t border-slate-100 dark:border-slate-800 pt-3">
             <button
