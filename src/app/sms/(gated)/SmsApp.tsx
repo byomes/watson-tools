@@ -197,6 +197,18 @@ function reactionEmoji(body: string): string | null {
   return null
 }
 
+// Stored previews are truncated, so the closing quote may be missing; match on
+// the leading verb + opening quote instead of the whole message.
+function previewText(preview: string | null): string | null {
+  if (!preview) return preview
+  const full = reactionEmoji(preview)
+  if (full) return full
+  const m = preview.match(/^(Loved|Liked|Disliked|Laughed at|Emphasized|Questioned) [“"]/)
+  if (m) return TAPBACK_EMOJI[m[1]]
+  const e = preview.match(/^Reacted (\S+) to [“"]/)
+  return e ? e[1] : preview
+}
+
 function linkifyBody(body: string) {
   // split() with a capturing-group regex alternates [text, match, text,
   // match, ...] -- odd indices are always the matched URLs. Re-testing
@@ -1858,7 +1870,7 @@ export default function SmsApp() {
                       className={`text-sm truncate ${t.unread ? 'font-semibold' : ''}`}
                       style={{ color: t.unread ? COLORS.ink : COLORS.inkSoft }}
                     >
-                      {t.last_message_preview}
+                      {previewText(t.last_message_preview)}
                     </span>
                     {!!t.unread && (
                       <span className="w-2.5 h-2.5 rounded-full flex-none" style={{ background: COLORS.moss }} />
