@@ -1839,7 +1839,7 @@ export default function SmsApp() {
 
       {/* ---- THREAD VIEW ---- */}
       {view === 'thread' && activeThread && (
-        <div className="flex flex-col h-screen overflow-hidden">
+        <div className="flex flex-col h-[100dvh] overflow-hidden">
           <div className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: COLORS.line }}>
             <button onClick={() => setView('list')} style={{ color: COLORS.moss }} className="font-medium text-sm">
               ← Messages
@@ -2242,7 +2242,7 @@ export default function SmsApp() {
                       onLoad={scrollMessagesToBottom}
                     />
                   )}
-                  {m.body && <span>{linkifyBody(m.body)}</span>}
+                  {m.body && <span className="whitespace-pre-wrap break-words">{linkifyBody(m.body)}</span>}
                 </div>
                 {m.direction === 'out' && m.status === 'failed' && (
                   <span className="text-xs px-1" style={{ color: COLORS.clay }}>
@@ -2299,7 +2299,7 @@ export default function SmsApp() {
             </div>
           )}
 
-          <div className="border-t px-4 pt-3 pb-4 flex flex-col gap-2" style={{ borderColor: COLORS.line }}>
+          <div className="border-t px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] flex flex-col gap-2" style={{ borderColor: COLORS.line }}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <button
