@@ -163,9 +163,11 @@ const DEFAULT_CUSTOM_HEX = '#3C5C89'
 // (surfaceAlt/ink) bubble backgrounds without a separate per-theme link
 // color. Plain-text segments pass through unchanged.
 const _URL_RE = /(https?:\/\/[^\s<>"')\]]+)/gi
-// iMessage/Android tapbacks arrive as plain text ("Loved “original text”").
-// Show just the emoji instead of repeating the quoted message.
-const REACTION_EMOJI: Record<string, string> = {
+// iPhone tapbacks reach us as plain text ("Loved “original text”"). Show just
+// the emoji instead of repeating the quoted message. Covers the six classic
+// tapbacks, their "Removed a ..." forms, iOS 18 emoji reactions
+// ("Reacted 😊 to ..."), and reactions to an image/video/etc. instead of text.
+const TAPBACK_EMOJI: Record<string, string> = {
   Loved: '❤️',
   Liked: '👍',
   Disliked: '👎',
@@ -173,9 +175,26 @@ const REACTION_EMOJI: Record<string, string> = {
   Emphasized: '‼️',
   Questioned: '❓',
 }
+const REMOVED_TAPBACK_EMOJI: Record<string, string> = {
+  'a heart': '❤️',
+  'a like': '👍',
+  'a dislike': '👎',
+  'a laugh': '😂',
+  'an exclamation': '‼️',
+  'a question mark': '❓',
+}
+const REACTION_TARGET = '(?:[“"][\\s\\S]*[”"]|an? (?:image|photo|video|movie|attachment|sticker|link|audio message|voice message|location|contact))'
+const TAPBACK_RE = new RegExp(`^(Loved|Liked|Disliked|Laughed at|Emphasized|Questioned) ${REACTION_TARGET}$`)
+const REMOVED_RE = new RegExp(`^Removed (an? [a-z ]+|an? \\S+) from ${REACTION_TARGET}$`)
+const EMOJI_REACTION_RE = new RegExp(`^Reacted (\\S+) to ${REACTION_TARGET}$`)
 function reactionEmoji(body: string): string | null {
-  const m = body.match(/^(Loved|Liked|Disliked|Laughed at|Emphasized|Questioned) [“"][\s\S]*[”"]$/)
-  return m ? REACTION_EMOJI[m[1]] : null
+  let m = body.match(TAPBACK_RE)
+  if (m) return TAPBACK_EMOJI[m[1]]
+  m = body.match(EMOJI_REACTION_RE)
+  if (m) return m[1]
+  m = body.match(REMOVED_RE)
+  if (m) return `✖ ${REMOVED_TAPBACK_EMOJI[m[1]] || m[1]}`
+  return null
 }
 
 function linkifyBody(body: string) {
