@@ -163,6 +163,21 @@ const DEFAULT_CUSTOM_HEX = '#3C5C89'
 // (surfaceAlt/ink) bubble backgrounds without a separate per-theme link
 // color. Plain-text segments pass through unchanged.
 const _URL_RE = /(https?:\/\/[^\s<>"')\]]+)/gi
+// iMessage/Android tapbacks arrive as plain text ("Loved “original text”").
+// Show just the emoji instead of repeating the quoted message.
+const REACTION_EMOJI: Record<string, string> = {
+  Loved: '❤️',
+  Liked: '👍',
+  Disliked: '👎',
+  'Laughed at': '😂',
+  Emphasized: '‼️',
+  Questioned: '❓',
+}
+function reactionEmoji(body: string): string | null {
+  const m = body.match(/^(Loved|Liked|Disliked|Laughed at|Emphasized|Questioned) [“"][\s\S]*[”"]$/)
+  return m ? REACTION_EMOJI[m[1]] : null
+}
+
 function linkifyBody(body: string) {
   // split() with a capturing-group regex alternates [text, match, text,
   // match, ...] -- odd indices are always the matched URLs. Re-testing
@@ -2243,7 +2258,7 @@ export default function SmsApp() {
                       onLoad={scrollMessagesToBottom}
                     />
                   )}
-                  {m.body && <span className="whitespace-pre-wrap break-words">{linkifyBody(m.body)}</span>}
+                  {m.body && <span className="whitespace-pre-wrap break-words">{(m.direction === 'in' && reactionEmoji(m.body)) || linkifyBody(m.body)}</span>}
                 </div>
                 {m.direction === 'out' && m.status === 'failed' && (
                   <span className="text-xs px-1" style={{ color: COLORS.clay }}>
