@@ -1073,8 +1073,9 @@ export default function SmsApp() {
     if (!el) return
     const observer = new ResizeObserver(scrollMessagesToBottom)
     observer.observe(el)
+    scrollMessagesToBottom()
     return () => observer.disconnect()
-  }, [])
+  }, [view, activeThread?.id])
 
   // Debounced so a full search query doesn't fire one request per keystroke.
   useEffect(() => {
