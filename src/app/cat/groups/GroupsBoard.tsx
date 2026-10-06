@@ -49,6 +49,8 @@ export default function GroupsBoard() {
   const [guests, setGuests] = useState(0)
   const [headcount, setHeadcount] = useState('')
   const [saved, setSaved] = useState(false)
+  const [confirmRemove, setConfirmRemove] = useState<number | null>(null)
+  const [adding, setAdding] = useState(false)
 
   const load = useCallback(async (s: string, d: string) => {
     const res = await fetch(`/api/cat/groups/state?series=${encodeURIComponent(s)}&date=${encodeURIComponent(d)}`)
@@ -93,6 +95,18 @@ export default function GroupsBoard() {
           : [...roster, { id, name: name ?? '', present }].sort((a, b) => a.name.localeCompare(b.name)),
       }
     })
+  }
+
+  async function removeRegular(id: number) {
+    if (!state?.series || !state.event_date) return
+    setError(null)
+    const res = await fetch('/api/cat/groups/remove', {
+      method: 'POST',
+      body: JSON.stringify({ series: state.series, event_date: state.event_date, member_id: id }),
+    })
+    if (!res.ok) { setError('That did not save. Try again.'); return }
+    setConfirmRemove(null)
+    setState(s => (s ? { ...s, roster: (s.roster ?? []).filter(r => r.id !== id) } : s))
   }
 
   async function search() {
@@ -146,24 +160,40 @@ export default function GroupsBoard() {
             </div>
           ) : (
             <>
-              <p className="text-sm text-gray-500 mb-1">{present} here</p>
+              <p className="text-sm text-gray-500 mb-1">Regulars: {present} of {(state.roster ?? []).length} here</p>
+              {(state.roster ?? []).length === 0 && (
+                <p className="text-sm text-gray-500 mb-2">No regulars yet. Add the people who come to this group below, and they will show up here every week.</p>
+              )}
               <ul className="divide-y divide-gray-200 dark:divide-gray-800 mb-4">
                 {(state.roster ?? []).map(p => (
                   <li key={p.id} className="flex items-center justify-between py-2.5 gap-3">
                     <span className="text-black dark:text-white text-[15px]">{p.name}</span>
-                    <Toggle on={p.present} disabled={pending.has(p.id)} onClick={() => setPresent(p.id, !p.present)} />
+                    <div className="flex items-center gap-3">
+                      {confirmRemove === p.id ? (
+                        <span className="flex items-center gap-2 text-sm">
+                          <button type="button" className="text-red-600" onClick={() => removeRegular(p.id)}>Remove</button>
+                          <button type="button" className="text-gray-500" onClick={() => setConfirmRemove(null)}>Keep</button>
+                        </span>
+                      ) : (
+                        <button type="button" aria-label={`Remove ${p.name} from regulars`} className="text-gray-400 text-lg leading-none"
+                          onClick={() => setConfirmRemove(p.id)}>×</button>
+                      )}
+                      <Toggle on={p.present} disabled={pending.has(p.id)} onClick={() => setPresent(p.id, !p.present)} />
+                    </div>
                   </li>
                 ))}
               </ul>
 
               <div className="mb-4">
-                <label className="block text-sm text-black mb-1">Add someone</label>
-                <div className="flex gap-2">
+                {!adding && (
+                  <button type="button" onClick={() => setAdding(true)} className="text-green-700 font-medium">+ Add a name</button>
+                )}
+                {adding && <div className="flex gap-2">
                   <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && search()}
                     placeholder="Start of a name"
                     className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-black bg-white" />
                   <button type="button" onClick={search} className="px-4 py-2 rounded-lg bg-gray-800 text-white">Find</button>
-                </div>
+                </div>}
                 {candidates && candidates.length === 0 && (
                   <p className="text-sm text-gray-500 mt-2">No match. Check the spelling, or ask staff to add the person to the church database first.</p>
                 )}
@@ -172,7 +202,7 @@ export default function GroupsBoard() {
                     {candidates.map(c => (
                       <li key={c.id}>
                         <button type="button" className="w-full text-left px-3 py-2 text-black"
-                          onClick={() => { setPresent(c.id, true, c.name); setCandidates(null); setQuery('') }}>
+                          onClick={() => { setPresent(c.id, true, c.name); setCandidates(null); setQuery(''); setAdding(false) }}>
                           {c.name}
                         </button>
                       </li>

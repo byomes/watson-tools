@@ -18,7 +18,7 @@ export default async function GroupsPage() {
       <div className="max-w-md mx-auto">
         <h1 className="text-2xl font-bold text-black mb-1">Group Attendance</h1>
         <p className="text-sm text-gray-500 mb-6">
-          Pick your group and the date, then check off everyone who came. Changes save immediately.
+          Your regulars are listed with toggles. Turn on everyone who came, and tap + Add a name for anyone new. They join your regulars. Changes save immediately.
         </p>
         <GroupsBoard />
       </div>
