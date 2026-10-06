@@ -98,15 +98,32 @@ export default function GroupsBoard() {
   }
 
   async function removeRegular(id: number) {
-    if (!state?.series || !state.event_date) return
+    if (!state?.series) return
     setError(null)
     const res = await fetch('/api/cat/groups/remove', {
       method: 'POST',
-      body: JSON.stringify({ series: state.series, event_date: state.event_date, member_id: id }),
+      body: JSON.stringify({ series: state.series, event_date: state.event_date ?? '', member_id: id }),
     })
     if (!res.ok) { setError('That did not save. Try again.'); return }
     setConfirmRemove(null)
     setState(s => (s ? { ...s, roster: (s.roster ?? []).filter(r => r.id !== id) } : s))
+  }
+
+  async function addRegular(id: number, name: string) {
+    if (!state?.series) return
+    setError(null)
+    const res = await fetch('/api/cat/groups/roster_add', {
+      method: 'POST',
+      body: JSON.stringify({ series: state.series, member_id: id }),
+    })
+    if (!res.ok) { setError('That did not save. Try again.'); return }
+    setState(s => {
+      if (!s) return s
+      const roster = s.roster ?? []
+      return roster.some(r => r.id === id)
+        ? s
+        : { ...s, roster: [...roster, { id, name, present: false }].sort((a, b) => a.name.localeCompare(b.name)) }
+    })
   }
 
   async function search() {
@@ -138,8 +155,52 @@ export default function GroupsBoard() {
         {state.series_list.map(s => <option key={s.series} value={s.series}>{s.title}</option>)}
       </select>
 
-      {state.series && (state.dates ?? []).length === 0 && (
-        <p className="text-sm text-gray-500">No sessions of this group have happened yet. Check back after the first one.</p>
+      {state.series && (state.dates ?? []).length === 0 && !state.counts_only && (
+        <div className="mb-4">
+          <p className="text-sm text-gray-500 mb-3">
+            This group has not met yet. Build your list of regulars now. When the first session happens, they will all be here with toggles.
+          </p>
+          <ul className="divide-y divide-gray-200 mb-3">
+            {(state.roster ?? []).map(p => (
+              <li key={p.id} className="flex items-center justify-between py-2.5 gap-3">
+                <span className="text-black text-[15px]">{p.name}</span>
+                {confirmRemove === p.id ? (
+                  <span className="flex items-center gap-2 text-sm">
+                    <button type="button" className="text-red-600" onClick={() => removeRegular(p.id)}>Remove</button>
+                    <button type="button" className="text-gray-500" onClick={() => setConfirmRemove(null)}>Keep</button>
+                  </span>
+                ) : (
+                  <button type="button" aria-label={`Remove ${p.name}`} className="text-gray-400 text-lg leading-none"
+                    onClick={() => setConfirmRemove(p.id)}>×</button>
+                )}
+              </li>
+            ))}
+          </ul>
+          <div className="flex gap-2">
+            <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && search()}
+              placeholder="Start of a name"
+              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-black bg-white" />
+            <button type="button" onClick={search} className="px-4 py-2 rounded-lg bg-gray-800 text-white">Find</button>
+          </div>
+          {candidates && candidates.length === 0 && (
+            <p className="text-sm text-gray-500 mt-2">No match. Check the spelling, or ask staff to add the person to the church database first.</p>
+          )}
+          {candidates && candidates.length > 0 && (
+            <ul className="mt-2 border border-gray-200 rounded-lg divide-y divide-gray-200">
+              {candidates.map(c => (
+                <li key={c.id}>
+                  <button type="button" className="w-full text-left px-3 py-2 text-black"
+                    onClick={() => { addRegular(c.id, c.name); setCandidates(null); setQuery('') }}>
+                    {c.name}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+      {state.series && (state.dates ?? []).length === 0 && state.counts_only && (
+        <p className="text-sm text-gray-500">This group has not met yet. Come back after its first session to enter the head count.</p>
       )}
 
       {state.series && state.event_date && (
