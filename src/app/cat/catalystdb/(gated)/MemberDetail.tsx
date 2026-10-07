@@ -193,6 +193,109 @@ function TeamsSection({ member, teamNames }: { member: Member; teamNames: string
   )
 }
 
+interface AwardRow {
+  label: string
+  status: 'received' | 'needed' | 'none'
+  received_date: string | null
+  eligible_on: string | null
+}
+
+// Service-length awards (6mo, 2yr, then every 5 years): one row per
+// milestone this person has reached, been marked for, or already received.
+// Backed by /api/cat/servants/awards (jobs/congregation/service_awards.py).
+function AwardsSection({ member }: { member: Member }) {
+  const memberId = member.id as number
+  const [awards, setAwards] = useState<AwardRow[] | null>(null)
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [showAll, setShowAll] = useState(false)
+
+  async function load() {
+    try {
+      const res = await fetch(`/api/cat/servants/awards?member_id=${memberId}`)
+      const body = await res.json()
+      if (!res.ok) throw new Error(body.error || 'Failed to load awards')
+      setAwards(body.awards)
+    } catch (e) {
+      setError(String((e as Error).message ?? e))
+    }
+  }
+
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [memberId])
+
+  async function setStatus(label: string, status: string) {
+    setBusy(true)
+    setError('')
+    try {
+      const res = await fetch('/api/cat/servants/awards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ member_id: memberId, label, status }),
+      })
+      const body = await res.json()
+      if (!res.ok) throw new Error(body.error || 'Could not save')
+      setAwards(body.awards)
+    } catch (e) {
+      setError(String((e as Error).message ?? e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const today = new Date().toISOString().slice(0, 10)
+  const visible = (awards ?? []).filter(
+    (a) => showAll || a.status !== 'none' || (a.eligible_on && a.eligible_on <= today)
+  )
+
+  return (
+    <div className="max-w-3xl mx-auto mt-8">
+      <h2 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Service Awards</h2>
+      {error && <p className="text-xs text-red-600 dark:text-red-400 mb-2">{error}</p>}
+      {awards === null ? (
+        <p className="text-sm text-slate-400 dark:text-slate-500">Loading…</p>
+      ) : visible.length === 0 ? (
+        <p className="text-sm text-slate-400 dark:text-slate-500 mb-2">No awards reached yet.</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {visible.map((a) => (
+            <li
+              key={a.label}
+              className="flex items-center justify-between rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2"
+            >
+              <span className="text-sm text-slate-900 dark:text-white">
+                {a.label} pin
+                {a.status === 'received' && a.received_date && (
+                  <span className="text-slate-500 dark:text-slate-400"> (received {a.received_date})</span>
+                )}
+              </span>
+              <select
+                value={a.status}
+                disabled={busy}
+                onChange={(e) => setStatus(a.label, e.target.value)}
+                className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1 text-xs text-slate-900 dark:text-white"
+              >
+                <option value="none">Not marked</option>
+                <option value="needed">Needs to receive</option>
+                <option value="received">Received</option>
+              </select>
+            </li>
+          ))}
+        </ul>
+      )}
+      <button
+        type="button"
+        onClick={() => setShowAll((v) => !v)}
+        className="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400 hover:opacity-80"
+      >
+        {showAll ? 'Hide milestones not reached yet' : 'Show all milestones'}
+      </button>
+    </div>
+  )
+}
+
 export default function MemberDetail({
   member,
   teamNames,
@@ -320,6 +423,7 @@ export default function MemberDetail({
           })}
         </div>
         <TeamsSection member={member} teamNames={teamNames} />
+        <AwardsSection member={member} />
       </div>
     </div>
   )
