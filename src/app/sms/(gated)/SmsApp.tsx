@@ -1594,6 +1594,8 @@ export default function SmsApp() {
       {/* ---- LIST VIEW ---- */}
       {view === 'list' && (
         <div className="flex flex-col min-h-screen">
+          {/* Top controls + search stay pinned while the thread list scrolls behind them. */}
+          <div className="sticky top-0 z-30" style={{ background: COLORS.bg }}>
           <div className="flex items-center justify-between px-5 pt-6 pb-3">
             <div className="flex items-center gap-2 w-full">
               {isDev && (
@@ -1762,6 +1764,7 @@ export default function SmsApp() {
                 style={{ color: COLORS.ink }}
               />
             </div>
+          </div>
           </div>
 
           <div
