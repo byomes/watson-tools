@@ -39,6 +39,84 @@ function isLeader(position: string | null): boolean {
   return (position ?? '').toLowerCase().includes('leader')
 }
 
+interface AwardRow {
+  label: string
+  status: 'received' | 'needed' | 'none'
+  received_date: string | null
+  eligible_on: string | null
+}
+
+// Service-length awards for one person (6mo, 2yr, then every 5 years).
+// Each dropdown saves immediately via /api/cat/servants/awards -- it is
+// independent of the Save button above, which only covers role/date.
+function AwardsEditor({ memberId }: { memberId: number }) {
+  const [awards, setAwards] = useState<AwardRow[] | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let live = true
+    fetch(`/api/cat/servants/awards?member_id=${memberId}`)
+      .then(async (r) => {
+        const b = await r.json()
+        if (!r.ok) throw new Error(b.error || 'Failed to load awards')
+        if (live) setAwards(b.awards)
+      })
+      .catch((e) => live && setError(String(e.message ?? e)))
+    return () => {
+      live = false
+    }
+  }, [memberId])
+
+  const change = async (label: string, status: string) => {
+    setBusy(true)
+    setError(null)
+    try {
+      const r = await fetch('/api/cat/servants/awards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ member_id: memberId, label, status }),
+      })
+      const b = await r.json()
+      if (!r.ok) throw new Error(b.error || 'Could not save award')
+      setAwards(b.awards)
+    } catch (e) {
+      setError(String((e as Error).message ?? e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const today = new Date().toISOString().slice(0, 10)
+  const rows = (awards ?? []).filter((a) => a.status !== 'none' || (a.eligible_on && a.eligible_on <= today))
+
+  return (
+    <div className="mb-3">
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Service awards (saves immediately)</p>
+      {awards === null && !error && <p className="text-xs text-gray-400">Loading…</p>}
+      {awards !== null && rows.length === 0 && <p className="text-xs text-gray-400">No awards reached yet.</p>}
+      <ul>
+        {rows.map((a) => (
+          <li key={a.label} className="flex items-center justify-between py-1">
+            <span className="text-sm text-black dark:text-white">{a.label} pin</span>
+            <select
+              value={a.status}
+              disabled={busy}
+              onChange={(e) => change(a.label, e.target.value)}
+              className="border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 text-sm text-black dark:text-white bg-white dark:bg-gray-800"
+            >
+              <option value="none">Not marked</option>
+              <option value="needed">Needs to receive</option>
+              <option value="received">Received</option>
+            </select>
+          </li>
+        ))}
+      </ul>
+      {error && <p className="text-red-600 dark:text-red-400 text-xs mt-1">{error}</p>}
+    </div>
+  )
+}
+
 // Inline edit form for one existing roster row — reuses the same
 // /api/cat/servants/add endpoint the "Add Person" flow uses: passing an
 // already-known member_id skips that endpoint's name-resolution entirely,
@@ -101,6 +179,7 @@ function EditServantForm({
         onChange={(e) => setDate(e.target.value)}
         className="w-full mb-3 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-black dark:text-white bg-white dark:bg-gray-800"
       />
+      <AwardsEditor memberId={member.id} />
       {error && <p className="text-red-600 dark:text-red-400 text-xs mb-2">{error}</p>}
       <div className="flex gap-2">
         <button
