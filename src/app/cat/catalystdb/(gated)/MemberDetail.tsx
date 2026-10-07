@@ -20,9 +20,12 @@ interface ServantsState {
 // /api/cat/servants/{state,add,remove} endpoints that already back
 // wtsn.me/cat/servants (see jobs/congregation/servants_web.py), just
 // scoped to one member_id instead of rendering the whole roster.
-function TeamsSection({ member }: { member: Member }) {
+function TeamsSection({ member, teamNames }: { member: Member; teamNames: string[] }) {
   const memberId = member.id as number
-  const [allTeams, setAllTeams] = useState<string[]>([])
+  // Dropdown options = the same list the members-view filter uses (teamNames, from the board's /state), plus any team created
+  // from this card this session. Not the servants-page roster, which hides teams whose members are all deactivated.
+  const [createdTeams, setCreatedTeams] = useState<string[]>([])
+  const allTeams = Array.from(new Set([...teamNames, ...createdTeams])).sort()
   const [teams, setTeams] = useState<TeamMembership[] | null>(null)
   const [error, setError] = useState('')
   const [addTeam, setAddTeam] = useState('')
@@ -35,7 +38,6 @@ function TeamsSection({ member }: { member: Member }) {
       const res = await fetch('/api/cat/servants/state')
       if (!res.ok) throw new Error('Failed to load teams')
       const data: ServantsState = await res.json()
-      setAllTeams(data.teams.map((t) => t.team_name).sort())
       setTeams(
         data.teams
           .filter((t) => t.members.some((m) => m.id === memberId))
@@ -73,6 +75,7 @@ function TeamsSection({ member }: { member: Member }) {
       })
       const body = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(body.error || 'Could not add to team')
+      setCreatedTeams((c) => (c.includes(teamName) ? c : [...c, teamName]))
       setAddTeam('')
       setCustomTeam('')
       setAddPosition('')
@@ -103,7 +106,7 @@ function TeamsSection({ member }: { member: Member }) {
     }
   }
 
-  const joinable = allTeams.filter((t) => !teams?.some((tm) => tm.team_name === t))
+  const isOn = (t: string) => !!teams?.some((tm) => tm.team_name === t)
 
   return (
     <div className="max-w-3xl mx-auto mt-8">
@@ -146,9 +149,11 @@ function TeamsSection({ member }: { member: Member }) {
             className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-sm text-slate-900 dark:text-white"
           >
             <option value="">Select a team…</option>
-            {joinable.map((t) => (
-              <option key={t} value={t}>
+            {/* The full list, same as the members-view filter; teams this person is already on are shown but cannot be picked. */}
+            {allTeams.map((t) => (
+              <option key={t} value={t} disabled={isOn(t)}>
                 {t}
+                {isOn(t) ? ' (already on)' : ''}
               </option>
             ))}
             <option value="__custom__">New team…</option>
@@ -190,12 +195,14 @@ function TeamsSection({ member }: { member: Member }) {
 
 export default function MemberDetail({
   member,
+  teamNames,
   onClose,
   onSave,
   onDeactivate,
   onDelete,
 }: {
   member: Member
+  teamNames: string[]
   onClose: () => void
   onSave: (changes: Record<string, string | number>) => Promise<void>
   onDeactivate: () => void
@@ -312,7 +319,7 @@ export default function MemberDetail({
             )
           })}
         </div>
-        <TeamsSection member={member} />
+        <TeamsSection member={member} teamNames={teamNames} />
       </div>
     </div>
   )

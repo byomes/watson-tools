@@ -353,6 +353,7 @@ export default function CatalystDBBoard() {
     return (
       <MemberDetail
         member={openMember}
+        teamNames={teamNames}
         onClose={() => setOpenId(null)}
         onSave={(changes) => saveDetail(openId as number, changes)}
         onDeactivate={() => deactivateOne(openId as number)}
