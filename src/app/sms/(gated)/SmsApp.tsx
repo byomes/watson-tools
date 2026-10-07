@@ -62,7 +62,7 @@ type Context = {
 
 type View = 'list' | 'thread' | 'templates' | 'settings' | 'broadcast' | 'broadcastHistory'
 
-type GroupFilter = { deacons?: string[]; teams?: string[]; roles?: string[]; campuses?: string[]; events?: number[] }
+type GroupFilter = { deacons?: string[]; teams?: string[]; roles?: string[]; campuses?: string[]; events?: number[]; gender?: 'male' | 'female'; attendance?: { mode: 'attended' | 'not_attended'; weeks: number } }
 type SmsGroup = { id: number; name: string; filter: GroupFilter; active_only: boolean; manual_only: boolean; recipient_count: number }
 type EventOption = { id: number; name: string; date: string }
 type GroupOptions = { deacons: string[]; teams: string[]; roles: string[]; campuses: string[]; events: EventOption[] }
@@ -541,6 +541,9 @@ export default function SmsApp() {
   const [selRoles, setSelRoles] = useState<string[]>([])
   const [selCampuses, setSelCampuses] = useState<string[]>([])
   const [selEvents, setSelEvents] = useState<number[]>([])
+  const [selGender, setSelGender] = useState<'' | 'male' | 'female'>('')
+  const [attMode, setAttMode] = useState<'' | 'attended' | 'not_attended'>('')
+  const [attWeeks, setAttWeeks] = useState(4)
   const [broadcastActiveOnly, setBroadcastActiveOnly] = useState(true)
   const [manualRecipients, setManualRecipients] = useState<{ member_id: number | null; phone: string; name: string }[]>([])
   const [manualQuery, setManualQuery] = useState('')
@@ -729,6 +732,9 @@ export default function SmsApp() {
     setSelRoles([])
     setSelCampuses([])
     setSelEvents([])
+      setSelGender('')
+      setAttMode('')
+      setAttWeeks(4)
     setBroadcastActiveOnly(true)
     setManualRecipients([])
     setManualQuery('')
@@ -769,6 +775,9 @@ export default function SmsApp() {
       setSelRoles([])
       setSelCampuses([])
       setSelEvents([])
+      setSelGender('')
+      setAttMode('')
+      setAttWeeks(4)
       setBroadcastActiveOnly(true)
       return
     }
@@ -780,6 +789,9 @@ export default function SmsApp() {
     setSelRoles(g.filter.roles ?? [])
     setSelCampuses(g.filter.campuses ?? [])
     setSelEvents(g.filter.events ?? [])
+    setSelGender(g.filter.gender ?? '')
+    setAttMode(g.filter.attendance?.mode ?? '')
+    setAttWeeks(g.filter.attendance?.weeks ?? 4)
     setBroadcastActiveOnly(g.active_only)
     try {
       const data = await api<{ overrides: { member_id: number | null; phone: string; contact_name: string | null; mode: string }[] }>(
@@ -804,12 +816,20 @@ export default function SmsApp() {
   }
 
   const currentFilter = useMemo<GroupFilter>(
-    () => ({ deacons: selDeacons, teams: selTeams, roles: selRoles, campuses: selCampuses, events: selEvents }),
-    [selDeacons, selTeams, selRoles, selCampuses, selEvents],
+    () => ({
+      deacons: selDeacons,
+      teams: selTeams,
+      roles: selRoles,
+      campuses: selCampuses,
+      events: selEvents,
+      ...(selGender ? { gender: selGender } : {}),
+      ...(attMode && attWeeks >= 1 ? { attendance: { mode: attMode, weeks: attWeeks } } : {}),
+    }),
+    [selDeacons, selTeams, selRoles, selCampuses, selEvents, selGender, attMode, attWeeks],
   )
 
   const isEveryone =
-    selDeacons.length === 0 && selTeams.length === 0 && selRoles.length === 0 && selCampuses.length === 0 && selEvents.length === 0
+    selDeacons.length === 0 && selTeams.length === 0 && selRoles.length === 0 && selCampuses.length === 0 && selEvents.length === 0 && !selGender && !attMode
 
   // Live recipient-count preview as the group definition changes, debounced
   // so every checkbox click doesn't fire its own request.
@@ -2644,6 +2664,72 @@ export default function SmsApp() {
                       Signups for the selected event(s) are included regardless of active/inactive status.
                     </p>
                   )}
+                </div>
+              )}
+              {audienceMode === 'filtered' && (
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs font-medium" style={{ color: COLORS.inkSoft }}>Gender (narrows the above)</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {([['', 'Everyone'], ['male', 'Males only'], ['female', 'Females only']] as const).map(([val, label]) => (
+                      <button
+                        key={val}
+                        onClick={() => {
+                          setSelectedGroupId(null)
+                          setSelGender(val)
+                        }}
+                        className="text-xs px-2.5 py-1 rounded-full border"
+                        style={
+                          selGender === val
+                            ? { background: COLORS.tagblueSoft, borderColor: COLORS.tagblue, color: COLORS.tagblue }
+                            : { borderColor: COLORS.line, color: COLORS.inkSoft }
+                        }
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {audienceMode === 'filtered' && (
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs font-medium" style={{ color: COLORS.inkSoft }}>Attendance (narrows the above)</span>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {([['', 'Any'], ['attended', 'Attended'], ['not_attended', 'Have not attended']] as const).map(([val, label]) => (
+                      <button
+                        key={val}
+                        onClick={() => {
+                          setSelectedGroupId(null)
+                          setAttMode(val)
+                        }}
+                        className="text-xs px-2.5 py-1 rounded-full border"
+                        style={
+                          attMode === val
+                            ? { background: COLORS.tagblueSoft, borderColor: COLORS.tagblue, color: COLORS.tagblue }
+                            : { borderColor: COLORS.line, color: COLORS.inkSoft }
+                        }
+                      >
+                        {label}
+                      </button>
+                    ))}
+                    {attMode && (
+                      <span className="flex items-center gap-1 text-xs" style={{ color: COLORS.inkSoft }}>
+                        in the last
+                        <input
+                          type="number"
+                          min={1}
+                          max={104}
+                          value={attWeeks}
+                          onChange={(e) => {
+                            setSelectedGroupId(null)
+                            setAttWeeks(Math.max(1, Math.min(104, parseInt(e.target.value) || 1)))
+                          }}
+                          className="w-14 text-xs px-1.5 py-1 rounded border"
+                          style={{ borderColor: COLORS.line, color: COLORS.ink }}
+                        />
+                        weeks
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
               {audienceMode === 'filtered' && (
