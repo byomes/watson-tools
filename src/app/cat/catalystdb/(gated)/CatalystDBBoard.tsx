@@ -5,6 +5,7 @@ import { COLUMNS, FILTERABLE, type Col } from './columns'
 import MemberDetail from './MemberDetail'
 import HouseholdsView from './HouseholdsView'
 import MergeConfirm from './MergeConfirm'
+import TeamFilter, { NONE_KEY } from './TeamFilter'
 
 type Member = Record<string, string | number | null>
 
@@ -67,6 +68,9 @@ export default function CatalystDBBoard() {
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [filters, setFilters] = useState<Record<string, string>>({})
+  const [serving, setServing] = useState<Record<string, string[]>>({})
+  const [teamNames, setTeamNames] = useState<string[]>([])
+  const [teamFilter, setTeamFilter] = useState<string[]>([])
   const [firstVisitRange, setFirstVisitRange] = useState<{ from: string; to: string }>({ from: '', to: '' })
   const [sort, setSort] = useState<{ key: string; dir: 1 | -1 }>({ key: 'name', dir: 1 })
   const [view, setView] = useState<'members' | 'households'>('members')
@@ -91,9 +95,31 @@ export default function CatalystDBBoard() {
 
   useEffect(() => {
     api('state')
-      .then((d) => setMembers(d.members))
+      .then((d) => {
+        setMembers(d.members)
+        setServing(d.serving ?? {})
+        setTeamNames(d.teams ?? [])
+      })
       .catch((e) => setError(String(e.message ?? e)))
   }, [])
+
+  // Teams are edited inside the profile card (its own calls), so re-read the team map when a card closes: the filter and the
+  // list then reflect any adds/removes made there.
+  const wasOpen = useRef(false)
+  useEffect(() => {
+    if (openId != null) {
+      wasOpen.current = true
+      return
+    }
+    if (!wasOpen.current) return
+    wasOpen.current = false
+    api('state')
+      .then((d) => {
+        setServing(d.serving ?? {})
+        setTeamNames(d.teams ?? [])
+      })
+      .catch(() => {})
+  }, [openId])
 
   useEffect(() => {
     if (!showColPicker) return
@@ -127,6 +153,11 @@ export default function CatalystDBBoard() {
         if (key === 'active' && val === '__deactivated__' && !isDeactivated(m)) return false
         if (val !== '__active__' && val !== '__inactive__' && val !== '__deactivated__' && cur !== val) return false
       }
+      if (teamFilter.length) {
+        const mine = serving[String(m.id)] ?? []
+        const hit = teamFilter.some((t) => (t === NONE_KEY ? mine.length === 0 : mine.includes(t)))
+        if (!hit) return false
+      }
       if (firstVisitRange.from || firstVisitRange.to) {
         const fv = String(m.first_visit_date ?? '')
         if (!fv) return false
@@ -141,7 +172,7 @@ export default function CatalystDBBoard() {
       return av < bv ? -sort.dir : av > bv ? sort.dir : 0
     })
     return rows
-  }, [members, search, filters, firstVisitRange, sort])
+  }, [members, search, filters, teamFilter, serving, firstVisitRange, sort])
 
   const householdIds = useMemo(
     () => Array.from(new Set((members ?? []).map((m) => String(m.household_id ?? '').trim()).filter(Boolean))),
@@ -424,9 +455,10 @@ export default function CatalystDBBoard() {
               <button
                 onClick={() => {
                   setFilters({})
+                  setTeamFilter([])
                   setFirstVisitRange({ from: '', to: '' })
                 }}
-                disabled={!Object.values(filters).some((v) => v) && !firstVisitRange.from && !firstVisitRange.to}
+                disabled={!Object.values(filters).some((v) => v) && !teamFilter.length && !firstVisitRange.from && !firstVisitRange.to}
                 className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Reset Filters
@@ -452,6 +484,7 @@ export default function CatalystDBBoard() {
                       ))}
                 </select>
               ))}
+              <TeamFilter teams={teamNames} selected={teamFilter} onChange={setTeamFilter} />
               <div className="flex items-center gap-1.5">
                 <span className="text-xs text-slate-500 dark:text-slate-400">First visit</span>
                 <input
@@ -494,7 +527,7 @@ export default function CatalystDBBoard() {
               className="relative rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300"
             >
               Filters
-              {(Object.values(filters).some(Boolean) || firstVisitRange.from || firstVisitRange.to) && (
+              {(Object.values(filters).some(Boolean) || teamFilter.length > 0 || firstVisitRange.from || firstVisitRange.to) && (
                 <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-blue-500" />
               )}
             </button>
@@ -544,9 +577,10 @@ export default function CatalystDBBoard() {
             <button
               onClick={() => {
                 setFilters({})
+                setTeamFilter([])
                 setFirstVisitRange({ from: '', to: '' })
               }}
-              disabled={!Object.values(filters).some((v) => v) && !firstVisitRange.from && !firstVisitRange.to}
+              disabled={!Object.values(filters).some((v) => v) && !teamFilter.length && !firstVisitRange.from && !firstVisitRange.to}
               className="w-full rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Reset Filters
@@ -590,6 +624,7 @@ export default function CatalystDBBoard() {
                     ))}
               </select>
             ))}
+            <TeamFilter teams={teamNames} selected={teamFilter} onChange={setTeamFilter} fullWidth />
             <div className="flex items-center gap-2">
               <span className="text-sm text-slate-500 dark:text-slate-400 shrink-0">First visit</span>
               <input
