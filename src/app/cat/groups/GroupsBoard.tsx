@@ -36,7 +36,7 @@ function Toggle({ on, onClick, disabled }: { on: boolean; onClick: () => void; d
   )
 }
 
-const selectCls = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-[15px] text-black bg-white mb-3'
+const selectCls = 'w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-[15px] text-black dark:text-white bg-white dark:bg-gray-900 mb-3'
 
 export default function GroupsBoard() {
   const [state, setState] = useState<State | null>(null)
@@ -145,7 +145,7 @@ export default function GroupsBoard() {
     setTimeout(() => setSaved(false), 1500)
   }
 
-  if (!state) return <p className="text-gray-500">{error ?? 'Loading...'}</p>
+  if (!state) return <p className="text-gray-500 dark:text-gray-400">{error ?? 'Loading...'}</p>
 
   const present = (state.roster ?? []).filter(r => r.present).length
   return (
@@ -157,17 +157,17 @@ export default function GroupsBoard() {
 
       {state.series && (state.dates ?? []).length === 0 && !state.counts_only && (
         <div className="mb-4">
-          <p className="text-sm text-gray-500 mb-3">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
             This group has not met yet. Build your list of regulars now. When the first session happens, they will all be here with toggles.
           </p>
-          <ul className="divide-y divide-gray-200 mb-3">
+          <ul className="divide-y divide-gray-200 dark:divide-gray-800 mb-3">
             {(state.roster ?? []).map(p => (
               <li key={p.id} className="flex items-center justify-between py-2.5 gap-3">
-                <span className="text-black text-[15px]">{p.name}</span>
+                <span className="text-black dark:text-white text-[15px]">{p.name}</span>
                 {confirmRemove === p.id ? (
                   <span className="flex items-center gap-2 text-sm">
                     <button type="button" className="text-red-600" onClick={() => removeRegular(p.id)}>Remove</button>
-                    <button type="button" className="text-gray-500" onClick={() => setConfirmRemove(null)}>Keep</button>
+                    <button type="button" className="text-gray-500 dark:text-gray-400" onClick={() => setConfirmRemove(null)}>Keep</button>
                   </span>
                 ) : (
                   <button type="button" aria-label={`Remove ${p.name}`} className="text-gray-400 text-lg leading-none"
@@ -179,17 +179,17 @@ export default function GroupsBoard() {
           <div className="flex gap-2">
             <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && search()}
               placeholder="Start of a name"
-              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-black bg-white" />
-            <button type="button" onClick={search} className="px-4 py-2 rounded-lg bg-gray-800 text-white">Find</button>
+              className="flex-1 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-black dark:text-white bg-white dark:bg-gray-900" />
+            <button type="button" onClick={search} className="px-4 py-2 rounded-lg bg-gray-800 dark:bg-gray-700 text-white">Find</button>
           </div>
           {candidates && candidates.length === 0 && (
-            <p className="text-sm text-gray-500 mt-2">No match. Check the spelling, or ask staff to add the person to the church database first.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">No match. Check the spelling, or ask staff to add the person to the church database first.</p>
           )}
           {candidates && candidates.length > 0 && (
-            <ul className="mt-2 border border-gray-200 rounded-lg divide-y divide-gray-200">
+            <ul className="mt-2 border border-gray-200 dark:border-gray-800 rounded-lg divide-y divide-gray-200 dark:divide-gray-800">
               {candidates.map(c => (
                 <li key={c.id}>
-                  <button type="button" className="w-full text-left px-3 py-2 text-black"
+                  <button type="button" className="w-full text-left px-3 py-2 text-black dark:text-white"
                     onClick={() => { addRegular(c.id, c.name); setCandidates(null); setQuery('') }}>
                     {c.name}
                   </button>
@@ -200,7 +200,7 @@ export default function GroupsBoard() {
         </div>
       )}
       {state.series && (state.dates ?? []).length === 0 && state.counts_only && (
-        <p className="text-sm text-gray-500">This group has not met yet. Come back after its first session to enter the head count.</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">This group has not met yet. Come back after its first session to enter the head count.</p>
       )}
 
       {state.series && state.event_date && (
@@ -211,19 +211,19 @@ export default function GroupsBoard() {
 
           {state.counts_only ? (
             <div>
-              <p className="text-sm text-gray-500 mb-3">This group records a head count only. No names are kept.</p>
-              <label className="block text-sm text-black mb-1">How many were there?</label>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">This group records a head count only. No names are kept.</p>
+              <label className="block text-sm text-black dark:text-white mb-1">How many were there?</label>
               <input type="number" min={0} max={500} inputMode="numeric" value={headcount}
                 onChange={e => setHeadcount(e.target.value)}
-                className="w-28 border border-gray-300 rounded-lg px-3 py-2 text-black bg-white mr-3" />
+                className="w-28 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-black dark:text-white bg-white dark:bg-gray-900 mr-3" />
               <button type="button" onClick={saveCounts} disabled={headcount === ''}
                 className="px-4 py-2 rounded-lg bg-green-600 text-white disabled:opacity-50">{saved ? 'Saved' : 'Save'}</button>
             </div>
           ) : (
             <>
-              <p className="text-sm text-gray-500 mb-1">Regulars: {present} of {(state.roster ?? []).length} here</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Regulars: {present} of {(state.roster ?? []).length} here</p>
               {(state.roster ?? []).length === 0 && (
-                <p className="text-sm text-gray-500 mb-2">No regulars yet. Add the people who come to this group below, and they will show up here every week.</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">No regulars yet. Add the people who come to this group below, and they will show up here every week.</p>
               )}
               <ul className="divide-y divide-gray-200 dark:divide-gray-800 mb-4">
                 {(state.roster ?? []).map(p => (
@@ -233,7 +233,7 @@ export default function GroupsBoard() {
                       {confirmRemove === p.id ? (
                         <span className="flex items-center gap-2 text-sm">
                           <button type="button" className="text-red-600" onClick={() => removeRegular(p.id)}>Remove</button>
-                          <button type="button" className="text-gray-500" onClick={() => setConfirmRemove(null)}>Keep</button>
+                          <button type="button" className="text-gray-500 dark:text-gray-400" onClick={() => setConfirmRemove(null)}>Keep</button>
                         </span>
                       ) : (
                         <button type="button" aria-label={`Remove ${p.name} from regulars`} className="text-gray-400 text-lg leading-none"
@@ -252,17 +252,17 @@ export default function GroupsBoard() {
                 {adding && <div className="flex gap-2">
                   <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && search()}
                     placeholder="Start of a name"
-                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-black bg-white" />
-                  <button type="button" onClick={search} className="px-4 py-2 rounded-lg bg-gray-800 text-white">Find</button>
+                    className="flex-1 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-black dark:text-white bg-white dark:bg-gray-900" />
+                  <button type="button" onClick={search} className="px-4 py-2 rounded-lg bg-gray-800 dark:bg-gray-700 text-white">Find</button>
                 </div>}
                 {candidates && candidates.length === 0 && (
-                  <p className="text-sm text-gray-500 mt-2">No match. Check the spelling, or ask staff to add the person to the church database first.</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">No match. Check the spelling, or ask staff to add the person to the church database first.</p>
                 )}
                 {candidates && candidates.length > 0 && (
-                  <ul className="mt-2 border border-gray-200 rounded-lg divide-y divide-gray-200">
+                  <ul className="mt-2 border border-gray-200 dark:border-gray-800 rounded-lg divide-y divide-gray-200 dark:divide-gray-800">
                     {candidates.map(c => (
                       <li key={c.id}>
-                        <button type="button" className="w-full text-left px-3 py-2 text-black"
+                        <button type="button" className="w-full text-left px-3 py-2 text-black dark:text-white"
                           onClick={() => { setPresent(c.id, true, c.name); setCandidates(null); setQuery(''); setAdding(false) }}>
                           {c.name}
                         </button>
@@ -273,10 +273,10 @@ export default function GroupsBoard() {
               </div>
 
               <div className="flex items-center gap-3">
-                <span className="text-sm text-black">Guests (not in the church database)</span>
+                <span className="text-sm text-black dark:text-white">Guests (not in the church database)</span>
                 <input type="number" min={0} max={100} inputMode="numeric" value={guests}
                   onChange={e => setGuests(Math.max(0, Number(e.target.value) || 0))}
-                  className="w-16 border border-gray-300 rounded-lg px-2 py-1 text-black bg-white" />
+                  className="w-16 border border-gray-300 dark:border-gray-700 rounded-lg px-2 py-1 text-black dark:text-white bg-white dark:bg-gray-900" />
                 <button type="button" onClick={saveCounts} className="px-3 py-1 rounded-lg bg-green-600 text-white">{saved ? 'Saved' : 'Save'}</button>
               </div>
             </>

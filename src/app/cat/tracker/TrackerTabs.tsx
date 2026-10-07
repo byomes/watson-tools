@@ -6,6 +6,7 @@ import KidsAttendanceBoard from '../kidsatt/KidsAttendanceBoard'
 import BatchImportButton from '../kidsatt/BatchImportButton'
 import GroupsBoard from '../groups/GroupsBoard'
 import ServingBoard from '../serving/ServingBoard'
+import { useTrackerTheme } from '@/lib/trackerTheme'
 
 // One place to record everything: Sunday adult attendance, kids attendance,
 // small group/event attendance, and who served. Each tab is the same board
@@ -20,6 +21,14 @@ const icon = (children: ReactNode) => (
     {children}
   </svg>
 )
+
+function SunIcon() {
+  return icon(<><circle cx="12" cy="12" r="4" /><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8l1.8-1.8M18 6l1.8-1.8" /></>)
+}
+
+function MoonIcon() {
+  return icon(<path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" />)
+}
 
 const TABS: { id: Tab; label: string; title: string; hint: string; icon: ReactNode }[] = [
   {
@@ -58,6 +67,7 @@ function subscribeToUrl(cb: () => void) {
 const urlTab = () => new URLSearchParams(window.location.search).get('tab') ?? ''
 
 export default function TrackerTabs() {
+  const [theme, toggleTheme] = useTrackerTheme()
   const fromUrl = useSyncExternalStore(subscribeToUrl, urlTab, () => '')
   const [picked, setPicked] = useState<Tab | null>(null)
   const [visited, setVisited] = useState<Set<Tab>>(new Set())
@@ -72,13 +82,25 @@ export default function TrackerTabs() {
 
   const current = TABS.find(t => t.id === tab)!
   return (
-    <div className="flex flex-col h-dvh bg-white">
-      <div className="shrink-0 border-b border-gray-200 px-4 py-3">
+    <div className="flex flex-col h-dvh bg-white dark:bg-gray-950">
+      {/* The `.dark` class lives on <html> (applied by useTrackerTheme), not here, so the phone's
+        status bar / browser chrome -- which samples the real page background -- follows the toggle. */}
+      <div className="shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3">
         <div className="max-w-md mx-auto flex items-center justify-between gap-3">
-          <h1 className="text-xl font-bold text-black">{current.title}</h1>
-          {tab === 'kids' && <BatchImportButton />}
+          <h1 className="text-xl font-bold text-black dark:text-white">{current.title}</h1>
+          <div className="flex items-center gap-1">
+            {tab === 'kids' && <BatchImportButton />}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              className="w-[45px] h-[45px] flex items-center justify-center text-gray-500 dark:text-gray-400 active:opacity-60"
+            >
+              {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+            </button>
+          </div>
         </div>
-        <p className="max-w-md mx-auto text-xs text-gray-500 mt-0.5">{current.hint}</p>
+        <p className="max-w-md mx-auto text-xs text-gray-500 dark:text-gray-400 mt-0.5">{current.hint}</p>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-5">
@@ -92,7 +114,7 @@ export default function TrackerTabs() {
         </div>
       </div>
 
-      <nav className="shrink-0 bg-white border-t border-gray-200 flex pb-[env(safe-area-inset-bottom)]">
+      <nav className="shrink-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 flex pb-[env(safe-area-inset-bottom)]">
         {TABS.map(t => {
           const active = tab === t.id
           return (
@@ -101,7 +123,7 @@ export default function TrackerTabs() {
               type="button"
               onClick={() => choose(t.id)}
               aria-current={active ? 'page' : undefined}
-              className={`flex-1 flex flex-col items-center justify-center gap-1 py-4 transition ${active ? 'text-black' : 'text-gray-400'}`}
+              className={`flex-1 flex flex-col items-center justify-center gap-1 py-4 transition ${active ? 'text-black dark:text-white' : 'text-gray-400 dark:text-gray-500'}`}
             >
               {t.icon}
               <span className={`text-[11px] ${active ? 'font-semibold' : 'font-medium'}`}>{t.label}</span>
