@@ -148,11 +148,14 @@ export default function GroupsBoard() {
 
   if (!state) return <p className="text-gray-500 dark:text-gray-400">{error ?? 'Loading...'}</p>
 
-  const roster = state.roster ?? []
-  const present = roster.filter(r => r.present).length
+  const present = (state.roster ?? []).filter(r => r.present).length
   // Signed up (Subsplash) and actually came are tracked separately. Only meaningful when the
   // session has a sign-up form; otherwise every pill and count below stays hidden.
   const known = !!state.registration_known
+  // Sign-up sessions: the registered list leads, regulars and walk-ins follow. Other groups: regulars only, all unchecked.
+  const roster = known
+    ? [...(state.roster ?? [])].sort((a, b) => Number(!!b.registered) - Number(!!a.registered) || a.name.localeCompare(b.name))
+    : (state.roster ?? [])
   const registeredCount = roster.filter(r => r.registered).length
   const noShows = roster.filter(r => r.registered && !r.present)
   const walkIns = roster.filter(r => r.present && !r.registered)
@@ -160,7 +163,7 @@ export default function GroupsBoard() {
     if (!known) return null
     const base = 'text-xs rounded-full px-2 py-0.5 ml-2 align-middle'
     if (p.registered && p.present) return <span className={`${base} bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200`}>Registered</span>
-    if (p.registered) return <span className={`${base} bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200`}>Registered, not here</span>
+    if (p.registered) return <span className={`${base} bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300`}>Registered</span>
     if (p.present) return <span className={`${base} bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200`}>Walk-in</span>
     return null
   }
@@ -240,17 +243,17 @@ export default function GroupsBoard() {
               {known ? (
                 <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
                   <p>Registered: {registeredCount} · Attended: {present}</p>
-                  {noShows.length > 0 && <p>Registered but did not come: {noShows.map(p => p.name).join(', ')}</p>}
+                  {noShows.length > 0 && <p>Registered, not checked in: {noShows.map(p => p.name).join(', ')}</p>}
                   {walkIns.length > 0 && <p>Came without registering: {walkIns.map(p => p.name).join(', ')}</p>}
                 </div>
               ) : (
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Regulars: {present} of {roster.length} here</p>
               )}
-              {(state.roster ?? []).length === 0 && (
+              {roster.length === 0 && (
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">No regulars yet. Add the people who come to this group below, and they will show up here every week.</p>
               )}
               <ul className="divide-y divide-gray-200 dark:divide-gray-800 mb-4">
-                {(state.roster ?? []).map(p => (
+                {roster.map(p => (
                   <li key={p.id} className="flex items-center justify-between py-2.5 gap-3">
                     <span className="text-black dark:text-white text-[15px]">{p.name}{pill(p)}</span>
                     <div className="flex items-center gap-3">
