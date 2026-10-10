@@ -7,6 +7,9 @@ interface Servant {
   name: string
   position: string | null
   served: boolean
+  // Rostered for this Sunday in the church's volunteer schedule. Only means "was scheduled"; whether they served is the toggle.
+  scheduled?: boolean
+  scheduled_role?: string | null
 }
 
 interface Team {
@@ -78,6 +81,14 @@ function ServantRow({
         <span className={`text-black dark:text-white text-[15px] ${isLeader(member.position) ? 'font-semibold' : ''}`}>
           {member.name}
         </span>
+        {member.scheduled && (
+          <span
+            title={member.scheduled_role ? `Scheduled: ${member.scheduled_role}` : 'Scheduled'}
+            className="text-xs rounded-full px-2 py-0.5 ml-2 align-middle bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200"
+          >
+            Scheduled
+          </span>
+        )}
         {member.position && (
           <span className="block text-xs text-gray-500 dark:text-gray-400">{member.position}</span>
         )}
