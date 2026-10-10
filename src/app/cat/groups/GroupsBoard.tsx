@@ -122,7 +122,7 @@ export default function GroupsBoard() {
       if (!s) return s
       const roster = s.roster ?? []
       return roster.some(r => r.id === id)
-        ? s
+        ? { ...s, roster: roster.map(r => (r.id === id ? { ...r, regular: true } : r)) }
         : { ...s, roster: [...roster, { id, name, present: false }].sort((a, b) => a.name.localeCompare(b.name)) }
     })
   }
@@ -257,6 +257,9 @@ export default function GroupsBoard() {
                   <li key={p.id} className="flex items-center justify-between py-2.5 gap-3">
                     <span className="text-black dark:text-white text-[15px]">{p.name}{pill(p)}</span>
                     <div className="flex items-center gap-3">
+                      {p.regular === false && (
+                        <button type="button" className="text-xs text-green-700 dark:text-green-400" onClick={() => addRegular(p.id, p.name)}>Make regular</button>
+                      )}
                       {confirmRemove === p.id ? (
                         <span className="flex items-center gap-2 text-sm">
                           <button type="button" className="text-red-600" onClick={() => removeRegular(p.id)}>Remove</button>
