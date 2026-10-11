@@ -29,6 +29,11 @@ interface Candidate {
   started_serving_date: string | null
 }
 
+// Display-only renames. The stored team_name stays the key for check-offs and history.
+const TEAM_LABELS: Record<string, string> = {
+  '9AM NURSERY TEAM': '9AM KIDS TEAM',
+}
+
 function isLeader(position: string | null): boolean {
   return (position ?? '').toLowerCase().includes('leader')
 }
@@ -299,7 +304,7 @@ function TeamSection({
     <section className="mb-6">
       <details open={isAdding}>
         <summary className="text-lg font-semibold text-black dark:text-white mb-2 cursor-pointer select-none">
-          {team.team_name}{' '}
+          {TEAM_LABELS[team.team_name] ?? team.team_name}{' '}
           <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
             ({servedCount}/{team.members.length} served)
           </span>

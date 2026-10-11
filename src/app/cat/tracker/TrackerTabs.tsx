@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useSyncExternalStore, type ReactNode } from 'react'
+import { useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import AttendanceBoard from '../attendance/AttendanceBoard'
 import KidsAttendanceBoard from '../kidsatt/KidsAttendanceBoard'
 import BatchImportButton from '../kidsatt/BatchImportButton'
@@ -66,7 +66,27 @@ function subscribeToUrl(cb: () => void) {
 }
 const urlTab = () => new URLSearchParams(window.location.search).get('tab') ?? ''
 
+// Hard refresh: drop any service-worker and Cache Storage copies, then reload
+// with a throwaway query param so the browser cannot serve a cached page.
+async function hardRefresh() {
+  try {
+    const regs = await navigator.serviceWorker?.getRegistrations?.()
+    await Promise.all((regs ?? []).map(r => r.unregister()))
+    const keys = await window.caches?.keys?.()
+    await Promise.all((keys ?? []).map(k => caches.delete(k)))
+  } catch {}
+  const u = new URL(window.location.href)
+  u.searchParams.set('_r', String(Date.now()))
+  window.location.replace(u.toString())
+}
+
+const PULL_THRESHOLD = 70
+
 export default function TrackerTabs() {
+  const [pull, setPull] = useState(0)
+  const [refreshing, setRefreshing] = useState(false)
+  const startY = useRef<number | null>(null)
+
   const [theme, toggleTheme] = useTrackerTheme()
   const fromUrl = useSyncExternalStore(subscribeToUrl, urlTab, () => '')
   const [picked, setPicked] = useState<Tab | null>(null)
@@ -87,7 +107,16 @@ export default function TrackerTabs() {
         status bar / browser chrome -- which samples the real page background -- follows the toggle. */}
       <div className="shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3">
         <div className="max-w-md mx-auto flex items-center justify-between gap-3">
-          <h1 className="text-xl font-bold text-black dark:text-white">{current.title}</h1>
+          <h1 className="text-xl font-bold text-black dark:text-white">
+            <button
+              type="button"
+              onClick={() => { setRefreshing(true); hardRefresh() }}
+              aria-label={`Refresh ${current.title}`}
+              className="text-left active:opacity-60"
+            >
+              {current.title}
+            </button>
+          </h1>
           <div className="flex items-center gap-1">
             {tab === 'kids' && <BatchImportButton />}
             <button
@@ -103,7 +132,26 @@ export default function TrackerTabs() {
         <p className="max-w-md mx-auto text-xs text-gray-500 dark:text-gray-400 mt-0.5">{current.hint}</p>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-5">
+      <div
+        className="flex-1 overflow-y-auto px-4 py-5"
+        onTouchStart={e => { startY.current = e.currentTarget.scrollTop <= 0 ? e.touches[0].clientY : null }}
+        onTouchMove={e => {
+          if (startY.current === null || refreshing) return
+          const d = e.touches[0].clientY - startY.current
+          setPull(d > 0 ? Math.min(d * 0.5, 100) : 0)
+        }}
+        onTouchEnd={() => {
+          startY.current = null
+          if (!refreshing && pull * 2 >= PULL_THRESHOLD) { setRefreshing(true); hardRefresh() }
+          setPull(0)
+        }}
+      >
+        <div
+          className="text-center text-xs text-gray-500 dark:text-gray-400 overflow-hidden transition-[height]"
+          style={{ height: refreshing ? 24 : pull }}
+        >
+          {refreshing ? 'Refreshing…' : pull * 2 >= PULL_THRESHOLD ? 'Release to refresh' : pull > 8 ? 'Pull down to refresh' : ''}
+        </div>
         <div className="max-w-md mx-auto">
           {/* Each board mounts the first time its tab opens, then stays mounted (hidden) so
               a half-finished search or scroll position survives switching tabs. */}
