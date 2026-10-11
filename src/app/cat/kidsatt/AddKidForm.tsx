@@ -1,9 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { classLabel } from './classLabel'
 
 interface Candidate {
-  id: number
+  id: number | null
+  member_id?: number
   name: string
   current_class: string | null
 }
@@ -58,13 +60,13 @@ export default function AddKidForm({
     }
   }, [query])
 
-  async function addExisting(kidId: number) {
+  async function addExisting(c: Candidate) {
     setBusy(true)
     setError(null)
     const res = await fetch('/api/cat/kidsatt/add', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ kid_id: kidId, service_date: serviceDate, class_name: className }),
+      body: JSON.stringify({ ...(c.id !== null ? { kid_id: c.id } : { member_id: c.member_id }), service_date: serviceDate, class_name: className }),
     })
     setBusy(false)
     if (!res.ok) {
@@ -122,17 +124,19 @@ export default function AddKidForm({
           {candidates && candidates.length > 0 && (
             <ul className="mb-2 divide-y divide-gray-200 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
               {candidates.map((c) => (
-                <li key={c.id}>
+                <li key={c.id ?? `m${c.member_id}`}>
                   <button
                     type="button"
                     disabled={busy}
-                    onClick={() => addExisting(c.id)}
+                    onClick={() => addExisting(c)}
                     className="w-full text-left px-3 py-2 text-sm text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50"
                   >
                     {c.name}
-                    {c.current_class && (
-                      <span className="ml-2 text-xs text-gray-400">currently in {c.current_class}</span>
-                    )}
+                    {c.current_class ? (
+                      <span className="ml-2 text-xs text-gray-400">currently in {classLabel(c.current_class)}</span>
+                    ) : c.id === null ? (
+                      <span className="ml-2 text-xs text-gray-400">in the church database</span>
+                    ) : null}
                   </button>
                 </li>
               ))}
@@ -208,7 +212,7 @@ export default function AddKidForm({
               disabled={busy || !firstName.trim()}
               className="rounded-lg bg-black dark:bg-white text-white dark:text-black px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
             >
-              {busy ? 'Adding…' : `Add to ${className}`}
+              {busy ? 'Adding…' : `Add to ${classLabel(className)}`}
             </button>
             <button
               type="button"

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import AddKidForm from './AddKidForm'
+import { classLabel } from './classLabel'
 
 interface Kid {
   id: number
@@ -88,7 +89,7 @@ function KidRow({
         >
           {classNames.map((c) => (
             <option key={c} value={c}>
-              {c}
+              {classLabel(c)}
             </option>
           ))}
         </select>
@@ -141,7 +142,7 @@ function ClassSection({
     <section className="mb-4">
       <details open={isAdding}>
         <summary className="text-lg font-semibold text-black dark:text-white mb-2 cursor-pointer select-none">
-          {group.class_name}{' '}
+          {classLabel(group.class_name)}{' '}
           <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
             ({group.present_count}/{group.kids.length} present)
           </span>
