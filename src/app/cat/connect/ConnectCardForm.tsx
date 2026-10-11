@@ -36,7 +36,7 @@ const CHAR_LIMIT = 3000
 // banner as before, holds it long enough to actually read, THEN redirects --
 // confirmation and forward both happen, in order.
 const GIVING_URL = 'https://secure.subsplash.com/ui/access/7BVGB9'
-const REDIRECT_DELAY_MS = 1200
+const REDIRECT_DELAY_MS = 800
 
 const NEXT_STEP_OPTIONS = [
   'I want to start following Jesus',
