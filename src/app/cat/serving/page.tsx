@@ -3,7 +3,7 @@ import { requireLiveTool } from '@/lib/requireLiveTool'
 import ServingBoard from './ServingBoard'
 
 export const metadata: Metadata = {
-  title: 'Who Served Sunday',
+  title: 'Sundae Serving',
   robots: { index: false, follow: false },
 }
 
@@ -17,7 +17,7 @@ export default async function ServingPage() {
   return (
     <div className="min-h-screen bg-white py-10 px-4">
       <div className="max-w-md mx-auto">
-        <h1 className="text-2xl font-bold text-black mb-1">Who Served Sunday</h1>
+        <h1 className="text-2xl font-bold text-black mb-1">Sundae Serving</h1>
         <p className="text-sm text-gray-500 mb-6">
           Find your team below and check off everyone who actually served that Sunday. Changes save immediately.
         </p>

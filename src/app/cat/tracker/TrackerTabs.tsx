@@ -47,7 +47,7 @@ const TABS: { id: Tab; label: string; title: string; hint: string; icon: ReactNo
     icon: icon(<><circle cx="9" cy="8" r="3" /><path d="M3.5 20c0-3 2.5-5.5 5.5-5.5s5.5 2.5 5.5 5.5" /><circle cx="17" cy="9" r="2.3" /><path d="M15 20c.3-2.2 1.8-4 3.8-4.4" /></>),
   },
   {
-    id: 'serving', label: 'Serving', title: 'Who Served',
+    id: 'serving', label: 'Sundae Serving', title: 'Sundae Serving',
     hint: 'Find your team and check off everyone who actually served that Sunday.',
     icon: icon(<><path d="M12 20s-7-4.4-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.6-7 10-7 10z" /></>),
   },
