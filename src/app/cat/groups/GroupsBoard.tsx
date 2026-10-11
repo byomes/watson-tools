@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 interface SeriesItem { series: string; title: string; counts_only: boolean }
 interface Person { id: number; name: string; present: boolean; registered?: boolean; regular?: boolean }
@@ -127,6 +127,24 @@ export default function GroupsBoard() {
     })
   }
 
+  // Live search: look up matching members as the name is typed (no Find tap needed).
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const searchSeq = useRef(0)
+  function typeQuery(v: string) {
+    setQuery(v)
+    if (searchTimer.current) clearTimeout(searchTimer.current)
+    const q = v.trim()
+    const mine = ++searchSeq.current
+    if (q.length < 2) { setCandidates(null); return }
+    searchTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/cat/groups/lookup?name=${encodeURIComponent(q)}`)
+        const found = res.ok ? (await res.json()).candidates : []
+        if (mine === searchSeq.current) setCandidates(found)
+      } catch {}
+    }, 250)
+  }
+
   async function search() {
     const q = query.trim()
     if (!q) return
@@ -196,7 +214,7 @@ export default function GroupsBoard() {
             ))}
           </ul>
           <div className="flex gap-2">
-            <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && search()}
+            <input value={query} onChange={e => typeQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && search()}
               placeholder="Start of a name"
               className="flex-1 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-black dark:text-white bg-white dark:bg-gray-900" />
             <button type="button" onClick={search} className="px-4 py-2 rounded-lg bg-gray-800 dark:bg-gray-700 text-white">Find</button>
@@ -280,7 +298,7 @@ export default function GroupsBoard() {
                   <button type="button" onClick={() => setAdding(true)} className="text-green-700 font-medium">+ Add a name</button>
                 )}
                 {adding && <div className="flex gap-2">
-                  <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && search()}
+                  <input value={query} onChange={e => typeQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && search()}
                     placeholder="Start of a name"
                     className="flex-1 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-black dark:text-white bg-white dark:bg-gray-900" />
                   <button type="button" onClick={search} className="px-4 py-2 rounded-lg bg-gray-800 dark:bg-gray-700 text-white">Find</button>
