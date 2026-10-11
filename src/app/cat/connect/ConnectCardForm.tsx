@@ -243,7 +243,15 @@ export default function ConnectCardForm() {
       setPhone(profile.phone)
       setHasStoredProfile(true)
     }
+    // Back/forward cache: a browser can restore this page frozen in its
+    // post-submit "Redirecting…" state (or the giving page's predecessor)
+    // instead of loading it clean. Force a real reload when that happens.
+    function handlePageShow(e: PageTransitionEvent) {
+      if (e.persisted) window.location.reload()
+    }
+    window.addEventListener('pageshow', handlePageShow)
     return () => {
+      window.removeEventListener('pageshow', handlePageShow)
       if (successTimeout.current) clearTimeout(successTimeout.current)
     }
   }, [])
@@ -364,7 +372,9 @@ export default function ConnectCardForm() {
       // -- the whole point is to navigate away even if the component is
       // about to go with it.
       successTimeout.current = setTimeout(() => {
-        window.location.href = GIVING_URL
+        // replace, not href: the finished card must not stay in history,
+        // so Back / reopening never lands on a stale "Redirecting…" screen.
+        window.location.replace(GIVING_URL)
       }, REDIRECT_DELAY_MS)
     } catch {
       setError('Something went wrong. Please try again.')
