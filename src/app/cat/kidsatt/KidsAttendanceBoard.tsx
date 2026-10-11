@@ -8,6 +8,7 @@ interface Kid {
   id: number
   name: string
   present: boolean
+  regular?: boolean
 }
 
 interface ClassGroup {
@@ -64,6 +65,7 @@ function KidRow({
   onToggle,
   onMove,
   onRemove,
+  onMakeRegular,
 }: {
   kid: Kid
   currentClass: string
@@ -72,10 +74,23 @@ function KidRow({
   onToggle: (kid: Kid) => void
   onMove: (kid: Kid, className: string) => void
   onRemove: (kid: Kid) => void
+  onMakeRegular: (kid: Kid, className: string) => void
 }) {
   return (
     <li className="flex items-center justify-between py-2.5 gap-3">
-      <span className="text-black dark:text-white text-[15px]">{kid.name}</span>
+      <span className="text-black dark:text-white text-[15px]">
+        {kid.name}
+        {kid.regular === false && (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => onMakeRegular(kid, currentClass)}
+            className="ml-2 text-xs font-medium text-blue-600 dark:text-blue-400 underline underline-offset-2 disabled:opacity-50"
+          >
+            Make regular
+          </button>
+        )}
+      </span>
       <div className="flex items-center gap-2 shrink-0">
         {/* Reclassifying a kid is independent of logging attendance -- this
             works the same whether they're present or absent today, and
@@ -117,6 +132,7 @@ function ClassSection({
   onToggle,
   onMove,
   onRemove,
+  onMakeRegular,
   serviceDate,
   isAdding,
   onStartAdd,
@@ -130,6 +146,7 @@ function ClassSection({
   onToggle: (kid: Kid) => void
   onMove: (kid: Kid, className: string) => void
   onRemove: (kid: Kid) => void
+  onMakeRegular: (kid: Kid, className: string) => void
   serviceDate: string
   isAdding: boolean
   onStartAdd: () => void
@@ -174,6 +191,7 @@ function ClassSection({
               onToggle={onToggle}
               onMove={onMove}
               onRemove={onRemove}
+              onMakeRegular={onMakeRegular}
             />
           ))}
           {visible.length === 0 && (
@@ -273,6 +291,27 @@ export default function KidsAttendanceBoard() {
     await fetchState(data.service_date)
   }
 
+  const handleMakeRegular = async (kid: Kid, className: string) => {
+    if (!data) return
+    setPending((prev) => new Set(prev).add(kid.id))
+    setError(null)
+    const res = await fetch('/api/cat/kidsatt/regular', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kid_id: kid.id, class_name: className }),
+    })
+    setPending((prev) => {
+      const next = new Set(prev)
+      next.delete(kid.id)
+      return next
+    })
+    if (!res.ok) {
+      setError(`Could not make ${kid.name} regular. Try again.`)
+      return
+    }
+    await fetchState(data.service_date)
+  }
+
   const handleRemove = async (kid: Kid) => {
     if (!data) return
     if (!window.confirm(`Remove ${kid.name} from this class? They won't show up in Kids Attendance again until they check in or are moved back in.`)) {
@@ -341,6 +380,7 @@ export default function KidsAttendanceBoard() {
           onToggle={handleToggle}
           onMove={handleMove}
           onRemove={handleRemove}
+          onMakeRegular={handleMakeRegular}
           serviceDate={data.service_date}
           isAdding={addingClass === group.class_name}
           onStartAdd={() => setAddingClass(group.class_name)}

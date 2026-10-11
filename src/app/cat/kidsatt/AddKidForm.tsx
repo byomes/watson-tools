@@ -39,6 +39,7 @@ export default function AddKidForm({
   const [guardianPhone, setGuardianPhone] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [dups, setDups] = useState<Candidate[] | null>(null)
 
   useEffect(() => {
     const q = query.trim()
@@ -76,7 +77,7 @@ export default function AddKidForm({
     onDone()
   }
 
-  async function addNew() {
+  async function addNew(confirmDuplicate = false) {
     if (!firstName.trim()) {
       setError('First name is required.')
       return
@@ -88,6 +89,7 @@ export default function AddKidForm({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         create_new: true,
+        confirm_duplicate: confirmDuplicate,
         first_name: firstName.trim(),
         last_name: lastName.trim(),
         gender: gender.trim(),
@@ -98,6 +100,13 @@ export default function AddKidForm({
       }),
     })
     setBusy(false)
+    if (res.status === 409) {
+      const body = await res.json().catch(() => ({}))
+      if (body.resolution === 'duplicate') {
+        setDups(body.candidates ?? [])
+        return
+      }
+    }
     if (!res.ok) {
       setError('Could not add this kid. Try again.')
       return
@@ -204,11 +213,39 @@ export default function AddKidForm({
               className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 text-sm text-black dark:text-white bg-white dark:bg-gray-800"
             />
           </div>
+          {dups && dups.length > 0 && (
+            <div className="mb-2 rounded-lg border border-amber-400 bg-amber-50 dark:bg-amber-950 p-2 text-xs text-black dark:text-white">
+              <p className="font-medium mb-1">Someone with this name is already on file. Is it the same child?</p>
+              <ul className="mb-2 flex flex-col gap-1">
+                {dups.map((c) => (
+                  <li key={c.id ?? `m${c.member_id}`}>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => addExisting(c)}
+                      className="w-full text-left px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 disabled:opacity-50"
+                    >
+                      Yes, add {c.name}
+                      {c.current_class && <span className="ml-1 text-gray-400">({classLabel(c.current_class)})</span>}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => addNew(true)}
+                className="underline disabled:opacity-50"
+              >
+                No, a different child with the same name: add as new
+              </button>
+            </div>
+          )}
           {error && <p className="text-red-600 dark:text-red-400 text-xs mb-2">{error}</p>}
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={addNew}
+              onClick={() => addNew(false)}
               disabled={busy || !firstName.trim()}
               className="rounded-lg bg-black dark:bg-white text-white dark:text-black px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
             >
@@ -216,7 +253,7 @@ export default function AddKidForm({
             </button>
             <button
               type="button"
-              onClick={() => { setShowNewForm(false); setError(null) }}
+              onClick={() => { setShowNewForm(false); setError(null); setDups(null) }}
               disabled={busy}
               className="text-xs text-gray-500 dark:text-gray-400 underline"
             >
