@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface Servant {
   id: number
@@ -140,6 +140,31 @@ function AddPersonForm({
   onCancel: () => void
 }) {
   const [form, setForm] = useState<AddFormState>(EMPTY_FORM)
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const seq = useRef(0)
+
+  // Live search: as the name is typed, look it up in the member database so a
+  // leader sees (and picks) the existing person instead of creating a duplicate.
+  const searchAsTyped = (name: string) => {
+    if (timer.current) clearTimeout(timer.current)
+    const q = name.trim()
+    const mine = ++seq.current
+    if (q.length < 2) return
+    timer.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/cat/servants/lookup?name=${encodeURIComponent(q)}`)
+        if (!res.ok || mine !== seq.current) return
+        const body = await res.json()
+        if (mine !== seq.current) return
+        const found: Candidate[] = body.candidates ?? []
+        setForm((f) => ({
+          ...f,
+          candidates: found.length ? found : null,
+          notFound: found.length === 0 && q.length >= 3,
+        }))
+      } catch {}
+    }, 250)
+  }
 
   const submit = async (opts?: { memberId?: number; createNew?: boolean }) => {
     if (!form.name.trim()) return
@@ -181,9 +206,11 @@ function AddPersonForm({
         type="text"
         placeholder="Full name"
         value={form.name}
-        onChange={(e) =>
+        autoComplete="off"
+        onChange={(e) => {
           setForm({ ...EMPTY_FORM, name: e.target.value, position: form.position, startedServingDate: form.startedServingDate })
-        }
+          searchAsTyped(e.target.value)
+        }}
         className="w-full mb-2 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-black dark:text-white bg-white dark:bg-gray-800"
       />
       <input
@@ -206,7 +233,7 @@ function AddPersonForm({
       {form.candidates && form.candidates.length > 0 && (
         <div className="mb-3 text-sm">
           <p className="text-gray-600 dark:text-gray-300 mb-1.5">
-            Found {form.candidates.length > 1 ? 'more than one' : 'a'} possible match — is this them?
+            Matching people in the database — tap to add:
           </p>
           <div className="flex flex-col gap-1.5">
             {form.candidates.map((c) => (
