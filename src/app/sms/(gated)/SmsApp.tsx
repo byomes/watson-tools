@@ -52,6 +52,7 @@ type Context = {
   first_visit_date?: string | null
   deacon?: string | null
   last_attended_summary?: string
+  weeks_attended_last_8?: number
   household?: { name: string; household_role: string | null }[]
   birthdate?: string | null
   anniversary?: string | null
@@ -2159,6 +2160,13 @@ export default function SmsApp() {
                   className="px-3 pb-3 pt-1 grid grid-cols-2 gap-x-3 gap-y-2 text-xs border-t"
                   style={{ borderColor: COLORS.line }}
                 >
+                  {typeof context.weeks_attended_last_8 === 'number' && (
+                    <div className="col-span-2 text-sm font-medium" style={{ color: COLORS.ink }}>
+                      {context.weeks_attended_last_8 === 0
+                        ? `${context.name?.split(' ')[0] ?? 'They'} hasn't attended any of the last 8 weeks.`
+                        : `${context.name?.split(' ')[0] ?? 'They'} has attended ${context.weeks_attended_last_8} of the last 8 weeks.`}
+                    </div>
+                  )}
                   {buildContextEntries(context, contextFields).map((entry) => (
                     <div key={entry.key} className={entry.full ? 'col-span-2' : undefined}>
                       <div
