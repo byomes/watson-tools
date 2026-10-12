@@ -522,6 +522,27 @@ export default function SmsApp() {
   const [batteryPct, setBatteryPct] = useState<number | null>(null)
   const [spellchecking, setSpellchecking] = useState(false)
   const messagesScrollRef = useRef<HTMLDivElement | null>(null)
+  const rootRef = useRef<HTMLDivElement | null>(null)
+
+  // iOS shrinks only the *visual* viewport when the keyboard opens and then
+  // scrolls the page to keep the focused input visible, which drags the top
+  // controls off screen. Size the app to the visual viewport and pin the
+  // page scroll at 0 so only the message list moves.
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    const fit = () => {
+      if (rootRef.current) rootRef.current.style.height = `${vv.height}px`
+      if (window.scrollY !== 0) window.scrollTo(0, 0)
+    }
+    fit()
+    vv.addEventListener('resize', fit)
+    vv.addEventListener('scroll', fit)
+    return () => {
+      vv.removeEventListener('resize', fit)
+      vv.removeEventListener('scroll', fit)
+    }
+  }, [])
   const listScrollRef = useRef<HTMLDivElement | null>(null)
   const pullStartY = useRef<number | null>(null)
   const [pullDistance, setPullDistance] = useState(0)
@@ -1596,7 +1617,7 @@ export default function SmsApp() {
     .sort((a, b) => Number(!(a.unread || a.draft_text)) - Number(!(b.unread || b.draft_text)))
 
   return (
-    <div className="h-[100dvh] overflow-hidden flex flex-col pt-[env(safe-area-inset-top)]" style={{ background: COLORS.bg, color: COLORS.ink }}>
+    <div ref={rootRef} className="h-[100dvh] overflow-hidden flex flex-col pt-[env(safe-area-inset-top)]" style={{ background: COLORS.bg, color: COLORS.ink }}>
       {/* ---- LIST VIEW ---- */}
       {view === 'list' && (
         <div className="flex flex-col flex-1 min-h-0">
@@ -1916,7 +1937,7 @@ export default function SmsApp() {
       {/* ---- THREAD VIEW ---- */}
       {view === 'thread' && activeThread && (
         <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-          <div className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: COLORS.line }}>
+          <div className="flex-none flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: COLORS.line }}>
             <button onClick={() => setView('list')} style={{ color: COLORS.moss }} className="font-medium text-sm">
               ← Messages
             </button>
