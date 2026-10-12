@@ -310,6 +310,12 @@ function mono(extra = '') {
   return `font-[family-name:var(--font-plex-mono)] ${extra}`
 }
 
+// True on phones/tablets (primary pointer is a finger). There Enter should
+// insert a newline; the Send button sends. Desktop keeps Enter = send.
+function isTouchDevice() {
+  return typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
+}
+
 // Auto-grows a textarea to fit its content (up to maxPx) instead of clipping
 // to a fixed row count -- resetting height to 'auto' first is required so
 // scrollHeight reports the content's real height rather than the previous
@@ -2483,7 +2489,7 @@ export default function SmsApp() {
                   // Desktop-browser convenience: Enter sends, Shift+Enter
                   // still inserts a newline. isComposing guards against IME
                   // (e.g. Japanese/Chinese input) committing text with Enter.
-                  if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                  if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing && !isTouchDevice()) {
                     e.preventDefault()
                     if ((compose.trim() || attachedImage) && !sending) send()
                   }
@@ -3451,7 +3457,7 @@ export default function SmsApp() {
               value={composeText}
               onChange={(e) => setComposeText(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing && !isTouchDevice()) {
                   e.preventDefault()
                   const disabled = !composePhone.trim() || !composeText.trim() || (composeShowSchedule && !composeScheduleAt) || composeSending
                   if (!disabled) sendNewMessage()
