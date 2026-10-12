@@ -393,9 +393,6 @@ type ContextEntry = { key: string; label: string; value: string; full?: boolean 
 
 function buildContextEntries(context: Context, fields: Record<ContextFieldKey, boolean>): ContextEntry[] {
   const entries: ContextEntry[] = []
-  if (fields.last_attended && context.last_attended_summary) {
-    entries.push({ key: 'last_attended', label: 'Last attended', value: context.last_attended_summary, full: true })
-  }
   if (fields.deacon && context.deacon) entries.push({ key: 'deacon', label: 'Deacon', value: context.deacon })
   if (fields.campus && context.campus_preference) entries.push({ key: 'campus', label: 'Campus', value: context.campus_preference })
   if (fields.first_visit && context.first_visit_date) entries.push({ key: 'first_visit', label: 'First visit', value: context.first_visit_date })
@@ -2160,11 +2157,15 @@ export default function SmsApp() {
                   className="px-3 pb-3 pt-1 grid grid-cols-2 gap-x-3 gap-y-2 text-xs border-t"
                   style={{ borderColor: COLORS.line }}
                 >
-                  {typeof context.weeks_attended_last_8 === 'number' && (
-                    <div className="col-span-2 text-sm font-medium" style={{ color: COLORS.ink }}>
-                      {context.weeks_attended_last_8 === 0
-                        ? `${context.name?.split(' ')[0] ?? 'They'} hasn't attended any of the last 8 weeks.`
-                        : `${context.name?.split(' ')[0] ?? 'They'} has attended ${context.weeks_attended_last_8} of the last 8 weeks.`}
+                  {((contextFields.last_attended && context.last_attended_summary) || typeof context.weeks_attended_last_8 === 'number') && (
+                    <div className="col-span-2 text-sm" style={{ color: COLORS.ink }}>
+                      {contextFields.last_attended && context.last_attended_summary}
+                      {typeof context.weeks_attended_last_8 === 'number' &&
+                        ` ${context.name?.split(' ')[0] ?? 'They'} ${
+                          context.weeks_attended_last_8 === 0
+                            ? "hasn't attended any of the last 8 weeks."
+                            : `has attended ${context.weeks_attended_last_8} of the last 8 weeks.`
+                        }`}
                     </div>
                   )}
                   {buildContextEntries(context, contextFields).map((entry) => (
