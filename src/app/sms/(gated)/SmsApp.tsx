@@ -3373,6 +3373,7 @@ export default function SmsApp() {
             <h3 className="text-sm font-semibold">New message</h3>
             <div className="relative">
               <input
+                autoFocus
                 value={composeName}
                 onChange={(e) => {
                   setComposeName(e.target.value)
