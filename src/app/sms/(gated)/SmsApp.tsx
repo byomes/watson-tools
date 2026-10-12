@@ -1578,26 +1578,23 @@ export default function SmsApp() {
             }
           : { phone: composePhone.trim(), name: composeName.trim() || undefined }
 
-      let threadId: number
       if (composeShowSchedule) {
         const localDate = new Date(composeScheduleAt)
         if (Number.isNaN(localDate.getTime()) || localDate <= new Date()) return
         const sendAt = localDate.toISOString().slice(0, 19).replace('T', ' ')
-        const data = await api<{ thread: Thread }>('/api/sms/schedule', {
+        await api<{ thread: Thread }>('/api/sms/schedule', {
           method: 'POST',
           body: JSON.stringify({ ...recipientsPayload, text: composeText.trim(), send_at: sendAt }),
         })
-        threadId = data.thread.id
       } else {
-        const data = await api<{ thread: Thread }>('/api/sms/send', {
+        await api<{ thread: Thread }>('/api/sms/send', {
           method: 'POST',
           body: JSON.stringify({ ...recipientsPayload, text: composeText.trim() }),
         })
-        threadId = data.thread.id
       }
+      // Stay on the main list after sending; don't open the thread.
       closeCompose()
       await loadThreads()
-      await openThread(threadId)
     } finally {
       setComposeSending(false)
     }
