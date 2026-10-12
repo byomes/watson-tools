@@ -509,7 +509,7 @@ export default function ConnectCardForm() {
           </div>
 
           <div>
-            <p className="text-sm text-gray-600 mb-2">Please include your email, your phone number, or both. We need at least one way to follow-up you.</p>
+            <p className="text-sm text-gray-600 mb-2">Please include your email, your phone number, or both. We need at least one way to follow up with you.</p>
             <label className={labelClass} htmlFor="email">Email {phone ? '' : '*'}</label>
             <input
               id="email"
