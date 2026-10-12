@@ -107,7 +107,9 @@ function buildHtmlBody(data: ConnectCardPayload): string {
   parts.push(field('Where did you attend with us?', `${campusLabel(data.campus)} Campus`))
   parts.push(field('First Name', escapeHtml(data.firstName)))
   parts.push(field('Last Name', escapeHtml(data.lastName)))
-  parts.push(field('Email', `<a href="mailto:${escapeHtml(data.email)}">${escapeHtml(data.email)}</a>`))
+  if (data.email) {
+    parts.push(field('Email', `<a href="mailto:${escapeHtml(data.email)}">${escapeHtml(data.email)}</a>`))
+  }
 
   if (data.phone && data.phone.trim()) {
     parts.push(field('Phone Number', escapeHtml(data.phone)))
@@ -190,11 +192,14 @@ export async function POST(req: NextRequest) {
   }
   if (!firstName) return NextResponse.json({ error: 'First name is required.' }, { status: 400 })
   if (!lastName) return NextResponse.json({ error: 'Last name is required.' }, { status: 400 })
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return NextResponse.json({ error: 'A valid email is required.' }, { status: 400 })
-  }
-
   const phoneDigits = normalizePhoneDigits((data.phone ?? '').trim())
+  // Either an email or a phone number is required; the visitor picks which.
+  if (!email && phoneDigits.length < 10) {
+    return NextResponse.json({ error: 'Please enter an email address or a phone number.' }, { status: 400 })
+  }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return NextResponse.json({ error: 'Please enter a valid email address.' }, { status: 400 })
+  }
   if (phoneDigits && BLOCKED_PHONE_DIGITS.has(phoneDigits)) {
     console.warn(`[cat/connect] Blocked submission from known spam phone number: ${phoneDigits}`)
     return NextResponse.json({ ok: true })

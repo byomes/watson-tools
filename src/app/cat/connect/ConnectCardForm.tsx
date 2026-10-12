@@ -509,11 +509,12 @@ export default function ConnectCardForm() {
           </div>
 
           <div>
-            <label className={labelClass} htmlFor="email">Email *</label>
+            <p className="text-sm text-gray-600 mb-2">Please provide an email or a phone number (either one is fine).</p>
+            <label className={labelClass} htmlFor="email">Email {phone ? '' : '*'}</label>
             <input
               id="email"
               type="email"
-              required
+              required={!phone.trim()}
               autoComplete="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
@@ -522,10 +523,11 @@ export default function ConnectCardForm() {
           </div>
 
           <div>
-            <label className={labelClass} htmlFor="phone">Phone Number</label>
+            <label className={labelClass} htmlFor="phone">Phone Number {email.trim() ? '' : '*'}</label>
             <input
               id="phone"
               type="tel"
+              required={!email.trim()}
               autoComplete="tel"
               placeholder="(___) ___-____"
               value={phone}
