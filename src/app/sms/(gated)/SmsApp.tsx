@@ -1596,10 +1596,10 @@ export default function SmsApp() {
     .sort((a, b) => Number(!(a.unread || a.draft_text)) - Number(!(b.unread || b.draft_text)))
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: COLORS.bg, color: COLORS.ink }}>
+    <div className="h-[100dvh] overflow-hidden flex flex-col pt-[env(safe-area-inset-top)]" style={{ background: COLORS.bg, color: COLORS.ink }}>
       {/* ---- LIST VIEW ---- */}
       {view === 'list' && (
-        <div className="flex flex-col min-h-screen">
+        <div className="flex flex-col flex-1 min-h-0">
           {/* Top controls + search stay pinned while the thread list scrolls behind them. */}
           <div className="sticky top-0 z-30" style={{ background: COLORS.bg }}>
           <div className="flex items-center justify-between px-5 pt-6 pb-3">
@@ -1915,7 +1915,7 @@ export default function SmsApp() {
 
       {/* ---- THREAD VIEW ---- */}
       {view === 'thread' && activeThread && (
-        <div className="flex flex-col h-[100dvh] overflow-hidden">
+        <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
           <div className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: COLORS.line }}>
             <button onClick={() => setView('list')} style={{ color: COLORS.moss }} className="font-medium text-sm">
               ← Messages
@@ -2532,7 +2532,7 @@ export default function SmsApp() {
 
       {/* ---- BROADCAST VIEW ---- */}
       {view === 'broadcast' && broadcastStep === 'compose' && (
-        <div className="flex flex-col min-h-screen">
+        <div className="flex flex-col flex-1 min-h-0">
           <div className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: COLORS.line }}>
             <button onClick={() => setView('settings')} style={{ color: COLORS.moss }} className="font-medium text-sm">
               ← Settings
@@ -2918,7 +2918,7 @@ export default function SmsApp() {
       )}
 
       {view === 'broadcast' && broadcastStep === 'review' && (
-        <div className="flex flex-col min-h-screen">
+        <div className="flex flex-col flex-1 min-h-0">
           <div className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: COLORS.line }}>
             <button onClick={() => setBroadcastStep('compose')} style={{ color: COLORS.moss }} className="font-medium text-sm">
               ← Edit
@@ -3008,7 +3008,7 @@ export default function SmsApp() {
 
       {/* ---- BROADCAST HISTORY VIEW ---- */}
       {view === 'broadcastHistory' && (
-        <div className="flex flex-col min-h-screen">
+        <div className="flex flex-col flex-1 min-h-0">
           <div className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: COLORS.line }}>
             <button onClick={() => setView('settings')} style={{ color: COLORS.moss }} className="font-medium text-sm">
               ← Settings
@@ -3055,7 +3055,7 @@ export default function SmsApp() {
 
       {/* ---- TEMPLATES VIEW ---- */}
       {view === 'templates' && (
-        <div className="flex flex-col min-h-screen">
+        <div className="flex flex-col flex-1 min-h-0">
           <div className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: COLORS.line }}>
             <button
               onClick={() => {
@@ -3100,7 +3100,7 @@ export default function SmsApp() {
 
       {/* ---- SETTINGS VIEW ---- */}
       {view === 'settings' && (
-        <div className="flex flex-col min-h-screen">
+        <div className="flex flex-col flex-1 min-h-0">
           <div className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: COLORS.line }}>
             <button onClick={() => setView('list')} style={{ color: COLORS.moss }} className="font-medium text-sm">
               ← Messages
