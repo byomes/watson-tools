@@ -45,6 +45,18 @@ export default function AttSchedBoard() {
   const [loading, setLoading] = useState(true)
 
   const [kind, setKind] = useState<'groups' | 'teams'>('groups')
+  const [combinedMsg, setCombinedMsg] = useState('')
+  const [combinedNote, setCombinedNote] = useState<{ ok: boolean; text: string } | null>(null)
+
+  const saveCombined = async () => {
+    const res = await fetch('/api/cat/attsched/combined', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: combinedMsg }),
+    })
+    const body = await res.json().catch(() => ({}))
+    setCombinedNote(res.ok ? { ok: true, text: 'Saved' } : { ok: false, text: body.error || 'Could not save' })
+  }
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/cat/attsched/state?kind=${kind}`, { cache: 'no-store' })
@@ -61,6 +73,7 @@ export default function AttSchedBoard() {
     setGroups(data.groups)
     setMembers(data.members)
     setDefaultDelay(data.default_delay)
+    setCombinedMsg(data.combined_message ?? '')
     setDrafts(Object.fromEntries((data.groups as Group[]).map((g) => [g.title, toDraft(g)])))
     setLoading(false)
   }, [kind])
@@ -360,6 +373,38 @@ export default function AttSchedBoard() {
           one is turned on, and nothing goes out before 9am or after 10pm; a send that would land later waits until 9am
           the next day.
         </p>
+
+        {kind === 'teams' && (
+          <section className="mt-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+            <h2 className="font-semibold">Leaders on more than one team</h2>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              A leader who leads several teams gets one message for the Sunday, sent when their earliest team is due,
+              instead of one per team. Write that message here. {'{teams}'} becomes the list of their teams and{' '}
+              {'{link}'} is the Serving page link; if you leave them out, the team names and link are added after
+              your text. If this is blank, the first team&apos;s own message is used.
+            </p>
+            <textarea
+              rows={3}
+              maxLength={600}
+              className="mt-2 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white"
+              value={combinedMsg}
+              onChange={(e) => setCombinedMsg(e.target.value)}
+              placeholder="Write the one message these leaders will receive"
+            />
+            <div className="mt-2 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={saveCombined}
+                className="rounded-lg bg-slate-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-slate-900"
+              >
+                Save
+              </button>
+              {combinedNote && (
+                <span className={`text-sm ${combinedNote.ok ? 'text-green-600' : 'text-red-600'}`}>{combinedNote.text}</span>
+              )}
+            </div>
+          </section>
+        )}
 
         {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
         {loading && <p className="mt-4 text-sm text-slate-500">Loading...</p>}
