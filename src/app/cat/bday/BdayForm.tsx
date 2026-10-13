@@ -58,13 +58,13 @@ const HEADING_FONT = 'font-[family-name:var(--font-connect-card-heading)]'
 const INPUT_FONT = 'font-[family-name:var(--font-connect-card-input)]'
 
 const inputClass =
-  `w-full bg-[#ebebeb] border-0 text-black placeholder-gray-500 rounded-lg px-3 py-3 text-base ${INPUT_FONT} focus:outline-none focus:ring-2 focus:ring-black/20 transition-shadow`
+  `w-full bg-[#ebebeb] dark:bg-slate-800 border-0 text-black dark:text-white placeholder-gray-500 dark:placeholder-slate-400 rounded-lg px-3 py-3 text-base ${INPUT_FONT} focus:outline-none focus:ring-2 focus:ring-black/20 transition-shadow`
 const selectClass = inputClass
-const labelClass = `block text-black font-bold text-[15px] mb-2 ${HEADING_FONT}`
+const labelClass = `block text-black dark:text-white font-bold text-[15px] mb-2 ${HEADING_FONT}`
 
 function CharCounter({ value }: { value: string }) {
   return (
-    <div className="text-right text-xs text-gray-400 mt-1">
+    <div className="text-right text-xs text-gray-400 dark:text-slate-500 mt-1">
       {value.length}/{CHAR_LIMIT}
     </div>
   )
@@ -194,12 +194,12 @@ export default function BdayForm() {
   if (success) {
     return (
       <div className="space-y-8">
-        <h1 className={`flex items-center gap-[0.3em] whitespace-nowrap text-[clamp(1.05rem,5vw,1.75rem)] font-extrabold tracking-[-0.7px] text-[#222222] ${HEADING_FONT}`}>
+        <h1 className={`flex items-center gap-[0.3em] whitespace-nowrap text-[clamp(1.05rem,5vw,1.75rem)] font-extrabold tracking-[-0.7px] text-[#222222] dark:text-white ${HEADING_FONT}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/catalyst-c-logo.jpg" alt="" className="h-[1em] w-[1em] rounded-md shrink-0" />
           Catalyst Birthdays
         </h1>
-        <p className={`text-green-700 text-sm bg-green-50 border border-green-200 rounded-lg px-4 py-3 ${INPUT_FONT}`}>
+        <p className={`text-green-700 dark:text-green-300 text-sm bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-900 rounded-lg px-4 py-3 ${INPUT_FONT}`}>
           Thanks! We can&apos;t wait to celebrate with you.
         </p>
       </div>
@@ -208,13 +208,13 @@ export default function BdayForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      <h1 className={`flex items-center gap-[0.3em] whitespace-nowrap text-[clamp(1.05rem,5vw,1.75rem)] font-extrabold tracking-[-0.7px] text-[#222222] ${HEADING_FONT}`}>
+      <h1 className={`flex items-center gap-[0.3em] whitespace-nowrap text-[clamp(1.05rem,5vw,1.75rem)] font-extrabold tracking-[-0.7px] text-[#222222] dark:text-white ${HEADING_FONT}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/catalyst-c-logo.jpg" alt="" className="h-[1em] w-[1em] rounded-md shrink-0" />
         Catalyst Birthdays
       </h1>
 
-      <p className={`text-black font-normal text-[15px] leading-relaxed ${HEADING_FONT}`}>
+      <p className={`text-black dark:text-white font-normal text-[15px] leading-relaxed ${HEADING_FONT}`}>
         We want to celebrate with you and your family! Please add the
         birthdays and anniversary in your household below so we can keep
         them on file and make a bit of a fuss when the day comes. Please
@@ -222,7 +222,7 @@ export default function BdayForm() {
       </p>
 
       {error && (
-        <p className={`text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg px-4 py-3 ${INPUT_FONT}`}>
+        <p className={`text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg px-4 py-3 ${INPUT_FONT}`}>
           {error}
         </p>
       )}
@@ -254,7 +254,7 @@ export default function BdayForm() {
           onChange={e => setSubmittedByName(e.target.value)}
           className={inputClass}
         />
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
           So we can match these to the right family.
         </p>
         <CharCounter value={submittedByName} />
@@ -262,7 +262,7 @@ export default function BdayForm() {
 
       <fieldset className="space-y-3">
         <legend className={labelClass}>Family Birthdays</legend>
-        <p className="text-xs text-gray-500 -mt-2">
+        <p className="text-xs text-gray-500 dark:text-slate-400 -mt-2">
           First and last name for each person, please.
         </p>
         <div className="space-y-3">
@@ -270,7 +270,7 @@ export default function BdayForm() {
             <div key={i} className="grid grid-cols-1 sm:grid-cols-[1fr_1.4fr_auto] gap-2 items-start">
               <div>
                 {i === 0 && (
-                  <label className="block text-black font-bold text-xs mb-1">First and Last Name</label>
+                  <label className="block text-black dark:text-white font-bold text-xs mb-1">First and Last Name</label>
                 )}
                 <input
                   type="text"
@@ -282,7 +282,7 @@ export default function BdayForm() {
               </div>
               <div>
                 {i === 0 && (
-                  <label className="block text-black font-bold text-xs mb-1">Birthdate</label>
+                  <label className="block text-black dark:text-white font-bold text-xs mb-1">Birthdate</label>
                 )}
                 <DateSelects
                   month={b.month}
@@ -296,7 +296,7 @@ export default function BdayForm() {
                   type="button"
                   onClick={() => removeBirthday(i)}
                   aria-label="Remove birthday"
-                  className="w-full sm:w-auto text-red-600 text-sm px-3 py-3 hover:text-red-800"
+                  className="w-full sm:w-auto text-red-600 dark:text-red-400 text-sm px-3 py-3 hover:text-red-800 dark:hover:text-red-300"
                 >
                   Remove
                 </button>
@@ -306,7 +306,7 @@ export default function BdayForm() {
           <button
             type="button"
             onClick={addBirthday}
-            className={`text-sm font-medium text-[#131313] underline underline-offset-2 hover:text-black ${HEADING_FONT}`}
+            className={`text-sm font-medium text-[#131313] dark:text-white underline underline-offset-2 hover:text-black dark:hover:text-white ${HEADING_FONT}`}
           >
             + Add a Birthday
           </button>
@@ -315,7 +315,7 @@ export default function BdayForm() {
 
       <fieldset className="space-y-3">
         <legend className={labelClass}>Anniversaries</legend>
-        <p className="text-xs text-gray-500 -mt-2">
+        <p className="text-xs text-gray-500 dark:text-slate-400 -mt-2">
           First and last name for both spouses, please.
         </p>
         <div className="space-y-3">
@@ -323,7 +323,7 @@ export default function BdayForm() {
             <div key={i} className="grid grid-cols-1 sm:grid-cols-[1fr_1.4fr_auto] gap-2 items-start">
               <div>
                 {i === 0 && (
-                  <label className="block text-black font-bold text-xs mb-1">Couple&apos;s Names</label>
+                  <label className="block text-black dark:text-white font-bold text-xs mb-1">Couple&apos;s Names</label>
                 )}
                 <input
                   type="text"
@@ -335,7 +335,7 @@ export default function BdayForm() {
               </div>
               <div>
                 {i === 0 && (
-                  <label className="block text-black font-bold text-xs mb-1">Anniversary Date</label>
+                  <label className="block text-black dark:text-white font-bold text-xs mb-1">Anniversary Date</label>
                 )}
                 <DateSelects
                   month={a.month}
@@ -349,7 +349,7 @@ export default function BdayForm() {
                   type="button"
                   onClick={() => removeAnniversary(i)}
                   aria-label="Remove anniversary"
-                  className="w-full sm:w-auto text-red-600 text-sm px-3 py-3 hover:text-red-800"
+                  className="w-full sm:w-auto text-red-600 dark:text-red-400 text-sm px-3 py-3 hover:text-red-800 dark:hover:text-red-300"
                 >
                   Remove
                 </button>
@@ -359,7 +359,7 @@ export default function BdayForm() {
           <button
             type="button"
             onClick={addAnniversary}
-            className={`text-sm font-medium text-[#131313] underline underline-offset-2 hover:text-black ${HEADING_FONT}`}
+            className={`text-sm font-medium text-[#131313] dark:text-white underline underline-offset-2 hover:text-black dark:hover:text-white ${HEADING_FONT}`}
           >
             + Add an Anniversary
           </button>
@@ -369,7 +369,7 @@ export default function BdayForm() {
       <button
         type="submit"
         disabled={submitting}
-        className={`w-full sm:w-auto bg-[#131313] hover:bg-black disabled:opacity-60 text-white font-medium py-3 px-10 rounded-full text-[15px] transition-colors ${HEADING_FONT}`}
+        className={`w-full sm:w-auto bg-[#131313] hover:bg-black dark:bg-white dark:hover:bg-slate-200 disabled:opacity-60 text-white dark:text-slate-900 font-medium py-3 px-10 rounded-full text-[15px] transition-colors ${HEADING_FONT}`}
       >
         {submitting ? 'Submitting…' : 'Submit'}
       </button>

@@ -93,8 +93,8 @@ function AwardsEditor({ memberId }: { memberId: number }) {
   return (
     <div className="mb-3">
       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Service awards (saves immediately)</p>
-      {awards === null && !error && <p className="text-xs text-gray-400">Loading…</p>}
-      {awards !== null && rows.length === 0 && <p className="text-xs text-gray-400">No awards reached yet.</p>}
+      {awards === null && !error && <p className="text-xs text-gray-400 dark:text-slate-500">Loading…</p>}
+      {awards !== null && rows.length === 0 && <p className="text-xs text-gray-400 dark:text-slate-500">No awards reached yet.</p>}
       <ul>
         {rows.map((a) => (
           <li key={a.label} className="flex items-center justify-between py-1">

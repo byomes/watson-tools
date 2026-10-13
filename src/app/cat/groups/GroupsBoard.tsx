@@ -218,7 +218,7 @@ export default function GroupsBoard({ groupToken }: { groupToken?: string } = {}
                     <button type="button" className="text-gray-500 dark:text-gray-400" onClick={() => setConfirmRemove(null)}>Keep</button>
                   </span>
                 ) : (
-                  <button type="button" aria-label={`Remove ${p.name}`} className="text-gray-400 text-lg leading-none"
+                  <button type="button" aria-label={`Remove ${p.name}`} className="text-gray-400 dark:text-slate-500 text-lg leading-none"
                     onClick={() => setConfirmRemove(p.id)}>×</button>
                 )}
               </li>
@@ -295,7 +295,7 @@ export default function GroupsBoard({ groupToken }: { groupToken?: string } = {}
                           <button type="button" className="text-gray-500 dark:text-gray-400" onClick={() => setConfirmRemove(null)}>Keep</button>
                         </span>
                       ) : (
-                        <button type="button" aria-label={`Remove ${p.name} from regulars`} className="text-gray-400 text-lg leading-none"
+                        <button type="button" aria-label={`Remove ${p.name} from regulars`} className="text-gray-400 dark:text-slate-500 text-lg leading-none"
                           onClick={() => setConfirmRemove(p.id)}>×</button>
                       )}
                       <Toggle on={p.present} disabled={pending.has(p.id)} onClick={() => setPresent(p.id, !p.present)} />

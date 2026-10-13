@@ -185,11 +185,11 @@ export default function AttSchedBoard() {
                       return (
                         <span key={id} className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-sm">
                           {nameOf(id)}
-                          {known && <span className="text-xs text-slate-500">({known.channel ? CHANNEL[known.channel] : 'no way to reach'})</span>}
+                          {known && <span className="text-xs text-slate-500 dark:text-slate-400">({known.channel ? CHANNEL[known.channel] : 'no way to reach'})</span>}
                           <button
                             type="button"
                             aria-label={`Remove ${nameOf(id)}`}
-                            className="ml-1 text-slate-500 hover:text-red-600"
+                            className="ml-1 text-slate-500 dark:text-slate-400 hover:text-red-600"
                             onClick={() => patch(g.title, { leaderIds: d.leaderIds.filter((x) => x !== id) })}
                           >
                             x
@@ -197,7 +197,7 @@ export default function AttSchedBoard() {
                         </span>
                       )
                     })}
-                    {d.leaderIds.length === 0 && <span className="text-sm text-slate-500">None assigned</span>}
+                    {d.leaderIds.length === 0 && <span className="text-sm text-slate-500 dark:text-slate-400">None assigned</span>}
                   </div>
                   <select
                     className={`${field} mt-2`}
@@ -414,12 +414,12 @@ export default function AttSchedBoard() {
         )}
 
         {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
-        {loading && <p className="mt-4 text-sm text-slate-500">Loading...</p>}
+        {loading && <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">Loading...</p>}
 
         <details open className="mt-5">
           <summary className="cursor-pointer text-sm font-semibold">Unset ({unset.length}) - needs a look</summary>
           <div className="mt-3 space-y-5">
-            {unset.length === 0 && <p className="text-sm text-slate-500">Nothing waiting. Every group is set up or archived.</p>}
+            {unset.length === 0 && <p className="text-sm text-slate-500 dark:text-slate-400">Nothing waiting. Every group is set up or archived.</p>}
             {renderCards(unset)}
           </div>
         </details>

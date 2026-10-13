@@ -39,11 +39,11 @@ interface ConfirmState {
 
 function RegistrationCard({ r }: { r: RegistrationSummary }) {
   return (
-    <div className="flex-1 border border-gray-200 rounded-lg p-3">
-      <div className="font-semibold text-black">{r.name || 'no name'}</div>
-      <div className="text-sm text-gray-600">{r.email || '—'}</div>
-      <div className="text-sm text-gray-600">{r.phone || '—'}</div>
-      <div className="text-xs text-gray-400 mt-1">
+    <div className="flex-1 border border-gray-200 dark:border-slate-700 rounded-lg p-3">
+      <div className="font-semibold text-black dark:text-white">{r.name || 'no name'}</div>
+      <div className="text-sm text-gray-600 dark:text-slate-400">{r.email || '—'}</div>
+      <div className="text-sm text-gray-600 dark:text-slate-400">{r.phone || '—'}</div>
+      <div className="text-xs text-gray-400 dark:text-slate-500 mt-1">
         {r.num_tickets} ticket{r.num_tickets === 1 ? '' : 's'} · {r.ticket_type || 'no ticket type'} ·{' '}
         {r.source} · {r.submitted_at || 'no submit date'}
       </div>
@@ -132,32 +132,32 @@ export default function EventDuplicateReviewBoard() {
 
   if (confirm) {
     return (
-      <div className="border border-gray-300 rounded-lg p-4">
-        <h2 className="font-semibold text-black mb-2">Confirm merge</h2>
-        <p className="text-sm text-gray-600 mb-3">
+      <div className="border border-gray-300 dark:border-slate-600 rounded-lg p-4">
+        <h2 className="font-semibold text-black dark:text-white mb-2">Confirm merge</h2>
+        <p className="text-sm text-gray-600 dark:text-slate-400 mb-3">
           Keeping <b>{confirm.keep.name || 'this registration'}</b> (id {confirm.keep.id}) — any
           blank details will be filled in from <b>{confirm.drop.name || 'the other registration'}</b>{' '}
           (id {confirm.drop.id}), and that row will be deleted. This can&apos;t be undone.
         </p>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Final ticket count</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Final ticket count</label>
         <input
           type="number"
           min={0}
           value={confirm.numTickets}
           onChange={(e) => setConfirm({ ...confirm, numTickets: Number(e.target.value) })}
-          className="w-full mb-4 border border-gray-300 rounded-lg px-3 py-2 text-black"
+          className="w-full mb-4 border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 text-black dark:text-white"
         />
         <div className="flex gap-2">
           <button
             onClick={handleMerge}
             disabled={busy === confirm.flagId}
-            className="bg-black text-white rounded-lg px-4 py-2 text-sm disabled:opacity-50"
+            className="bg-black text-white dark:bg-white dark:text-black rounded-lg px-4 py-2 text-sm disabled:opacity-50"
           >
             {busy === confirm.flagId ? 'Merging…' : 'Confirm merge'}
           </button>
           <button
             onClick={() => setConfirm(null)}
-            className="border border-gray-300 rounded-lg px-4 py-2 text-sm text-black"
+            className="border border-gray-300 dark:border-slate-600 rounded-lg px-4 py-2 text-sm text-black dark:text-white"
           >
             Cancel
           </button>
@@ -171,22 +171,22 @@ export default function EventDuplicateReviewBoard() {
       <button
         onClick={handleRescan}
         disabled={rescanning}
-        className="mb-6 border border-gray-300 rounded-lg px-4 py-2 text-sm text-black disabled:opacity-50"
+        className="mb-6 border border-gray-300 dark:border-slate-600 rounded-lg px-4 py-2 text-sm text-black dark:text-white disabled:opacity-50"
       >
         {rescanning ? 'Scanning…' : 'Rescan for new duplicates'}
       </button>
 
-      {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
+      {error && <p className="text-red-600 dark:text-red-400 text-sm mb-4">{error}</p>}
 
-      {!pairs && <p className="text-gray-500">Loading…</p>}
+      {!pairs && <p className="text-gray-500 dark:text-slate-400">Loading…</p>}
       {pairs && pairs.length === 0 && (
-        <p className="text-gray-500">No pending duplicates. Nice and clean.</p>
+        <p className="text-gray-500 dark:text-slate-400">No pending duplicates. Nice and clean.</p>
       )}
 
       <ul className="space-y-4">
         {pairs?.map((pair) => (
-          <li key={pair.flag_id} className="border border-gray-200 rounded-lg p-4">
-            <div className="text-xs font-medium text-gray-400 uppercase mb-2">
+          <li key={pair.flag_id} className="border border-gray-200 dark:border-slate-700 rounded-lg p-4">
+            <div className="text-xs font-medium text-gray-400 dark:text-slate-500 uppercase mb-2">
               {pair.event_name} · {REASON_LABEL[pair.reason] || pair.reason}
             </div>
             <div className="flex gap-3 mb-3">
@@ -196,20 +196,20 @@ export default function EventDuplicateReviewBoard() {
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => openConfirm(pair, 'a')}
-                className="bg-black text-white rounded-lg px-3 py-1.5 text-sm"
+                className="bg-black text-white dark:bg-white dark:text-black rounded-lg px-3 py-1.5 text-sm"
               >
                 Keep &quot;{pair.registration_a.name || 'this one'}&quot;
               </button>
               <button
                 onClick={() => openConfirm(pair, 'b')}
-                className="bg-black text-white rounded-lg px-3 py-1.5 text-sm"
+                className="bg-black text-white dark:bg-white dark:text-black rounded-lg px-3 py-1.5 text-sm"
               >
                 Keep &quot;{pair.registration_b.name || 'this one'}&quot;
               </button>
               <button
                 onClick={() => handleDismiss(pair.flag_id)}
                 disabled={busy === pair.flag_id}
-                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-black disabled:opacity-50"
+                className="border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-1.5 text-sm text-black dark:text-white disabled:opacity-50"
               >
                 Not a duplicate
               </button>

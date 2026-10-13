@@ -26,10 +26,10 @@ interface Data {
 }
 
 const FLAGS: { key: string; label: string; cls: string }[] = [
-  { key: 'worship-only', label: 'Worship only', cls: 'bg-amber-100 text-amber-800' },
-  { key: 'slipping', label: 'Slipping', cls: 'bg-red-100 text-red-800' },
-  { key: 'new', label: 'New', cls: 'bg-blue-100 text-blue-800' },
-  { key: 'connected', label: 'Connected', cls: 'bg-green-100 text-green-800' },
+  { key: 'worship-only', label: 'Worship only', cls: 'bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300' },
+  { key: 'slipping', label: 'Slipping', cls: 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300' },
+  { key: 'new', label: 'New', cls: 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300' },
+  { key: 'connected', label: 'Connected', cls: 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300' },
 ]
 const flagMeta = (k: string) => FLAGS.find(f => f.key === k)
 
@@ -42,8 +42,8 @@ function fmt(iso: string | null): string {
 function Stat({ n, label }: { n: number; label: string }) {
   return (
     <div className="text-center">
-      <div className={`text-lg font-semibold ${n ? 'text-black' : 'text-gray-300'}`}>{n}</div>
-      <div className="text-[11px] text-gray-500">{label}</div>
+      <div className={`text-lg font-semibold ${n ? 'text-black dark:text-white' : 'text-gray-300 dark:text-slate-600'}`}>{n}</div>
+      <div className="text-[11px] text-gray-500 dark:text-slate-400">{label}</div>
     </div>
   )
 }
@@ -68,13 +68,13 @@ export default function ConnectionBoard() {
     return data.people.filter(p => (!q || p.name.toLowerCase().includes(q)) && (!filter || p.flag === filter))
   }, [data, query, filter])
 
-  if (error) return <p className="text-red-600">{error}</p>
-  if (!data) return <p className="text-gray-500">Loading...</p>
+  if (error) return <p className="text-red-600 dark:text-red-400">{error}</p>
+  if (!data) return <p className="text-gray-500 dark:text-slate-400">Loading...</p>
 
   const { coverage } = data
   return (
     <div>
-      <div className="text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
+      <div className="text-xs text-gray-600 dark:text-slate-400 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg p-3 mb-4">
         Last {data.window_days} days. Worship counts Sundays attended. Serving tracking began {fmt(coverage.serving_since)}
         {coverage.group_since ? `, group tracking ${fmt(coverage.group_since)}` : ', group tracking has not started yet'}, so
         those counts are partial until a full window of history builds up.
@@ -82,7 +82,7 @@ export default function ConnectionBoard() {
       </div>
 
       <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search a name"
-        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-black bg-white mb-3" />
+        className="w-full border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2 text-black dark:text-white bg-white dark:bg-slate-900 mb-3" />
       <div className="flex flex-wrap gap-2 mb-4">
         {FLAGS.filter(f => f.key !== 'worship-only' || coverage.flags_reliable).map(f => (
           <button key={f.key} type="button" onClick={() => setFilter(filter === f.key ? null : f.key)}
@@ -92,7 +92,7 @@ export default function ConnectionBoard() {
         ))}
       </div>
 
-      <ul className="divide-y divide-gray-200">
+      <ul className="divide-y divide-gray-200 dark:divide-slate-700">
         {people.map(p => {
           const meta = flagMeta(p.flag)
           const isOpen = open === p.id
@@ -101,9 +101,9 @@ export default function ConnectionBoard() {
               <button type="button" className="w-full text-left" onClick={() => setOpen(isOpen ? null : p.id)}>
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <span className="text-black text-[15px] font-medium">{p.name}</span>
+                    <span className="text-black dark:text-white text-[15px] font-medium">{p.name}</span>
                     {meta && <span className={`ml-2 text-[11px] px-2 py-0.5 rounded-full ${meta.cls}`}>{meta.label}</span>}
-                    <span className="block text-xs text-gray-500">
+                    <span className="block text-xs text-gray-500 dark:text-slate-400">
                       {p.ladder}{p.deacon ? ` · ${p.deacon}` : ''}
                     </span>
                   </div>
@@ -116,14 +116,14 @@ export default function ConnectionBoard() {
                 </div>
               </button>
               {isOpen && (
-                <div className="mt-3 text-sm text-black space-y-2 pl-1">
-                  <p><span className="text-gray-500">Last worship:</span> {fmt(p.last_worship)}</p>
-                  <p><span className="text-gray-500">On teams:</span> {p.teams.length ? p.teams.join(', ') : 'none'}</p>
-                  <p><span className="text-gray-500">Groups:</span>{' '}
+                <div className="mt-3 text-sm text-black dark:text-white space-y-2 pl-1">
+                  <p><span className="text-gray-500 dark:text-slate-400">Last worship:</span> {fmt(p.last_worship)}</p>
+                  <p><span className="text-gray-500 dark:text-slate-400">On teams:</span> {p.teams.length ? p.teams.join(', ') : 'none'}</p>
+                  <p><span className="text-gray-500 dark:text-slate-400">Groups:</span>{' '}
                     {p.group_list.length ? p.group_list.map(g => `${g.group} (${fmt(g.date)})`).join(', ') : 'none recorded'}</p>
-                  <p><span className="text-gray-500">Served:</span>{' '}
+                  <p><span className="text-gray-500 dark:text-slate-400">Served:</span>{' '}
                     {p.serving_list.length ? p.serving_list.map(s => `${s.team} (${fmt(s.date)})`).join(', ') : 'none recorded'}</p>
-                  <p><span className="text-gray-500">Events:</span>{' '}
+                  <p><span className="text-gray-500 dark:text-slate-400">Events:</span>{' '}
                     {p.event_list.length ? p.event_list.map(e => `${e.event} (${fmt(e.date)})`).join(', ') : 'none'}</p>
                 </div>
               )}
@@ -131,7 +131,7 @@ export default function ConnectionBoard() {
           )
         })}
       </ul>
-      {people.length === 0 && <p className="text-gray-500 mt-4">No one matches.</p>}
+      {people.length === 0 && <p className="text-gray-500 dark:text-slate-400 mt-4">No one matches.</p>}
     </div>
   )
 }

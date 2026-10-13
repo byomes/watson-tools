@@ -15,10 +15,10 @@ export default async function AttendancePage() {
   await requireLiveTool('cat', 'attendance')
 
   return (
-    <div className="min-h-screen bg-white py-10 px-4">
+    <div className="min-h-screen bg-white dark:bg-slate-950 py-10 px-4">
       <div className="max-w-md mx-auto">
-        <h1 className="text-2xl font-bold text-black mb-1">Sunday Attendance</h1>
-        <p className="text-sm text-gray-500 mb-6">
+        <h1 className="text-2xl font-bold text-black dark:text-white mb-1">Sunday Attendance</h1>
+        <p className="text-sm text-gray-500 dark:text-slate-400 mb-6">
           Tap a name to mark present or absent. Changes save immediately.
         </p>
         <AttendanceBoard />

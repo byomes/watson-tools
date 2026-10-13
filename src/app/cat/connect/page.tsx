@@ -17,7 +17,7 @@ export default async function ConnectCardPage() {
   await requireLiveTool('cat', 'connect')
 
   return (
-    <div className="min-h-screen bg-white py-16 px-8">
+    <div className="min-h-screen bg-white dark:bg-slate-950 py-16 px-8">
       <div className="max-w-2xl mx-auto">
         <ConnectCardForm />
       </div>

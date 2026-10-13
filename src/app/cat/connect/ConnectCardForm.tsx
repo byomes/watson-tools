@@ -59,8 +59,8 @@ const INPUT_FONT = 'font-[family-name:var(--font-connect-card-input)]'
 // maximum-scale/user-scalable on the viewport meta tag) keeps pinch-zoom
 // available everywhere else on the page for anyone who needs it.
 const inputClass =
-  `w-full bg-[#ebebeb] border-0 text-black placeholder-gray-500 rounded-lg px-3 py-3 text-base ${INPUT_FONT} focus:outline-none focus:ring-2 focus:ring-black/20 transition-shadow`
-const labelClass = `block text-black font-bold text-[15px] mb-2 ${HEADING_FONT}`
+  `w-full bg-[#ebebeb] dark:bg-slate-800 border-0 text-black dark:text-white placeholder-gray-500 dark:placeholder-slate-400 rounded-lg px-3 py-3 text-base ${INPUT_FONT} focus:outline-none focus:ring-2 focus:ring-black/20 transition-shadow`
+const labelClass = `block text-black dark:text-white font-bold text-[15px] mb-2 ${HEADING_FONT}`
 
 // Still used as a submit-time guard against a future date (see handleSubmit
 // below). Family Birthdays / Anniversaries used to use a native
@@ -100,7 +100,7 @@ const checkboxRowClass = 'flex items-start gap-3'
 // checkbox "blue" is just the browser's own default accent-color: auto, not
 // a deliberate brand color), so native default rendering is the faithful match.
 const checkboxClass = 'mt-0.5 shrink-0 w-4 h-4 cursor-pointer'
-const checkboxLabelClass = `text-black font-normal text-[16.5px] leading-relaxed cursor-pointer ${HEADING_FONT}`
+const checkboxLabelClass = `text-black dark:text-white font-normal text-[16.5px] leading-relaxed cursor-pointer ${HEADING_FONT}`
 
 function formatPhone(raw: string): string {
   let digits = raw.replace(/\D/g, '')
@@ -143,7 +143,7 @@ function readStoredProfile(): StoredProfile | null {
 
 function CharCounter({ value }: { value: string }) {
   return (
-    <div className="text-right text-xs text-gray-400 mt-1">
+    <div className="text-right text-xs text-gray-400 dark:text-slate-500 mt-1">
       {value.length}/{CHAR_LIMIT}
     </div>
   )
@@ -389,12 +389,12 @@ export default function ConnectCardForm() {
   if (success) {
     return (
       <div className="space-y-8">
-        <h1 className={`flex items-center gap-[0.3em] whitespace-nowrap text-[clamp(1.05rem,5vw,1.75rem)] font-extrabold tracking-[-0.7px] text-[#222222] ${HEADING_FONT}`}>
+        <h1 className={`flex items-center gap-[0.3em] whitespace-nowrap text-[clamp(1.05rem,5vw,1.75rem)] font-extrabold tracking-[-0.7px] text-[#222222] dark:text-white ${HEADING_FONT}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/catalyst-c-logo.jpg" alt="" className="h-[1em] w-[1em] rounded-md shrink-0" />
           Catalyst Connect Card
         </h1>
-        <p className={`text-green-700 text-sm bg-green-50 border border-green-200 rounded-lg px-4 py-3 ${INPUT_FONT}`}>
+        <p className={`text-green-700 dark:text-green-300 text-sm bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-900 rounded-lg px-4 py-3 ${INPUT_FONT}`}>
           Thanks! Your connect card was submitted. Redirecting you to our giving page…
         </p>
       </div>
@@ -411,14 +411,14 @@ export default function ConnectCardForm() {
           other font ever measures wider than assumed here, the header
           overflows horizontally instead of silently wrapping. Logo and gap
           are sized in em so they shrink/grow in lockstep with the text. */}
-      <h1 className={`flex items-center gap-[0.3em] whitespace-nowrap text-[clamp(1.05rem,5vw,1.75rem)] font-extrabold tracking-[-0.7px] text-[#222222] ${HEADING_FONT}`}>
+      <h1 className={`flex items-center gap-[0.3em] whitespace-nowrap text-[clamp(1.05rem,5vw,1.75rem)] font-extrabold tracking-[-0.7px] text-[#222222] dark:text-white ${HEADING_FONT}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/catalyst-c-logo.jpg" alt="" className="h-[1em] w-[1em] rounded-md shrink-0" />
         Catalyst Connect Card
       </h1>
 
       {error && (
-        <p className={`text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg px-4 py-3 ${INPUT_FONT}`}>
+        <p className={`text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg px-4 py-3 ${INPUT_FONT}`}>
           {error}
         </p>
       )}
@@ -443,7 +443,7 @@ export default function ConnectCardForm() {
         <button
           type="button"
           onClick={handleClear}
-          className={`text-xs text-gray-500 underline underline-offset-2 hover:text-gray-800 ${INPUT_FONT}`}
+          className={`text-xs text-gray-500 dark:text-slate-400 underline underline-offset-2 hover:text-gray-800 dark:hover:text-slate-100 ${INPUT_FONT}`}
         >
           Not you? Clear
         </button>
@@ -509,7 +509,7 @@ export default function ConnectCardForm() {
           </div>
 
           <div>
-            <p className="text-sm text-gray-600 mb-2">Please include your email, your phone number, or both. We need at least one way to follow up with you.</p>
+            <p className="text-sm text-gray-600 dark:text-slate-400 mb-2">Please include your email, your phone number, or both. We need at least one way to follow up with you.</p>
             <label className={labelClass} htmlFor="email">Email {phone ? '' : '*'}</label>
             <input
               id="email"
@@ -637,7 +637,7 @@ export default function ConnectCardForm() {
             <legend className={labelClass}>
               Family Birthdays &amp; Anniversaries
             </legend>
-            <p className={`text-black font-normal text-[15px] leading-relaxed ${HEADING_FONT}`}>
+            <p className={`text-black dark:text-white font-normal text-[15px] leading-relaxed ${HEADING_FONT}`}>
               We&apos;re striving to have birthdates on file for everyone in our
               church family. Please help us by adding all the birthdays in
               your family below, and your anniversary if you&apos;re married.
@@ -648,7 +648,7 @@ export default function ConnectCardForm() {
                 <div key={i} className="grid grid-cols-1 sm:grid-cols-[1fr_1.4fr_auto] gap-2 items-start">
                   <div>
                     {i === 0 && (
-                      <label className="block text-black font-bold text-xs mb-1">Name</label>
+                      <label className="block text-black dark:text-white font-bold text-xs mb-1">Name</label>
                     )}
                     <input
                       type="text"
@@ -660,7 +660,7 @@ export default function ConnectCardForm() {
                   </div>
                   <div>
                     {i === 0 && (
-                      <label className="block text-black font-bold text-xs mb-1">Birthdate</label>
+                      <label className="block text-black dark:text-white font-bold text-xs mb-1">Birthdate</label>
                     )}
                     <DateSelects
                       month={b.month}
@@ -674,7 +674,7 @@ export default function ConnectCardForm() {
                       type="button"
                       onClick={() => removeBirthday(i)}
                       aria-label="Remove birthday"
-                      className="w-full sm:w-auto text-red-600 text-sm px-3 py-3 hover:text-red-800"
+                      className="w-full sm:w-auto text-red-600 dark:text-red-400 text-sm px-3 py-3 hover:text-red-800 dark:hover:text-red-300"
                     >
                       Remove
                     </button>
@@ -684,7 +684,7 @@ export default function ConnectCardForm() {
               <button
                 type="button"
                 onClick={addBirthday}
-                className={`text-sm font-medium text-[#131313] underline underline-offset-2 hover:text-black ${HEADING_FONT}`}
+                className={`text-sm font-medium text-[#131313] dark:text-white underline underline-offset-2 hover:text-black dark:hover:text-white ${HEADING_FONT}`}
               >
                 + Add a Birthday
               </button>
@@ -695,7 +695,7 @@ export default function ConnectCardForm() {
                 <div key={i} className="grid grid-cols-1 sm:grid-cols-[1fr_1.4fr_auto] gap-2 items-start">
                   <div>
                     {i === 0 && (
-                      <label className="block text-black font-bold text-xs mb-1">Couple&apos;s Names</label>
+                      <label className="block text-black dark:text-white font-bold text-xs mb-1">Couple&apos;s Names</label>
                     )}
                     <input
                       type="text"
@@ -707,7 +707,7 @@ export default function ConnectCardForm() {
                   </div>
                   <div>
                     {i === 0 && (
-                      <label className="block text-black font-bold text-xs mb-1">Anniversary Date</label>
+                      <label className="block text-black dark:text-white font-bold text-xs mb-1">Anniversary Date</label>
                     )}
                     <DateSelects
                       month={a.month}
@@ -721,7 +721,7 @@ export default function ConnectCardForm() {
                       type="button"
                       onClick={() => removeAnniversary(i)}
                       aria-label="Remove anniversary"
-                      className="w-full sm:w-auto text-red-600 text-sm px-3 py-3 hover:text-red-800"
+                      className="w-full sm:w-auto text-red-600 dark:text-red-400 text-sm px-3 py-3 hover:text-red-800 dark:hover:text-red-300"
                     >
                       Remove
                     </button>
@@ -731,7 +731,7 @@ export default function ConnectCardForm() {
               <button
                 type="button"
                 onClick={addAnniversary}
-                className={`text-sm font-medium text-[#131313] underline underline-offset-2 hover:text-black ${HEADING_FONT}`}
+                className={`text-sm font-medium text-[#131313] dark:text-white underline underline-offset-2 hover:text-black dark:hover:text-white ${HEADING_FONT}`}
               >
                 + Add an Anniversary
               </button>
@@ -743,7 +743,7 @@ export default function ConnectCardForm() {
       <button
         type="submit"
         disabled={submitting}
-        className={`w-full sm:w-auto bg-[#131313] hover:bg-black disabled:opacity-60 text-white font-medium py-3 px-10 rounded-full text-[15px] transition-colors ${HEADING_FONT}`}
+        className={`w-full sm:w-auto bg-[#131313] hover:bg-black dark:bg-white dark:hover:bg-slate-200 disabled:opacity-60 text-white dark:text-slate-900 font-medium py-3 px-10 rounded-full text-[15px] transition-colors ${HEADING_FONT}`}
       >
         {submitting ? 'Submitting…' : 'Submit'}
       </button>

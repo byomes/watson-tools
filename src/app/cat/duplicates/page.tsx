@@ -14,10 +14,10 @@ export default async function DuplicatesPage() {
   await requireLiveTool('cat', 'duplicates')
 
   return (
-    <div className="min-h-screen bg-white py-10 px-4">
+    <div className="min-h-screen bg-white dark:bg-slate-950 py-10 px-4">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-2xl font-bold text-black mb-1">Possible Duplicate Members</h1>
-        <p className="text-sm text-gray-500 mb-6">
+        <h1 className="text-2xl font-bold text-black dark:text-white mb-1">Possible Duplicate Members</h1>
+        <p className="text-sm text-gray-500 dark:text-slate-400 mb-6">
           Two people sharing an email or phone are often a couple, not a duplicate — check
           before merging. Merging is permanent: it moves all history onto the record you keep
           and deletes the other.

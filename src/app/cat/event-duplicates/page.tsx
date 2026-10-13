@@ -14,10 +14,10 @@ export default async function EventDuplicatesPage() {
   await requireLiveTool('cat', 'event-duplicates')
 
   return (
-    <div className="min-h-screen bg-white py-10 px-4">
+    <div className="min-h-screen bg-white dark:bg-slate-950 py-10 px-4">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-2xl font-bold text-black mb-1">Possible Duplicate Registrations</h1>
-        <p className="text-sm text-gray-500 mb-6">
+        <h1 className="text-2xl font-bold text-black dark:text-white mb-1">Possible Duplicate Registrations</h1>
+        <p className="text-sm text-gray-500 dark:text-slate-400 mb-6">
           Two registrations sharing an email, phone, or name on the same event — often the same
           person signing up twice (a CSV import plus an email confirmation, a resubmitted form).
           Merging is permanent: it fills in any blank details from the one you drop, lets you set

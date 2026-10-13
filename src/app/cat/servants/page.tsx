@@ -15,14 +15,14 @@ export default async function ServantsPage() {
   await requireLiveTool('cat', 'servants')
 
   return (
-    <div className="min-h-screen bg-white py-10 px-4">
+    <div className="min-h-screen bg-white dark:bg-slate-950 py-10 px-4">
       <div className="max-w-md mx-auto">
-        <h1 className="text-2xl font-bold text-black mb-1">Catalyst Servant Leaders</h1>
-        <p className="text-sm text-gray-500 mb-6">
+        <h1 className="text-2xl font-bold text-black dark:text-white mb-1">Catalyst Servant Leaders</h1>
+        <p className="text-sm text-gray-500 dark:text-slate-400 mb-6">
           Please review your team below and confirm everyone&apos;s role and serving start date are correct.
           Tap a person&apos;s name to edit their role or serving date. If someone&apos;s missing, use Add
           Person to add them. If someone is no longer serving, tap the{' '}
-          <span className="inline-flex items-center justify-center w-4 h-4 rounded border-2 border-red-600 bg-white text-red-600 text-[10px] font-bold align-middle">
+          <span className="inline-flex items-center justify-center w-4 h-4 rounded border-2 border-red-600 bg-white dark:bg-slate-900 text-red-600 text-[10px] font-bold align-middle">
             ✕
           </span>{' '}
           next to their name.

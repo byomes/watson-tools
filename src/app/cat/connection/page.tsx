@@ -18,10 +18,10 @@ export default async function ConnectionPage() {
   if (!(await getSession())) redirect('/cat/deaconapp/login')
 
   return (
-    <div className="min-h-screen bg-white py-8 px-4">
+    <div className="min-h-screen bg-white dark:bg-slate-950 py-8 px-4">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-2xl font-bold text-black mb-1">Connection</h1>
-        <p className="text-sm text-gray-500 mb-5">
+        <h1 className="text-2xl font-bold text-black dark:text-white mb-1">Connection</h1>
+        <p className="text-sm text-gray-500 dark:text-slate-400 mb-5">
           Worship, groups, serving and events for each person. Use this to see who to reach out to and who is thriving.
           Follow-up is shepherd work.
         </p>

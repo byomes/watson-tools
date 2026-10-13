@@ -129,7 +129,7 @@ export default function AddKidForm({
             placeholder="Type a name…"
             className="w-full mb-2 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-black dark:text-white bg-white dark:bg-gray-800"
           />
-          {searching && <p className="text-xs text-gray-400 mb-2">Searching…</p>}
+          {searching && <p className="text-xs text-gray-400 dark:text-slate-500 mb-2">Searching…</p>}
           {candidates && candidates.length > 0 && (
             <ul className="mb-2 divide-y divide-gray-200 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
               {candidates.map((c) => (
@@ -142,9 +142,9 @@ export default function AddKidForm({
                   >
                     {c.name}
                     {c.current_class ? (
-                      <span className="ml-2 text-xs text-gray-400">currently in {classLabel(c.current_class)}</span>
+                      <span className="ml-2 text-xs text-gray-400 dark:text-slate-500">currently in {classLabel(c.current_class)}</span>
                     ) : c.id === null ? (
-                      <span className="ml-2 text-xs text-gray-400">in the church database</span>
+                      <span className="ml-2 text-xs text-gray-400 dark:text-slate-500">in the church database</span>
                     ) : null}
                   </button>
                 </li>
@@ -152,7 +152,7 @@ export default function AddKidForm({
             </ul>
           )}
           {candidates && candidates.length === 0 && (
-            <p className="text-xs text-gray-400 mb-2">No matching kids found.</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500 mb-2">No matching kids found.</p>
           )}
           {error && <p className="text-red-600 dark:text-red-400 text-xs mb-2">{error}</p>}
           <div className="flex gap-2">
@@ -226,7 +226,7 @@ export default function AddKidForm({
                       className="w-full text-left px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 disabled:opacity-50"
                     >
                       Yes, add {c.name}
-                      {c.current_class && <span className="ml-1 text-gray-400">({classLabel(c.current_class)})</span>}
+                      {c.current_class && <span className="ml-1 text-gray-400 dark:text-slate-500">({classLabel(c.current_class)})</span>}
                     </button>
                   </li>
                 ))}

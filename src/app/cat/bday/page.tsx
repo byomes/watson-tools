@@ -16,7 +16,7 @@ export default async function BdayPage() {
   await requireLiveTool('cat', 'bday')
 
   return (
-    <div className="min-h-screen bg-white py-16 px-8">
+    <div className="min-h-screen bg-white dark:bg-slate-950 py-16 px-8">
       <div className="max-w-2xl mx-auto">
         <BdayForm />
       </div>

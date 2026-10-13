@@ -18,11 +18,11 @@ const NEXT_STEP_OPTIONS: { key: string; label: string }[] = [
   { key: 'ministry_team', label: 'I want to join a ministry team' },
 ]
 
-const labelClass = 'block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1'
+const labelClass = 'block text-[11px] font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1'
 const inputClass =
-  'w-full bg-white border-2 border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-blue-700'
+  'w-full bg-white dark:bg-slate-900 border-2 border-gray-300 dark:border-slate-600 rounded-md px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-700'
 const checkboxRowClass = 'flex items-start gap-2'
-const checkboxLabelClass = 'text-sm text-gray-800 leading-snug cursor-pointer'
+const checkboxLabelClass = 'text-sm text-gray-800 dark:text-slate-100 leading-snug cursor-pointer'
 
 function formatPhone(raw: string): string {
   let digits = raw.replace(/\D/g, '')
@@ -37,7 +37,7 @@ function formatPhone(raw: string): string {
 
 function CharCounter({ value }: { value: string }) {
   return (
-    <div className="text-right text-xs text-gray-400 mt-1">
+    <div className="text-right text-xs text-gray-400 dark:text-slate-500 mt-1">
       {value.length}/{CHAR_LIMIT}
     </div>
   )
@@ -133,9 +133,9 @@ export default function PaperCardForm() {
 
   if (success) {
     return (
-      <div className="border-2 border-green-300 bg-green-50 rounded-xl p-10 text-center">
-        <p className="text-green-800 font-bold text-lg">Connect card logged ✓</p>
-        <p className="text-green-700 text-sm mt-1">Loading a fresh form for the next card…</p>
+      <div className="border-2 border-green-300 dark:border-green-800 bg-green-50 dark:bg-green-950/40 rounded-xl p-10 text-center">
+        <p className="text-green-800 dark:text-green-300 font-bold text-lg">Connect card logged ✓</p>
+        <p className="text-green-700 dark:text-green-300 text-sm mt-1">Loading a fresh form for the next card…</p>
       </div>
     )
   }
@@ -143,7 +143,7 @@ export default function PaperCardForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <p className="text-red-700 text-sm bg-red-50 border border-red-200 rounded-lg px-4 py-3">{error}</p>
+        <p className="text-red-700 dark:text-red-300 text-sm bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg px-4 py-3">{error}</p>
       )}
 
       <div>
