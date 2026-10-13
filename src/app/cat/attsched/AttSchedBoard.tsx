@@ -11,6 +11,7 @@ type Group = {
   message: string
   weekly_start: string
   archived: boolean
+  configured: boolean
   leaders: Leader[]
   next: { date: string; time_text: string; fire: string; deferred: boolean } | null
   needs_start: boolean
@@ -104,22 +105,11 @@ export default function AttSchedBoard() {
   const field =
     'w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white'
 
-  return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
-      <div className="mx-auto max-w-3xl px-4 py-6">
-        <h1 className="text-xl font-bold">Attendance Rules</h1>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-          For each group, Watson sends the leaders your message plus that session&apos;s attendance link, the chosen
-          number of minutes after the calendar start time (standard {defaultDelay}). Telegram is used first for
-          leaders Watson already knows there, SMS for everyone else. Nothing is sent until a group is turned on, and
-          nothing goes out before 9am or after 8pm; a send that would land later waits until 9am the next day.
-        </p>
+  const unset = groups.filter((g) => !g.archived && !g.configured)
+  const done = groups.filter((g) => !g.archived && g.configured)
 
-        {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
-        {loading && <p className="mt-4 text-sm text-slate-500">Loading...</p>}
-
-        <div className="mt-5 space-y-5">
-          {groups.filter((g) => !g.archived).map((g) => {
+  const renderCards = (list: Group[]) =>
+    list.map((g) => {
             const d = drafts[g.title]
             if (!d) return null
             const available = members.filter((m) => !d.leaderIds.includes(m.id))
@@ -240,8 +230,36 @@ export default function AttSchedBoard() {
                 </div>
               </section>
             )
-          })}
+    })
+
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
+      <div className="mx-auto max-w-3xl px-4 py-6">
+        <h1 className="text-xl font-bold">Attendance Rules</h1>
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+          For each group, Watson sends the leaders your message plus that session&apos;s attendance link, the chosen
+          number of minutes after the calendar start time (standard {defaultDelay}). Telegram is used first for
+          leaders Watson already knows there, SMS for everyone else. Nothing is sent until a group is turned on, and
+          nothing goes out before 9am or after 8pm; a send that would land later waits until 9am the next day.
+        </p>
+
+        {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+        {loading && <p className="mt-4 text-sm text-slate-500">Loading...</p>}
+
+        <h2 className="mt-5 text-sm font-semibold">
+          Unset ({unset.length}) - needs a look
+        </h2>
+        <div className="mt-2 space-y-5">
+          {unset.length === 0 && <p className="text-sm text-slate-500">Nothing waiting. Every group is set up or archived.</p>}
+          {renderCards(unset)}
         </div>
+
+        {done.length > 0 && (
+          <details className="mt-8">
+            <summary className="cursor-pointer text-sm font-semibold">Set ({done.length})</summary>
+            <div className="mt-3 space-y-5">{renderCards(done)}</div>
+          </details>
+        )}
 
         {groups.some((g) => g.archived) && (
           <details className="mt-8 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
