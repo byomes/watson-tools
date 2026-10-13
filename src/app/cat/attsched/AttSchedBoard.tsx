@@ -246,13 +246,13 @@ export default function AttSchedBoard() {
         {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
         {loading && <p className="mt-4 text-sm text-slate-500">Loading...</p>}
 
-        <h2 className="mt-5 text-sm font-semibold">
-          Unset ({unset.length}) - needs a look
-        </h2>
-        <div className="mt-2 space-y-5">
-          {unset.length === 0 && <p className="text-sm text-slate-500">Nothing waiting. Every group is set up or archived.</p>}
-          {renderCards(unset)}
-        </div>
+        <details open className="mt-5">
+          <summary className="cursor-pointer text-sm font-semibold">Unset ({unset.length}) - needs a look</summary>
+          <div className="mt-3 space-y-5">
+            {unset.length === 0 && <p className="text-sm text-slate-500">Nothing waiting. Every group is set up or archived.</p>}
+            {renderCards(unset)}
+          </div>
+        </details>
 
         {done.length > 0 && (
           <details className="mt-8">
