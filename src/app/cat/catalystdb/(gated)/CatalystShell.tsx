@@ -17,7 +17,17 @@ function MenuIcon() {
   )
 }
 
-export default function CatalystShell({ board, headerRight }: { board: ReactNode; headerRight: ReactNode }) {
+export default function CatalystShell({
+  board,
+  themeToggle,
+  logout,
+  logoutLabelled,
+}: {
+  board: ReactNode
+  themeToggle: ReactNode
+  logout: ReactNode
+  logoutLabelled: ReactNode
+}) {
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState<{ name: string; href: string } | null>(null)
   const frameRef = useRef<HTMLIFrameElement>(null)
@@ -174,7 +184,7 @@ export default function CatalystShell({ board, headerRight }: { board: ReactNode
             {onDashboard ? 'Catalyst' : active ? active.name : 'Catalyst Database'}
           </button>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 shrink-0">
           {active && (
             <a
               href={active.href}
@@ -182,10 +192,12 @@ export default function CatalystShell({ board, headerRight }: { board: ReactNode
               rel="noreferrer"
               className="text-xs text-slate-500 dark:text-slate-400 hover:underline"
             >
-              Open in new tab
+              <span className="hidden sm:inline">Open in new tab</span>
+              <span className="sm:hidden">New tab</span>
             </a>
           )}
-          {headerRight}
+          {!onDashboard && logout}
+          {themeToggle}
         </div>
       </div>
 
@@ -246,6 +258,7 @@ export default function CatalystShell({ board, headerRight }: { board: ReactNode
                   </div>
                 </div>
               ))}
+              <div className="mt-8">{logoutLabelled}</div>
             </div>
           )}
           {boardMounted && <div className={showBoard ? 'h-full' : 'hidden'}>{board}</div>}

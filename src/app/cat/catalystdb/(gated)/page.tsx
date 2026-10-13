@@ -29,20 +29,28 @@ export default async function CatalystDBPage() {
   return (
     <CatalystShell
       board={<CatalystDBBoard />}
-      headerRight={
-        <>
-          <form action={logoutAction}>
-            <button
-              type="submit"
-              aria-label="Log out"
-              title="Log out"
-              className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white active:opacity-60"
-            >
-              <LogoutIcon />
-            </button>
-          </form>
-          <ThemeToggleButton />
-        </>
+      themeToggle={<ThemeToggleButton />}
+      logout={
+        <form action={logoutAction}>
+          <button
+            type="submit"
+            aria-label="Log out"
+            title="Log out"
+            className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white active:opacity-60"
+          >
+            <LogoutIcon />
+          </button>
+        </form>
+      }
+      logoutLabelled={
+        <form action={logoutAction}>
+          <button
+            type="submit"
+            className="w-full min-h-[56px] rounded-2xl border border-slate-200 dark:border-slate-800 text-sm font-medium text-slate-600 dark:text-slate-300 active:opacity-60"
+          >
+            Log out
+          </button>
+        </form>
       }
     />
   )
