@@ -227,14 +227,12 @@ export default function KidsAttendanceBoard() {
 
   const sundayOptions = useMemo(() => data?.recent_sundays ?? [], [data])
 
-  const handleToggle = async (kid: Kid) => {
+  // A kid can appear under a 9 AM class and a 10 AM class at once, so every action says which
+  // class's row it was tapped on (fromClass) instead of guessing from the kid alone.
+  const handleToggle = async (kid: Kid, fromClass: string) => {
     if (!data) return
     const nextPresent = !kid.present
-    // Whatever class this kid is currently showing under (their actual
-    // checkin for this date, or their most-recent class if they aren't
-    // marked present yet) is where marking them present adds them.
-    const group = data.classes.find((g) => g.kids.some((k) => k.id === kid.id))
-    const className = group?.class_name ?? data.class_names[0]
+    const className = fromClass
 
     setPending((prev) => new Set(prev).add(kid.id))
     setError(null)
@@ -264,7 +262,7 @@ export default function KidsAttendanceBoard() {
     await fetchState(data.service_date)
   }
 
-  const handleMove = async (kid: Kid, className: string) => {
+  const handleMove = async (kid: Kid, className: string, fromClass: string) => {
     if (!data) return
 
     setPending((prev) => new Set(prev).add(kid.id))
@@ -273,7 +271,7 @@ export default function KidsAttendanceBoard() {
     const res = await fetch('/api/cat/kidsatt/move', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ kid_id: kid.id, service_date: data.service_date, class_name: className }),
+      body: JSON.stringify({ kid_id: kid.id, service_date: data.service_date, class_name: className, from_class: fromClass }),
     })
 
     setPending((prev) => {
@@ -312,7 +310,7 @@ export default function KidsAttendanceBoard() {
     await fetchState(data.service_date)
   }
 
-  const handleRemove = async (kid: Kid) => {
+  const handleRemove = async (kid: Kid, fromClass: string) => {
     if (!data) return
     if (!window.confirm(`Remove ${kid.name} from this class? They won't show up in Kids Attendance again until they check in or are moved back in.`)) {
       return
@@ -324,7 +322,7 @@ export default function KidsAttendanceBoard() {
     const res = await fetch('/api/cat/kidsatt/remove', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ kid_id: kid.id, service_date: data.service_date }),
+      body: JSON.stringify({ kid_id: kid.id, service_date: data.service_date, class_name: fromClass }),
     })
 
     setPending((prev) => {
@@ -377,9 +375,9 @@ export default function KidsAttendanceBoard() {
           classNames={data.class_names}
           filter={filter}
           pending={pending}
-          onToggle={handleToggle}
-          onMove={handleMove}
-          onRemove={handleRemove}
+          onToggle={(k) => handleToggle(k, group.class_name)}
+          onMove={(k, c) => handleMove(k, c, group.class_name)}
+          onRemove={(k) => handleRemove(k, group.class_name)}
           onMakeRegular={handleMakeRegular}
           serviceDate={data.service_date}
           isAdding={addingClass === group.class_name}
