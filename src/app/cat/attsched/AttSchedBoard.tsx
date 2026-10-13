@@ -45,6 +45,8 @@ export default function AttSchedBoard() {
   const [loading, setLoading] = useState(true)
 
   const [kind, setKind] = useState<'groups' | 'teams'>('groups')
+  const [framed, setFramed] = useState(false) // inside the Catalyst Database side-menu iframe
+  useEffect(() => setFramed(window.self !== window.top), [])
   const [combinedMsg, setCombinedMsg] = useState('')
   const [combinedNote, setCombinedNote] = useState<{ ok: boolean; text: string } | null>(null)
 
@@ -340,9 +342,11 @@ export default function AttSchedBoard() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
       <div className="mx-auto max-w-3xl px-4 py-6">
-        <a href="/cat/catalystdb" className="text-sm text-slate-500 dark:text-slate-400 hover:underline">
-          &larr; Catalyst Database
-        </a>
+        {!framed && (
+          <a href="/cat/catalystdb" className="text-sm text-slate-500 dark:text-slate-400 hover:underline">
+            &larr; Catalyst Database
+          </a>
+        )}
         <h1 className="mt-1 text-xl font-bold">Attendance Rules</h1>
         <div className="mt-3 flex gap-2" role="tablist">
           {(['groups', 'teams'] as const).map((k) => (

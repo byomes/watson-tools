@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { logoutAction } from '../actions'
 import CatalystDBBoard from './CatalystDBBoard'
 import ThemeToggleButton from './ThemeToggleButton'
-import ToolsMenu from './ToolsMenu'
+import CatalystShell from './CatalystShell'
 
 export const metadata: Metadata = {
   title: 'Catalyst Database',
@@ -27,17 +27,10 @@ function LogoutIcon() {
 
 export default async function CatalystDBPage() {
   return (
-    <div className="flex flex-col h-screen">
-      <div className="flex items-center justify-between gap-3 px-4 py-5 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 shrink-0">
-        <a
-          href="/cat/catalystdb"
-          title="Refresh"
-          className="text-lg font-semibold text-slate-900 dark:text-white hover:opacity-70 active:opacity-50"
-        >
-          Catalyst Database
-        </a>
-        <div className="flex items-center gap-4">
-          <ToolsMenu />
+    <CatalystShell
+      board={<CatalystDBBoard />}
+      headerRight={
+        <>
           <form action={logoutAction}>
             <button
               type="submit"
@@ -49,11 +42,8 @@ export default async function CatalystDBPage() {
             </button>
           </form>
           <ThemeToggleButton />
-        </div>
-      </div>
-      <div className="flex-1 min-h-0">
-        <CatalystDBBoard />
-      </div>
-    </div>
+        </>
+      }
+    />
   )
 }
