@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import FrameThemeSync from './FrameThemeSync';
 
 export const metadata: Metadata = {
   title: 'Watson Public Tools',
@@ -13,7 +14,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     // element before React hydrates, so React's own hydration check would
     // otherwise flag a className mismatch here even though it's expected.
     <html lang="en" className="bg-white dark:bg-gray-950" suppressHydrationWarning>
-      <body className="antialiased bg-white dark:bg-gray-950">{children}</body>
+      <body className="antialiased bg-white dark:bg-gray-950"><FrameThemeSync />
+        {children}
+      </body>
     </html>
   );
 }

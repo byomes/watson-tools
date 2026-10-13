@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState, type ReactNode } from 'react'
-import { CAT_TOOL_SECTIONS } from '@/lib/catTools'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { CAT_TOOL_SECTIONS, type CatTool } from '@/lib/catTools'
 
 // Left-hand tools menu for the Catalyst Database. Picking a tool loads it in an iframe in
 // this same window; the database board stays mounted underneath so nothing is lost
@@ -20,6 +20,29 @@ function MenuIcon() {
 export default function CatalystShell({ board, headerRight }: { board: ReactNode; headerRight: ReactNode }) {
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState<{ name: string; href: string } | null>(null)
+  const frameRef = useRef<HTMLIFrameElement>(null)
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+
+  // Push this window's light/dark choice into the framed tool, now and whenever it changes.
+  const sendTheme = useCallback(() => {
+    frameRef.current?.contentWindow?.postMessage(
+      { type: 'cat-theme', dark: document.documentElement.classList.contains('dark') },
+      window.location.origin,
+    )
+  }, [])
+
+  useEffect(() => {
+    const observer = new MutationObserver(sendTheme)
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin === window.location.origin && e.data?.type === 'cat-theme-request') sendTheme()
+    }
+    window.addEventListener('message', onMessage)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('message', onMessage)
+    }
+  }, [sendTheme])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -38,6 +61,55 @@ export default function CatalystShell({ board, headerRight }: { board: ReactNode
     `block w-full text-left rounded-lg px-3 py-2 ${
       on ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-100 dark:hover:bg-slate-800'
     }`
+
+  const renderTool = (t: CatTool) => {
+    if (!t.children) {
+      return (
+        <button
+          key={t.href}
+          type="button"
+          onClick={() => choose({ name: t.name, href: t.href })}
+          className={itemCls(active?.href === t.href)}
+        >
+          <div className="text-sm font-medium text-slate-900 dark:text-white">{t.name}</div>
+          <div className="text-xs text-slate-500 dark:text-slate-400">{t.note}</div>
+        </button>
+      )
+    }
+    const hasActiveChild = t.children.some((c) => c.href === active?.href)
+    const isOpen = expanded[t.name] ?? hasActiveChild
+    return (
+      <div key={t.href}>
+        <button
+          type="button"
+          aria-expanded={isOpen}
+          onClick={() => setExpanded((e) => ({ ...e, [t.name]: !isOpen }))}
+          className={`${itemCls(false)} flex items-center justify-between`}
+        >
+          <span>
+            <span className="block text-sm font-medium text-slate-900 dark:text-white">{t.name}</span>
+            <span className="block text-xs text-slate-500 dark:text-slate-400">{t.note}</span>
+          </span>
+          <span className="text-slate-500 dark:text-slate-400 text-sm">{isOpen ? '\u25BE' : '\u25B8'}</span>
+        </button>
+        {isOpen && (
+          <div className="ml-4 border-l border-slate-200 dark:border-slate-800 pl-2">
+            {t.children.map((c) => (
+              <button
+                key={c.href}
+                type="button"
+                onClick={() => choose({ name: `${t.name}: ${c.name}`, href: c.href })}
+                className={itemCls(active?.href === c.href)}
+              >
+                <div className="text-sm font-medium text-slate-900 dark:text-white">{c.name}</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">{c.note}</div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col h-screen">
@@ -97,17 +169,7 @@ export default function CatalystShell({ board, headerRight }: { board: ReactNode
               <div className="px-3 pt-3 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 {sec.title}
               </div>
-              {sec.tools.map((t) => (
-                <button
-                  key={t.href}
-                  type="button"
-                  onClick={() => choose({ name: t.name, href: t.href })}
-                  className={itemCls(active?.href === t.href)}
-                >
-                  <div className="text-sm font-medium text-slate-900 dark:text-white">{t.name}</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">{t.note}</div>
-                </button>
-              ))}
+              {sec.tools.map((t) => renderTool(t))}
             </div>
           ))}
         </nav>
@@ -116,6 +178,8 @@ export default function CatalystShell({ board, headerRight }: { board: ReactNode
           <div className={active ? 'hidden' : 'h-full'}>{board}</div>
           {active && (
             <iframe
+              ref={frameRef}
+              onLoad={sendTheme}
               key={active.href}
               src={active.href}
               title={active.name}
