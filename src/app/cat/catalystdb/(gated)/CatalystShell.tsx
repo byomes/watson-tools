@@ -21,6 +21,10 @@ export default function CatalystShell({ board, headerRight }: { board: ReactNode
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState<{ name: string; href: string } | null>(null)
   const frameRef = useRef<HTMLIFrameElement>(null)
+  // Phone-width: land on a dashboard of big buttons instead of loading the database.
+  const [isMobile, setIsMobile] = useState<boolean | null>(null)
+  const [home, setHome] = useState(true)
+  const [boardMounted, setBoardMounted] = useState(false)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
 
   // Push this window's light/dark choice into the framed tool, now and whenever it changes.
@@ -30,6 +34,20 @@ export default function CatalystShell({ board, headerRight }: { board: ReactNode
       window.location.origin,
     )
   }, [])
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    const sync = () => setIsMobile(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
+
+  const onDashboard = isMobile === true && home
+  const showBoard = isMobile !== null && !onDashboard && !active
+  useEffect(() => {
+    if (showBoard) setBoardMounted(true)
+  }, [showBoard])
 
   useEffect(() => {
     const observer = new MutationObserver(sendTheme)
@@ -54,6 +72,7 @@ export default function CatalystShell({ board, headerRight }: { board: ReactNode
 
   const choose = (tool: { name: string; href: string } | null) => {
     setActive(tool)
+    setHome(false)
     if (typeof window !== 'undefined' && window.innerWidth < 768) setOpen(false)
   }
 
@@ -61,6 +80,12 @@ export default function CatalystShell({ board, headerRight }: { board: ReactNode
     `block w-full text-left rounded-lg px-3 py-2 ${
       on ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-100 dark:hover:bg-slate-800'
     }`
+
+  // Flat list for the phone dashboard: sub-items become their own buttons.
+  const launcherSections = CAT_TOOL_SECTIONS.map((sec) => ({
+    title: sec.title,
+    tools: sec.tools.flatMap((t) => (t.children ? t.children.map((c) => ({ ...c, name: `${t.name.replace(' Tracker', '')}: ${c.name}` })) : [t])),
+  }))
 
   const renderTool = (t: CatTool) => {
     if (!t.children) {
@@ -115,22 +140,38 @@ export default function CatalystShell({ board, headerRight }: { board: ReactNode
     <div className="flex flex-col h-screen">
       <div className="flex items-center justify-between gap-3 px-4 py-5 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 shrink-0">
         <div className="flex items-center gap-3 min-w-0">
+          {isMobile ? (
+            !home && (
+              <button
+                type="button"
+                aria-label="Back to dashboard"
+                onClick={() => {
+                  setHome(true)
+                  setActive(null)
+                }}
+                className="rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-white active:opacity-60"
+              >
+                &lsaquo; Tools
+              </button>
+            )
+          ) : (
+            <button
+              type="button"
+              aria-label="Tools menu"
+              aria-expanded={open}
+              title="Tools"
+              onClick={() => setOpen((o) => !o)}
+              className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white active:opacity-60"
+            >
+              <MenuIcon />
+            </button>
+          )}
           <button
             type="button"
-            aria-label="Tools menu"
-            aria-expanded={open}
-            title="Tools"
-            onClick={() => setOpen((o) => !o)}
-            className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white active:opacity-60"
-          >
-            <MenuIcon />
-          </button>
-          <button
-            type="button"
-            onClick={() => choose(null)}
+            onClick={() => (isMobile ? (setHome(true), setActive(null)) : choose(null))}
             className="text-lg font-semibold text-slate-900 dark:text-white hover:opacity-70 active:opacity-50 truncate"
           >
-            {active ? active.name : 'Catalyst Database'}
+            {onDashboard ? 'Catalyst' : active ? active.name : 'Catalyst Database'}
           </button>
         </div>
         <div className="flex items-center gap-4">
@@ -158,7 +199,7 @@ export default function CatalystShell({ board, headerRight }: { board: ReactNode
           />
         )}
         <nav
-          className={`${open ? 'flex' : 'hidden'} absolute md:static z-40 inset-y-0 left-0 w-72 shrink-0 flex-col overflow-y-auto bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 p-2`}
+          className={`${open && !isMobile ? 'flex' : 'hidden'} absolute md:static z-40 inset-y-0 left-0 w-72 shrink-0 flex-col overflow-y-auto bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 p-2`}
         >
           <button type="button" onClick={() => choose(null)} className={itemCls(active === null)}>
             <div className="text-sm font-medium text-slate-900 dark:text-white">Catalyst Database</div>
@@ -175,7 +216,39 @@ export default function CatalystShell({ board, headerRight }: { board: ReactNode
         </nav>
 
         <div className="flex-1 min-w-0 min-h-0 relative">
-          <div className={active ? 'hidden' : 'h-full'}>{board}</div>
+          {onDashboard && (
+            <div className="h-full overflow-y-auto p-4 pb-10">
+              <button
+                type="button"
+                onClick={() => choose(null)}
+                className="w-full min-h-[96px] rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 text-left active:opacity-60"
+              >
+                <div className="text-lg font-semibold text-slate-900 dark:text-white">Catalyst Database</div>
+                <div className="text-sm text-slate-500 dark:text-slate-400">Members, households, edits</div>
+              </button>
+              {launcherSections.map((sec) => (
+                <div key={sec.title} className="mt-6">
+                  <div className="px-1 pb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    {sec.title}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {sec.tools.map((t) => (
+                      <button
+                        key={t.href}
+                        type="button"
+                        onClick={() => choose({ name: t.name, href: t.href })}
+                        className="min-h-[104px] rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 text-left active:opacity-60 flex flex-col justify-between"
+                      >
+                        <span className="text-base font-semibold leading-snug text-slate-900 dark:text-white">{t.name}</span>
+                        <span className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t.note}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {boardMounted && <div className={showBoard ? 'h-full' : 'hidden'}>{board}</div>}
           {active && (
             <iframe
               ref={frameRef}
