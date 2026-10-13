@@ -5,6 +5,8 @@ import { useCallback, useEffect, useState } from 'react'
 type Leader = { id: number; name: string; channel: 'telegram' | 'sms' | null }
 type Group = {
   title: string
+  label: string
+  note: string | null
   weekly: boolean
   enabled: boolean
   delay_minutes: number
@@ -42,8 +44,10 @@ export default function AttSchedBoard() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
 
+  const [kind, setKind] = useState<'groups' | 'teams'>('groups')
+
   const load = useCallback(async () => {
-    const res = await fetch('/api/cat/attsched/state', { cache: 'no-store' })
+    const res = await fetch(`/api/cat/attsched/state?kind=${kind}`, { cache: 'no-store' })
     if (res.status === 401) {
       window.location.href = '/cat/catalystdb/login?next=/cat/attsched'
       return
@@ -59,7 +63,7 @@ export default function AttSchedBoard() {
     setDefaultDelay(data.default_delay)
     setDrafts(Object.fromEntries((data.groups as Group[]).map((g) => [g.title, toDraft(g)])))
     setLoading(false)
-  }, [])
+  }, [kind])
 
   useEffect(() => {
     load()
@@ -110,7 +114,7 @@ export default function AttSchedBoard() {
   }
 
   const setArchived = async (g: Group, archived: boolean) => {
-    if (archived && !window.confirm(`Exempt "${g.title}" from attendance tracking and move it to the archive?`)) return
+    if (archived && !window.confirm(`Exempt "${g.label}" from attendance tracking and move it to the archive?`)) return
     const res = await fetch('/api/cat/attsched/archive', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -137,7 +141,8 @@ export default function AttSchedBoard() {
               <section key={g.title} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h2 className="font-semibold">{g.title}</h2>
+                    <h2 className="font-semibold">{g.label}</h2>
+                    {g.note && <p className="text-xs text-amber-600">{g.note}</p>}
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                       {g.next
                         ? `Next: ${g.next.date} (${g.next.time_text}) -> sends ${g.next.fire}${g.next.deferred ? ' (held until 9am)' : ''}`
@@ -323,11 +328,37 @@ export default function AttSchedBoard() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
       <div className="mx-auto max-w-3xl px-4 py-6">
         <h1 className="text-xl font-bold">Attendance Rules</h1>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-          For each group, Watson sends the leaders your message plus that session&apos;s attendance link, the chosen
-          number of minutes after the calendar start time (standard {defaultDelay}). Telegram is used first for
-          leaders Watson already knows there, SMS for everyone else. Nothing is sent until a group is turned on, and
-          nothing goes out before 9am or after 8pm; a send that would land later waits until 9am the next day.
+        <div className="mt-3 flex gap-2" role="tablist">
+          {(['groups', 'teams'] as const).map((k) => (
+            <button
+              key={k}
+              type="button"
+              role="tab"
+              aria-selected={kind === k}
+              onClick={() => {
+                if (k !== kind) {
+                  setLoading(true)
+                  setGroups([])
+                  setKind(k)
+                }
+              }}
+              className={`rounded-lg px-4 py-2 text-sm font-medium border ${
+                kind === k
+                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent'
+                  : 'border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+              }`}
+            >
+              {k === 'groups' ? 'Groups' : 'Serving Teams'}
+            </button>
+          ))}
+        </div>
+        <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">
+          {kind === 'groups'
+            ? `For each group, Watson sends the leaders your message plus that session's attendance link, the chosen number of minutes after the calendar start time (standard ${defaultDelay}).`
+            : `For each serving team, Watson sends the leaders your message plus the Serving tab link every Sunday, the chosen number of minutes after the service start (standard ${defaultDelay}). Set a start time on a team that serves earlier, like the 9 AM nursery.`}{' '}
+          Telegram is used first for leaders Watson already knows there, SMS for everyone else. Nothing is sent until
+          one is turned on, and nothing goes out before 9am or after 8pm; a send that would land later waits until 9am
+          the next day.
         </p>
 
         {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
@@ -358,7 +389,7 @@ export default function AttSchedBoard() {
                 .filter((g) => g.archived)
                 .map((g) => (
                   <li key={g.title} className="flex items-center justify-between gap-3 text-sm">
-                    <span>{g.title}</span>
+                    <span>{g.label}</span>
                     <button
                       type="button"
                       onClick={() => setArchived(g, false)}
