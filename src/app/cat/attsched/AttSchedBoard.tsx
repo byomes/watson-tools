@@ -340,7 +340,10 @@ export default function AttSchedBoard() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
       <div className="mx-auto max-w-3xl px-4 py-6">
-        <h1 className="text-xl font-bold">Attendance Rules</h1>
+        <a href="/cat/catalystdb" className="text-sm text-slate-500 dark:text-slate-400 hover:underline">
+          &larr; Catalyst Database
+        </a>
+        <h1 className="mt-1 text-xl font-bold">Attendance Rules</h1>
         <div className="mt-3 flex gap-2" role="tablist">
           {(['groups', 'teams'] as const).map((k) => (
             <button

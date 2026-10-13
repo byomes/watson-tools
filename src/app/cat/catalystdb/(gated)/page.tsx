@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { logoutAction } from '../actions'
 import CatalystDBBoard from './CatalystDBBoard'
 import ThemeToggleButton from './ThemeToggleButton'
+import ToolsMenu from './ToolsMenu'
 
 export const metadata: Metadata = {
   title: 'Catalyst Database',
@@ -36,6 +37,7 @@ export default async function CatalystDBPage() {
           Catalyst Database
         </a>
         <div className="flex items-center gap-4">
+          <ToolsMenu />
           <form action={logoutAction}>
             <button
               type="submit"
