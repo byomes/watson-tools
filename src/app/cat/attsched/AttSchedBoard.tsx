@@ -10,6 +10,7 @@ type Group = {
   delay_minutes: number
   message: string
   weekly_start: string
+  archived: boolean
   leaders: Leader[]
   next: { date: string; time_text: string; fire: string; deferred: boolean } | null
   needs_start: boolean
@@ -88,7 +89,18 @@ export default function AttSchedBoard() {
     }
   }
 
-  const nameOf = (id: number) => members.find((m) => m.id === id)?.name ?? `#${id}`
+  const setArchived = async (g: Group, archived: boolean) => {
+    if (archived && !window.confirm(`Exempt "${g.title}" from attendance tracking and move it to the archive?`)) return
+    const res = await fetch('/api/cat/attsched/archive', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: g.title, archived }),
+    })
+    if (res.ok) load()
+    else setMsg((m) => ({ ...m, [g.title]: { ok: false, text: 'Could not update' } }))
+  }
+
+  const nameOf =(id: number) => members.find((m) => m.id === id)?.name ?? `#${id}`
   const field =
     'w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white'
 
@@ -107,7 +119,7 @@ export default function AttSchedBoard() {
         {loading && <p className="mt-4 text-sm text-slate-500">Loading...</p>}
 
         <div className="mt-5 space-y-5">
-          {groups.map((g) => {
+          {groups.filter((g) => !g.archived).map((g) => {
             const d = drafts[g.title]
             if (!d) return null
             const available = members.filter((m) => !d.leaderIds.includes(m.id))
@@ -217,12 +229,43 @@ export default function AttSchedBoard() {
                   >
                     Save
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setArchived(g, true)}
+                    className="ml-auto rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-300"
+                  >
+                    Exempt / Archive
+                  </button>
                   {m && <span className={`text-sm ${m.ok ? 'text-green-600' : 'text-red-600'}`}>{m.text}</span>}
                 </div>
               </section>
             )
           })}
         </div>
+
+        {groups.some((g) => g.archived) && (
+          <details className="mt-8 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+            <summary className="cursor-pointer text-sm font-semibold">
+              Archived ({groups.filter((g) => g.archived).length}) - exempt from attendance tracking
+            </summary>
+            <ul className="mt-3 space-y-2">
+              {groups
+                .filter((g) => g.archived)
+                .map((g) => (
+                  <li key={g.title} className="flex items-center justify-between gap-3 text-sm">
+                    <span>{g.title}</span>
+                    <button
+                      type="button"
+                      onClick={() => setArchived(g, false)}
+                      className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5"
+                    >
+                      Restore
+                    </button>
+                  </li>
+                ))}
+            </ul>
+          </details>
+        )}
       </div>
     </div>
   )
