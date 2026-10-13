@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import FrameThemeSync from './FrameThemeSync';
+import PullToRefresh from './PullToRefresh';
 
 export const metadata: Metadata = {
   title: 'Watson Public Tools',
@@ -15,6 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     // otherwise flag a className mismatch here even though it's expected.
     <html lang="en" className="bg-white dark:bg-gray-950" suppressHydrationWarning>
       <body className="antialiased bg-white dark:bg-gray-950"><FrameThemeSync />
+        <PullToRefresh />
         {children}
       </body>
     </html>

@@ -31,6 +31,7 @@ export default function CatalystShell({
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState<{ name: string; href: string } | null>(null)
   const frameRef = useRef<HTMLIFrameElement>(null)
+  const [refreshStamp, setRefreshStamp] = useState(0) // set on each hard refresh of the framed tool
   // Phone-width: land on a dashboard of big buttons instead of loading the database.
   const [isMobile, setIsMobile] = useState<boolean | null>(null)
   const [home, setHome] = useState(true)
@@ -178,7 +179,8 @@ export default function CatalystShell({
           )}
           <button
             type="button"
-            onClick={() => (isMobile ? (setHome(true), setActive(null)) : choose(null))}
+            title="Refresh"
+            onClick={() => (active ? setRefreshStamp(Date.now()) : window.location.reload())}
             className="text-lg font-semibold text-slate-900 dark:text-white hover:opacity-70 active:opacity-50 truncate"
           >
             {onDashboard ? 'Catalyst' : active ? active.name : 'Catalyst Database'}
@@ -266,8 +268,8 @@ export default function CatalystShell({
             <iframe
               ref={frameRef}
               onLoad={sendTheme}
-              key={active.href}
-              src={active.href}
+              key={`${active.href}#${refreshStamp}`}
+              src={refreshStamp ? `${active.href}${active.href.includes('?') ? '&' : '?'}_r=${refreshStamp}` : active.href}
               title={active.name}
               className="absolute inset-0 h-full w-full border-0 bg-white dark:bg-slate-950"
             />
