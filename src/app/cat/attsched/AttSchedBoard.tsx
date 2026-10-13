@@ -11,6 +11,7 @@ type Group = {
   message: string
   weekly_start: string
   archived: boolean
+  cover: { mode: 'pause' | 'alternate'; through: string; name?: string; channel?: string | null } | null
   configured: boolean
   leaders: Leader[]
   next: { date: string; time_text: string; fire: string; deferred: boolean } | null
@@ -87,6 +88,24 @@ export default function AttSchedBoard() {
       load()
     } else {
       setMsg((m) => ({ ...m, [g.title]: { ok: false, text: body.error || 'Could not save' } }))
+    }
+  }
+
+  // Leader-away controls: per-group pending alternate choice and week count.
+  const [altPick, setAltPick] = useState<Record<string, { member: string; weeks: string }>>({})
+
+  const cover = async (g: Group, mode: 'pause' | 'alternate' | 'clear', weeks = 1, memberId?: number) => {
+    const res = await fetch('/api/cat/attsched/cover', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: g.title, mode, weeks, member_id: memberId }),
+    })
+    const body = await res.json().catch(() => ({}))
+    if (res.ok) {
+      setMsg((m) => ({ ...m, [g.title]: { ok: true, text: mode === 'clear' ? 'Back to normal' : 'Updated' } }))
+      load()
+    } else {
+      setMsg((m) => ({ ...m, [g.title]: { ok: false, text: body.error || 'Could not update' } }))
     }
   }
 
@@ -196,6 +215,74 @@ export default function AttSchedBoard() {
                         onChange={(e) => patch(g.title, { weeklyStart: e.target.value })}
                       />
                     </label>
+                  )}
+                </div>
+
+                <div className="mt-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 p-3">
+                  <div className="text-xs font-medium">Leader away?</div>
+                  {g.cover ? (
+                    <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
+                      <span>
+                        {g.cover.mode === 'pause'
+                          ? `Paused: no message through ${g.cover.through}`
+                          : `Sending to ${g.cover.name}${g.cover.channel ? ` (${CHANNEL[g.cover.channel]})` : ''} instead, through ${g.cover.through}`}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => cover(g, 'clear')}
+                        className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5"
+                      >
+                        Back to normal
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="mt-2 space-y-2">
+                      <button
+                        type="button"
+                        onClick={() => cover(g, 'pause', 1)}
+                        className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-sm"
+                      >
+                        Pause one week
+                      </button>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <select
+                          className={`${field} w-auto`}
+                          value={altPick[g.title]?.member ?? ''}
+                          onChange={(e) =>
+                            setAltPick((p) => ({ ...p, [g.title]: { member: e.target.value, weeks: p[g.title]?.weeks ?? '1' } }))
+                          }
+                        >
+                          <option value="">Send alternate to...</option>
+                          {members.map((mm) => (
+                            <option key={mm.id} value={mm.id}>
+                              {mm.name}
+                            </option>
+                          ))}
+                        </select>
+                        <label className="flex items-center gap-1 text-sm">
+                          for
+                          <input
+                            type="number"
+                            min={1}
+                            max={12}
+                            className={`${field} w-16`}
+                            value={altPick[g.title]?.weeks ?? '1'}
+                            onChange={(e) =>
+                              setAltPick((p) => ({ ...p, [g.title]: { member: p[g.title]?.member ?? '', weeks: e.target.value } }))
+                            }
+                          />
+                          weeks
+                        </label>
+                        <button
+                          type="button"
+                          disabled={!altPick[g.title]?.member}
+                          onClick={() => cover(g, 'alternate', Number(altPick[g.title].weeks) || 1, Number(altPick[g.title].member))}
+                          className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-sm disabled:opacity-40"
+                        >
+                          Send alternate
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
 
