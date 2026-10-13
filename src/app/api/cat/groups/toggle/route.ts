@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isToolLive } from '@/lib/requireLiveTool'
 import { watsonFetch } from '@/lib/watson'
+import { groupTokenHeader } from '@/lib/groupToken'
 
 export async function POST(req: NextRequest) {
   if (!(await isToolLive('cat', 'groups'))) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -8,7 +9,7 @@ export async function POST(req: NextRequest) {
   if (!data) return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
   const res = await watsonFetch('/api/cat/groups/toggle', {
     method: 'POST',
-    headers: { 'X-Watson-Key': process.env.GROUPS_API_KEY ?? '' },
+    headers: { 'X-Watson-Key': process.env.GROUPS_API_KEY ?? '', ...groupTokenHeader(req) },
     body: JSON.stringify(data),
   })
   const body = await res.json().catch(() => ({}))

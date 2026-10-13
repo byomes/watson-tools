@@ -39,7 +39,16 @@ function Toggle({ on, onClick, disabled }: { on: boolean; onClick: () => void; d
 
 const selectCls = 'w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-[15px] text-black dark:text-white bg-white dark:bg-gray-900 mb-3'
 
-export default function GroupsBoard() {
+export default function GroupsBoard({ groupToken }: { groupToken?: string } = {}) {
+  // With a per-group link every request carries the token; the backend then refuses any other group.
+  const gfetch = useCallback(
+    (url: string, init?: RequestInit) =>
+      fetch(url, {
+        ...init,
+        headers: { ...(init?.headers as Record<string, string> | undefined), ...(groupToken ? { 'X-Group-Token': groupToken } : {}) },
+      }),
+    [groupToken],
+  )
   const [state, setState] = useState<State | null>(null)
   const [series, setSeries] = useState('')
   const [date, setDate] = useState('')
@@ -54,7 +63,7 @@ export default function GroupsBoard() {
   const [adding, setAdding] = useState(false)
 
   const load = useCallback(async (s: string, d: string) => {
-    const res = await fetch(`/api/cat/groups/state?series=${encodeURIComponent(s)}&date=${encodeURIComponent(d)}`)
+    const res = await gfetch(`/api/cat/groups/state?series=${encodeURIComponent(s)}&date=${encodeURIComponent(d)}`)
     if (!res.ok) { setError('Could not load. Try again.'); return }
     const data: State = await res.json()
     setError(null)
@@ -62,15 +71,15 @@ export default function GroupsBoard() {
     setGuests(data.guests ?? 0)
     setHeadcount(data.headcount != null ? String(data.headcount) : '')
     if (data.event_date) setDate(data.event_date)
-  }, [])
+  }, [gfetch])
 
   useEffect(() => {
     // Initial series list only; fetched inline so state is set from a callback, not synchronously.
-    fetch('/api/cat/groups/state')
+    gfetch('/api/cat/groups/state')
       .then(r => (r.ok ? r.json() : Promise.reject()))
-      .then((d: State) => setState(d))
+      .then((d: State) => { setState(d); if (groupToken && d.series) setSeries(d.series); if (d.event_date) setDate(d.event_date) })
       .catch(() => setError('Could not load. Try again.'))
-  }, [])
+  }, [gfetch, groupToken])
 
   function pickSeries(s: string) { setSeries(s); setDate(''); setCandidates(null); setQuery(''); load(s, '') }
   function pickDate(d: string) { setDate(d); load(series, d) }
@@ -79,7 +88,7 @@ export default function GroupsBoard() {
     if (!state?.series || !state.event_date) return
     setPending(p => new Set(p).add(id))
     setError(null)
-    const res = await fetch('/api/cat/groups/toggle', {
+    const res = await gfetch('/api/cat/groups/toggle', {
       method: 'POST',
       body: JSON.stringify({ series: state.series, event_date: state.event_date, member_id: id, present }),
     })
@@ -101,7 +110,7 @@ export default function GroupsBoard() {
   async function removeRegular(id: number) {
     if (!state?.series) return
     setError(null)
-    const res = await fetch('/api/cat/groups/remove', {
+    const res = await gfetch('/api/cat/groups/remove', {
       method: 'POST',
       body: JSON.stringify({ series: state.series, event_date: state.event_date ?? '', member_id: id }),
     })
@@ -113,7 +122,7 @@ export default function GroupsBoard() {
   async function addRegular(id: number, name: string) {
     if (!state?.series) return
     setError(null)
-    const res = await fetch('/api/cat/groups/roster_add', {
+    const res = await gfetch('/api/cat/groups/roster_add', {
       method: 'POST',
       body: JSON.stringify({ series: state.series, member_id: id }),
     })
@@ -138,7 +147,7 @@ export default function GroupsBoard() {
     if (q.length < 2) { setCandidates(null); return }
     searchTimer.current = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/cat/groups/lookup?name=${encodeURIComponent(q)}`)
+        const res = await gfetch(`/api/cat/groups/lookup?name=${encodeURIComponent(q)}`)
         const found = res.ok ? (await res.json()).candidates : []
         if (mine === searchSeq.current) setCandidates(found)
       } catch {}
@@ -148,7 +157,7 @@ export default function GroupsBoard() {
   async function search() {
     const q = query.trim()
     if (!q) return
-    const res = await fetch(`/api/cat/groups/lookup?name=${encodeURIComponent(q)}`)
+    const res = await gfetch(`/api/cat/groups/lookup?name=${encodeURIComponent(q)}`)
     setCandidates(res.ok ? (await res.json()).candidates : [])
   }
 
@@ -158,7 +167,7 @@ export default function GroupsBoard() {
     const body = state.counts_only
       ? { series: state.series, event_date: state.event_date, headcount: Number(headcount) }
       : { series: state.series, event_date: state.event_date, guests }
-    const res = await fetch('/api/cat/groups/counts', { method: 'POST', body: JSON.stringify(body) })
+    const res = await gfetch('/api/cat/groups/counts', { method: 'POST', body: JSON.stringify(body) })
     if (!res.ok) { setError('That did not save. Check the number.'); return }
     setSaved(true)
     setTimeout(() => setSaved(false), 1500)
@@ -187,10 +196,12 @@ export default function GroupsBoard() {
   }
   return (
     <div>
-      <select className={selectCls} value={series} onChange={e => pickSeries(e.target.value)}>
-        <option value="">Choose a group or event...</option>
-        {state.series_list.map(s => <option key={s.series} value={s.series}>{s.title}</option>)}
-      </select>
+      {!groupToken && (
+        <select className={selectCls} value={series} onChange={e => pickSeries(e.target.value)}>
+          <option value="">Choose a group or event...</option>
+          {state.series_list.map(s => <option key={s.series} value={s.series}>{s.title}</option>)}
+        </select>
+      )}
 
       {state.series && (state.dates ?? []).length === 0 && !state.counts_only && (
         <div className="mb-4">
