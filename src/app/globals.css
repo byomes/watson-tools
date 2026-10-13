@@ -50,3 +50,8 @@ body {
     font-size: 16px;
   }
 }
+
+/* Page headings on the internal /cat tools hard-refresh when tapped (see PullToRefresh.tsx). */
+html.cat-refresh-h1 h1 {
+  cursor: pointer;
+}

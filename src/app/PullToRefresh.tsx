@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 
 // Pull down from the top of a page to hard-refresh it (touch devices). Active on the internal
 // /cat tools and on anything framed inside the Catalyst Database menu; never on the public
-// visitor forms, where an accidental pull would throw away typing. A framed page refreshes
+// visitor forms, where an accidental pull would throw away typing. The same pages also get
+// tap-the-page-heading (<h1>) to hard-refresh, unless the heading holds its own link or button. A framed page refreshes
 // only itself, so the menu and your place in it stay put.
 const PUBLIC_FORMS = ['/cat/connect', '/cat/bday']
 const THRESHOLD = 80
@@ -27,6 +28,7 @@ export default function PullToRefresh() {
     const path = window.location.pathname
     if (!framed && (!path.startsWith('/cat/') || PUBLIC_FORMS.some((p) => path.startsWith(p)))) return
 
+    document.documentElement.classList.add('cat-refresh-h1')
     document.documentElement.style.overscrollBehaviorY = 'contain' // hand the gesture to us, not the browser's soft refresh
 
     const onStart = (e: TouchEvent) => {
@@ -60,11 +62,21 @@ export default function PullToRefresh() {
       if (go) window.location.reload()
     }
 
+    const onClick = (e: MouseEvent) => {
+      const t = e.target as Element | null
+      const h = t?.closest('h1')
+      if (!h || t?.closest('a, button, input, select, textarea')) return
+      window.location.reload()
+    }
+    document.addEventListener('click', onClick)
+
     document.addEventListener('touchstart', onStart, { passive: true })
     document.addEventListener('touchmove', onMove, { passive: true })
     document.addEventListener('touchend', onEnd)
     document.addEventListener('touchcancel', onEnd)
     return () => {
+      document.documentElement.classList.remove('cat-refresh-h1')
+      document.removeEventListener('click', onClick)
       document.documentElement.style.overscrollBehaviorY = ''
       document.removeEventListener('touchstart', onStart)
       document.removeEventListener('touchmove', onMove)
