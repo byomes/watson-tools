@@ -21,12 +21,10 @@ export default function CatalystShell({
   board,
   themeToggle,
   logout,
-  logoutLabelled,
 }: {
   board: ReactNode
   themeToggle: ReactNode
   logout: ReactNode
-  logoutLabelled: ReactNode
 }) {
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState<{ name: string; href: string } | null>(null)
@@ -260,7 +258,6 @@ export default function CatalystShell({
                   </div>
                 </div>
               ))}
-              <div className="mt-8">{logoutLabelled}</div>
             </div>
           )}
           {boardMounted && <div className={showBoard ? 'h-full' : 'hidden'}>{board}</div>}
