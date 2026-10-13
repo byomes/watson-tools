@@ -357,7 +357,7 @@ export default function AttSchedBoard() {
             ? `For each group, Watson sends the leaders your message plus that session's attendance link, the chosen number of minutes after the calendar start time (standard ${defaultDelay}).`
             : `For each serving team, Watson sends the leaders your message plus the Serving tab link every Sunday, the chosen number of minutes after the service start (standard ${defaultDelay}). Set a start time on a team that serves earlier, like the 9 AM nursery.`}{' '}
           Telegram is used first for leaders Watson already knows there, SMS for everyone else. Nothing is sent until
-          one is turned on, and nothing goes out before 9am or after 8pm; a send that would land later waits until 9am
+          one is turned on, and nothing goes out before 9am or after 10pm; a send that would land later waits until 9am
           the next day.
         </p>
 
