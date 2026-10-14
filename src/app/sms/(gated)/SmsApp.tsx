@@ -600,10 +600,23 @@ export default function SmsApp() {
     setCustomAccentHex(loadCustomAccentHex())
     try {
       setContextCollapsed(localStorage.getItem('sms_context_collapsed') === 'true')
+      setThemeOpen(localStorage.getItem('sms_theme_open') === 'true')
     } catch {
       // localStorage unavailable (private mode etc) -- stays expanded
     }
   }, [])
+
+  function toggleThemeOpen() {
+    setThemeOpen((o) => {
+      const next = !o
+      try {
+        localStorage.setItem('sms_theme_open', String(next))
+      } catch {
+        // localStorage unavailable (private mode etc) -- setting just won't persist
+      }
+      return next
+    })
+  }
 
   function chooseAccentTheme(key: AccentKey) {
     setAccentTheme(key)
@@ -3205,7 +3218,7 @@ export default function SmsApp() {
                 </div>
                 <div className="flex flex-col gap-2">
                   <button
-                    onClick={() => setThemeOpen((o) => !o)}
+                    onClick={toggleThemeOpen}
                     aria-expanded={themeOpen}
                     className="flex items-center justify-between text-sm w-full"
                   >
