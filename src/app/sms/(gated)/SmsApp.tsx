@@ -593,6 +593,10 @@ export default function SmsApp() {
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([])
   const [broadcastsLoading, setBroadcastsLoading] = useState(false)
   const broadcastBodyGrowRef = useAutoGrowTextarea(broadcastBody)
+  const [editingBroadcastId, setEditingBroadcastId] = useState<number | null>(null)
+  const [editBroadcastAt, setEditBroadcastAt] = useState('')
+  const [editBroadcastSaving, setEditBroadcastSaving] = useState(false)
+  const [editBroadcastError, setEditBroadcastError] = useState<string | null>(null)
 
   useEffect(() => {
     setContextFields(loadContextSettings())
@@ -1076,6 +1080,39 @@ export default function SmsApp() {
       setBroadcasts([])
     } finally {
       setBroadcastsLoading(false)
+    }
+  }
+
+  function startEditBroadcast(b: Broadcast) {
+    // send_at is UTC "YYYY-MM-DD HH:MM:SS" -- back to a local datetime-local value.
+    const local = new Date(b.send_at.replace(' ', 'T') + 'Z')
+    const offsetMs = local.getTimezoneOffset() * 60000
+    setEditBroadcastAt(new Date(local.getTime() - offsetMs).toISOString().slice(0, 16))
+    setEditBroadcastError(null)
+    setEditingBroadcastId(b.id)
+  }
+
+  async function saveBroadcastTime() {
+    if (editingBroadcastId == null) return
+    const localDate = new Date(editBroadcastAt)
+    if (Number.isNaN(localDate.getTime()) || localDate <= new Date()) {
+      setEditBroadcastError('Send time must be in the future.')
+      return
+    }
+    const sendAt = localDate.toISOString().slice(0, 19).replace('T', ' ')
+    setEditBroadcastSaving(true)
+    setEditBroadcastError(null)
+    try {
+      const data = await api<{ broadcast: Broadcast }>(`/api/sms/broadcasts/${editingBroadcastId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ send_at: sendAt }),
+      })
+      setBroadcasts((prev) => prev.map((b) => (b.id === data.broadcast.id ? data.broadcast : b)))
+      setEditingBroadcastId(null)
+    } catch (err) {
+      setEditBroadcastError(err instanceof Error ? err.message : 'Failed to reschedule.')
+    } finally {
+      setEditBroadcastSaving(false)
     }
   }
 
@@ -3117,11 +3154,42 @@ export default function SmsApp() {
                       {(b.status === 'sending' || b.status === 'sent' || b.status === 'failed') && ` (${b.sent_count} sent${b.failed_count ? `, ${b.failed_count} failed` : ''})`}
                     </span>
                     {b.status === 'scheduled' && (
-                      <button onClick={() => cancelBroadcast(b.id)} className="font-medium" style={{ color: '#B4443A' }}>
-                        Cancel
-                      </button>
+                      <span className="flex items-center gap-3">
+                        <button onClick={() => startEditBroadcast(b)} className="font-medium" style={{ color: COLORS.moss }}>
+                          Edit time
+                        </button>
+                        <button onClick={() => cancelBroadcast(b.id)} className="font-medium" style={{ color: '#B4443A' }}>
+                          Cancel
+                        </button>
+                      </span>
                     )}
                   </div>
+                  {b.status === 'scheduled' && editingBroadcastId === b.id && (
+                    <div className="flex flex-col gap-2 pt-2 border-t" style={{ borderColor: COLORS.line }}>
+                      <input
+                        type="datetime-local"
+                        value={editBroadcastAt}
+                        min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+                        onChange={(e) => setEditBroadcastAt(e.target.value)}
+                        className="rounded-lg border px-3 py-2 text-sm"
+                        style={{ borderColor: COLORS.line, background: COLORS.surfaceAlt, color: COLORS.ink }}
+                      />
+                      {editBroadcastError && <p className="text-xs" style={{ color: '#B4443A' }}>{editBroadcastError}</p>}
+                      <div className="flex items-center gap-3 text-xs">
+                        <button
+                          onClick={saveBroadcastTime}
+                          disabled={editBroadcastSaving}
+                          className="font-medium px-3 py-1.5 rounded-lg"
+                          style={{ background: COLORS.moss, color: '#fff' }}
+                        >
+                          {editBroadcastSaving ? 'Saving…' : 'Save time'}
+                        </button>
+                        <button onClick={() => setEditingBroadcastId(null)} style={{ color: COLORS.inkSoft }}>
+                          Never mind
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )
             })}
