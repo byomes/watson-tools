@@ -63,9 +63,9 @@ type Context = {
 
 type View = 'list' | 'thread' | 'templates' | 'settings' | 'broadcast' | 'broadcastHistory'
 
-type GroupFilter = { deacons?: string[]; teams?: string[]; roles?: string[]; campuses?: string[]; events?: number[]; gender?: 'male' | 'female'; attendance?: { mode: 'attended' | 'not_attended'; weeks: number } }
+type GroupFilter = { deacons?: string[]; teams?: string[]; roles?: string[]; campuses?: string[]; events?: number[]; events_not?: number[]; gender?: 'male' | 'female'; attendance?: { mode: 'attended' | 'not_attended'; weeks: number } }
 type SmsGroup = { id: number; name: string; filter: GroupFilter; active_only: boolean; manual_only: boolean; recipient_count: number }
-type EventOption = { id: number; name: string; date: string }
+type EventOption = { id: number; name: string; date: string; rsvp_tracking?: boolean }
 type GroupOptions = { deacons: string[]; teams: string[]; roles: string[]; campuses: string[]; events: EventOption[] }
 type BroadcastRecipient = { member_id: number | null; phone: string; contact_name: string | null }
 type Broadcast = {
@@ -566,6 +566,7 @@ export default function SmsApp() {
   const [selRoles, setSelRoles] = useState<string[]>([])
   const [selCampuses, setSelCampuses] = useState<string[]>([])
   const [selEvents, setSelEvents] = useState<number[]>([])
+  const [selEventsNot, setSelEventsNot] = useState<number[]>([])
   const [selGender, setSelGender] = useState<'' | 'male' | 'female'>('')
   const [attMode, setAttMode] = useState<'' | 'attended' | 'not_attended'>('')
   const [attWeeks, setAttWeeks] = useState(4)
@@ -757,6 +758,7 @@ export default function SmsApp() {
     setSelRoles([])
     setSelCampuses([])
     setSelEvents([])
+      setSelEventsNot([])
       setSelGender('')
       setAttMode('')
       setAttWeeks(4)
@@ -800,6 +802,7 @@ export default function SmsApp() {
       setSelRoles([])
       setSelCampuses([])
       setSelEvents([])
+      setSelEventsNot([])
       setSelGender('')
       setAttMode('')
       setAttWeeks(4)
@@ -814,6 +817,7 @@ export default function SmsApp() {
     setSelRoles(g.filter.roles ?? [])
     setSelCampuses(g.filter.campuses ?? [])
     setSelEvents(g.filter.events ?? [])
+    setSelEventsNot(g.filter.events_not ?? [])
     setSelGender(g.filter.gender ?? '')
     setAttMode(g.filter.attendance?.mode ?? '')
     setAttWeeks(g.filter.attendance?.weeks ?? 4)
@@ -835,6 +839,11 @@ export default function SmsApp() {
     setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value])
   }
 
+  function toggleEventNot(id: number) {
+    setSelectedGroupId(null)
+    setSelEventsNot((list) => (list.includes(id) ? list.filter((v) => v !== id) : [...list, id]))
+  }
+
   function toggleEvent(id: number) {
     setSelectedGroupId(null) // editing filters starts a fresh (unsaved) group definition
     setSelEvents((list) => (list.includes(id) ? list.filter((v) => v !== id) : [...list, id]))
@@ -847,14 +856,15 @@ export default function SmsApp() {
       roles: selRoles,
       campuses: selCampuses,
       events: selEvents,
+      events_not: selEventsNot,
       ...(selGender ? { gender: selGender } : {}),
       ...(attMode && attWeeks >= 1 ? { attendance: { mode: attMode, weeks: attWeeks } } : {}),
     }),
-    [selDeacons, selTeams, selRoles, selCampuses, selEvents, selGender, attMode, attWeeks],
+    [selDeacons, selTeams, selRoles, selCampuses, selEvents, selEventsNot, selGender, attMode, attWeeks],
   )
 
   const isEveryone =
-    selDeacons.length === 0 && selTeams.length === 0 && selRoles.length === 0 && selCampuses.length === 0 && selEvents.length === 0 && !selGender && !attMode
+    selDeacons.length === 0 && selTeams.length === 0 && selRoles.length === 0 && selCampuses.length === 0 && selEvents.length === 0 && selEventsNot.length === 0 && !selGender && !attMode
 
   // Live recipient-count preview as the group definition changes, debounced
   // so every checkbox click doesn't fire its own request.
@@ -2678,7 +2688,7 @@ export default function SmsApp() {
               })}
               {audienceMode === 'filtered' && (groupOptions?.events?.length ?? 0) > 0 && (
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-xs font-medium" style={{ color: COLORS.inkSoft }}>Event signups</span>
+                  <span className="text-xs font-medium" style={{ color: COLORS.inkSoft }}>Event: RSVP'd / signed up</span>
                   <div className="flex flex-wrap gap-1.5">
                     {groupOptions!.events.map((ev) => (
                       <button
@@ -2698,6 +2708,28 @@ export default function SmsApp() {
                   {selEvents.length > 0 && (
                     <p className="text-xs" style={{ color: COLORS.inkSoft }}>
                       Signups for the selected event(s) are included regardless of active/inactive status.
+                    </p>
+                  )}
+                  <span className="text-xs font-medium mt-1" style={{ color: COLORS.inkSoft }}>Event: NOT RSVP'd yet</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {groupOptions!.events.map((ev) => (
+                      <button
+                        key={`not-${ev.id}`}
+                        onClick={() => toggleEventNot(ev.id)}
+                        className="text-xs px-2.5 py-1 rounded-full border"
+                        style={
+                          selEventsNot.includes(ev.id)
+                            ? { background: COLORS.tagblueSoft, borderColor: COLORS.tagblue, color: COLORS.tagblue }
+                            : { borderColor: COLORS.line, color: COLORS.inkSoft }
+                        }
+                      >
+                        {ev.name}{ev.date ? ` — ${ev.date}` : ''}
+                      </button>
+                    ))}
+                  </div>
+                  {selEventsNot.length > 0 && (
+                    <p className="text-xs" style={{ color: COLORS.inkSoft }}>
+                      Invited people with no RSVP on file (a "no" counts as a response). The banquet uses the active servant roster.
                     </p>
                   )}
                 </div>
