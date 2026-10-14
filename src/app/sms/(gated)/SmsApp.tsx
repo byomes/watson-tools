@@ -65,7 +65,7 @@ type View = 'list' | 'thread' | 'templates' | 'settings' | 'broadcast' | 'broadc
 
 type GroupFilter = { deacons?: string[]; teams?: string[]; roles?: string[]; campuses?: string[]; events?: number[]; events_not?: number[]; gender?: 'male' | 'female'; attendance?: { mode: 'attended' | 'not_attended'; weeks: number } }
 type SmsGroup = { id: number; name: string; filter: GroupFilter; active_only: boolean; manual_only: boolean; recipient_count: number }
-type EventOption = { id: number; name: string; date: string; rsvp_tracking?: boolean }
+type EventOption = { id: number; name: string; date: string; rsvp_tracking?: boolean; archived?: boolean }
 type GroupOptions = { deacons: string[]; teams: string[]; roles: string[]; campuses: string[]; events: EventOption[] }
 type BroadcastRecipient = { member_id: number | null; phone: string; contact_name: string | null }
 type Broadcast = {
@@ -837,6 +837,39 @@ export default function SmsApp() {
   function toggleDim(list: string[], setList: (v: string[]) => void, value: string) {
     setSelectedGroupId(null) // editing filters starts a fresh (unsaved) group definition
     setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value])
+  }
+
+  function renderEventChips(selected: number[], toggle: (id: number) => void, prefix: string) {
+    const all = groupOptions?.events ?? []
+    const upcoming = all.filter((e) => !e.archived)
+    const archived = all.filter((e) => e.archived)
+    const chip = (ev: EventOption) => (
+      <button
+        key={`${prefix}-${ev.id}`}
+        onClick={() => toggle(ev.id)}
+        className="text-xs px-2.5 py-1 rounded-full border"
+        style={
+          selected.includes(ev.id)
+            ? { background: COLORS.tagblueSoft, borderColor: COLORS.tagblue, color: COLORS.tagblue }
+            : { borderColor: COLORS.line, color: COLORS.inkSoft }
+        }
+      >
+        {ev.name}{ev.date ? ` — ${ev.date}` : ''}
+      </button>
+    )
+    return (
+      <>
+        <div className="flex flex-wrap gap-1.5">{upcoming.map(chip)}</div>
+        {archived.length > 0 && (
+          <details open={archived.some((e) => selected.includes(e.id))}>
+            <summary className="text-xs cursor-pointer" style={{ color: COLORS.inkSoft }}>
+              Archive ({archived.length}) — past events
+            </summary>
+            <div className="flex flex-wrap gap-1.5 mt-1.5">{archived.map(chip)}</div>
+          </details>
+        )}
+      </>
+    )
   }
 
   function toggleEventNot(id: number) {
@@ -2689,44 +2722,14 @@ export default function SmsApp() {
               {audienceMode === 'filtered' && (groupOptions?.events?.length ?? 0) > 0 && (
                 <div className="flex flex-col gap-1.5">
                   <span className="text-xs font-medium" style={{ color: COLORS.inkSoft }}>Event: RSVP'd / signed up</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {groupOptions!.events.map((ev) => (
-                      <button
-                        key={ev.id}
-                        onClick={() => toggleEvent(ev.id)}
-                        className="text-xs px-2.5 py-1 rounded-full border"
-                        style={
-                          selEvents.includes(ev.id)
-                            ? { background: COLORS.tagblueSoft, borderColor: COLORS.tagblue, color: COLORS.tagblue }
-                            : { borderColor: COLORS.line, color: COLORS.inkSoft }
-                        }
-                      >
-                        {ev.name}{ev.date ? ` — ${ev.date}` : ''}
-                      </button>
-                    ))}
-                  </div>
+                  {renderEventChips(selEvents, toggleEvent, 'rsvp')}
                   {selEvents.length > 0 && (
                     <p className="text-xs" style={{ color: COLORS.inkSoft }}>
                       Signups for the selected event(s) are included regardless of active/inactive status.
                     </p>
                   )}
                   <span className="text-xs font-medium mt-1" style={{ color: COLORS.inkSoft }}>Event: NOT RSVP'd yet</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {groupOptions!.events.map((ev) => (
-                      <button
-                        key={`not-${ev.id}`}
-                        onClick={() => toggleEventNot(ev.id)}
-                        className="text-xs px-2.5 py-1 rounded-full border"
-                        style={
-                          selEventsNot.includes(ev.id)
-                            ? { background: COLORS.tagblueSoft, borderColor: COLORS.tagblue, color: COLORS.tagblue }
-                            : { borderColor: COLORS.line, color: COLORS.inkSoft }
-                        }
-                      >
-                        {ev.name}{ev.date ? ` — ${ev.date}` : ''}
-                      </button>
-                    ))}
-                  </div>
+                  {renderEventChips(selEventsNot, toggleEventNot, 'not')}
                   {selEventsNot.length > 0 && (
                     <p className="text-xs" style={{ color: COLORS.inkSoft }}>
                       Invited people with no RSVP on file (a "no" counts as a response). The banquet uses the active servant roster.
