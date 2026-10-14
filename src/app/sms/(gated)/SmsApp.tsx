@@ -447,6 +447,7 @@ export default function SmsApp() {
   const { status: pushStatus, errorDetail: pushErrorDetail, stage: pushStage, enable: enablePush } = useSmsPush()
   const [showPushInfo, setShowPushInfo] = useState(false)
   const [accentTheme, setAccentTheme] = useState<AccentKey>('ocean')
+  const [themeOpen, setThemeOpen] = useState(false)
   const [customAccentHex, setCustomAccentHex] = useState(DEFAULT_CUSTOM_HEX)
   const COLORS: Palette = applyAccent(theme === 'dark' ? DARK_COLORS : LIGHT_COLORS, theme, accentTheme, customAccentHex)
   const [view, setView] = useState<View>('list')
@@ -3203,7 +3204,31 @@ export default function SmsApp() {
                   </button>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <span className="text-sm">Theme</span>
+                  <button
+                    onClick={() => setThemeOpen((o) => !o)}
+                    aria-expanded={themeOpen}
+                    className="flex items-center justify-between text-sm w-full"
+                  >
+                    <span>Theme</span>
+                    <span className="flex items-center gap-2" style={{ color: COLORS.inkSoft }}>
+                      <span
+                        className="w-4 h-4 rounded-full"
+                        style={{
+                          background: accentTheme === 'custom'
+                            ? customAccentHex
+                            : (ACCENT_THEMES.find((t) => t.key === accentTheme)?.swatch ?? COLORS.line),
+                        }}
+                      />
+                      <svg
+                        width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                        strokeLinecap="round" strokeLinejoin="round"
+                        style={{ transform: themeOpen ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' }}
+                      >
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </span>
+                  </button>
+                  {themeOpen && (
                   <div className="grid grid-cols-3 gap-2">
                     {ACCENT_THEMES.map((t) => (
                       <button
@@ -3259,6 +3284,7 @@ export default function SmsApp() {
                       />
                     </label>
                   </div>
+                  )}
                 </div>
               </div>
             </section>
