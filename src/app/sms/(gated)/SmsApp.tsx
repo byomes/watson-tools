@@ -3446,16 +3446,16 @@ export default function SmsApp() {
               <div className="rounded-2xl border p-3 flex flex-col gap-3" style={{ borderColor: COLORS.line, background: COLORS.surface }}>
                 <label className="flex items-start justify-between gap-3">
                   <span className="flex flex-col gap-0.5">
-                    <span className="text-sm">Friday Sabbath</span>
+                    <span className="text-sm">Disable Friday Sabbath silence</span>
                     <span className="text-xs" style={{ color: COLORS.inkSoft }}>
-                      Silences calls and texts every Friday, 12:00am&ndash;11:59pm, for family Sabbath.
+                      Sabbath silence is automatic every Friday, 12:00am&ndash;11:59pm. Check this to turn it off.
                     </span>
                   </span>
                   <input
                     type="checkbox"
                     disabled={savingSettings}
-                    checked={sabbathSilence}
-                    onChange={(e) => updateAppSetting({ sabbath_silence: e.target.checked })}
+                    checked={!sabbathSilence}
+                    onChange={(e) => updateAppSetting({ sabbath_silence: !e.target.checked })}
                     className="mt-1 flex-none"
                   />
                 </label>
