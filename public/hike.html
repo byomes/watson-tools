@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Property Line Finder</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root { --bg:#fff; --fg:#111; --card:rgba(255,255,255,.94); --accent:#0b5fff; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#111; --fg:#eee; --card:rgba(30,30,30,.94); } }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--fg); font:15px/1.35 system-ui,sans-serif; }
+  #map { position:absolute; inset:0; }
+  .bar { position:absolute; z-index:1000; left:8px; right:8px; background:var(--card); border-radius:10px; padding:8px 10px; box-shadow:0 2px 8px #0005; }
+  #info { top:calc(8px + env(safe-area-inset-top)); }
+  #info b { font-size:16px; }
+  #btns { bottom:calc(8px + env(safe-area-inset-bottom)); display:flex; gap:6px; flex-wrap:wrap; }
+  #btns button { flex:1; min-width:30%; padding:12px 6px; font-size:15px; border:0; border-radius:8px; background:var(--accent); color:#fff; }
+  #btns button.off { background:#666; }
+  .dot { width:18px; height:18px; border-radius:50%; background:#0b5fff; border:3px solid #fff; box-shadow:0 0 6px #000a; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="bar" id="info"><b id="where">Waiting for GPS...</b><br><span id="acc">Allow location access when asked.</span></div>
+<div class="bar" id="btns">
+  <button id="follow">Follow: on</button>
+  <button id="sat">Imagery</button>
+  <button id="trail">Trail: on</button>
+  <button id="mark">Drop pin</button>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/esri-leaflet@3.0.12/dist/esri-leaflet.js"></script>
+<script>
+const SVC = "https://enterprise.firstmap.delaware.gov/arcgis/rest/services/PlanningCadastre/DE_StateParcels/MapServer";
+// Iron Hill Park area, used until the first GPS fix arrives
+const map = L.map("map", { zoomControl:false, maxZoom:20 }).setView([39.6000, -75.7400], 16);
+L.control.zoom({ position:"topright" }).addTo(map);
+
+const sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom:20, maxNativeZoom:19, attribution:"Esri" });
+const topo = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}", { maxZoom:20, maxNativeZoom:19, attribution:"Esri" });
+let useSat = true; sat.addTo(map);
+
+// Parcel boundaries (State of Delaware parcels; drawn only when zoomed in to about 1:24,000)
+esri.dynamicMapLayer({ url:SVC, layers:[0], opacity:1, f:"image" }).addTo(map);
+
+const $ = id => document.getElementById(id);
+let me = null, circle = null, following = true, trailOn = true, lastQ = 0;
+const trail = L.polyline([], { color:"#ff2d55", weight:3 }).addTo(map);
+const hl = L.layerGroup().addTo(map);
+
+function showParcel(latlng, label) {
+  esri.query({ url: SVC + "/0" }).intersects(latlng).run((err, fc) => {
+    hl.clearLayers();
+    if (err || !fc || !fc.features.length) { $("where").textContent = label + "no parcel found here"; return; }
+    const f = fc.features[0], p = f.properties;
+    L.geoJSON(f, { style:{ color:"#ffd400", weight:4, fillOpacity:.08 } }).addTo(hl);
+    $("where").textContent = label + "Parcel " + p.PIN + " (" + (+p.ACRES).toFixed(1) + " ac)";
+  });
+}
+
+map.on("click", e => showParcel(e.latlng, "Tapped: "));
+
+function feet(m) { return Math.round(m * 3.281) + " ft"; }
+
+navigator.geolocation.watchPosition(pos => {
+  const ll = L.latLng(pos.coords.latitude, pos.coords.longitude), a = pos.coords.accuracy;
+  if (!me) {
+    me = L.marker(ll, { icon:L.divIcon({ className:"", html:'<div class="dot"></div>', iconSize:[18,18] }), zIndexOffset:1000 }).addTo(map);
+    circle = L.circle(ll, { radius:a, weight:1, color:"#0b5fff", fillOpacity:.1 }).addTo(map);
+    map.setView(ll, 18);
+  }
+  me.setLatLng(ll); circle.setLatLng(ll).setRadius(a);
+  if (trailOn) trail.addLatLng(ll);
+  if (following) map.panTo(ll, { animate:true });
+  $("acc").textContent = "GPS accuracy ±" + feet(a) + (a > 30 ? " (weak, wait or move to open sky)" : "");
+  const now = Date.now();
+  if (now - lastQ > 8000) { lastQ = now; showParcel(ll, "You are on: "); }
+}, err => { $("acc").textContent = "GPS error: " + err.message; },
+{ enableHighAccuracy:true, maximumAge:1000, timeout:30000 });
+
+map.on("dragstart", () => { following = false; $("follow").textContent = "Follow: off"; $("follow").classList.add("off"); });
+$("follow").onclick = () => { following = !following; $("follow").textContent = "Follow: " + (following ? "on" : "off"); $("follow").classList.toggle("off", !following); if (following && me) map.panTo(me.getLatLng()); };
+$("sat").onclick = () => { map.removeLayer(useSat ? sat : topo); useSat = !useSat; (useSat ? sat : topo).addTo(map).bringToBack(); };
+$("trail").onclick = () => { trailOn = !trailOn; $("trail").textContent = "Trail: " + (trailOn ? "on" : "off"); $("trail").classList.toggle("off", !trailOn); };
+$("mark").onclick = () => {
+  if (!me) return;
+  const ll = me.getLatLng();
+  L.marker(ll).addTo(map).bindPopup("Pin<br>" + ll.lat.toFixed(6) + ", " + ll.lng.toFixed(6) + "<br>±" + feet(circle.getRadius())).openPopup();
+};
+</script>
+</body>
+</html>
