@@ -99,8 +99,22 @@ function startGps() {
   navigator.geolocation.watchPosition(p => { watching = true; $("loc").style.display = "none"; onPos(p); }, onErr,
     { enableHighAccuracy:true, maximumAge:1000, timeout:30000 });
 }
-$("loc").onclick = startGps;
-startGps();
+let t0 = 0;
+function startGps2() {
+  startGps();
+  clearTimeout(t0);
+  t0 = setTimeout(() => {
+    if (watching) return;
+    const inApp = /Telegram|FBAN|FBAV|Instagram|Line\//i.test(navigator.userAgent);
+    $("acc").textContent = "No response from the browser after 8 seconds." + (inApp ? " You appear to be in an in-app browser. " : " ") +
+      "Copy this address, paste it into Safari or Chrome directly: wtsn.me/hike.html";
+  }, 8000);
+  if (navigator.permissions) navigator.permissions.query({ name:"geolocation" }).then(r => {
+    if (r.state === "denied") $("acc").textContent = "Location is set to DENIED for this site/browser. Fix it in your phone's Settings > this browser > Location, then reload.";
+  }).catch(() => {});
+}
+$("loc").onclick = startGps2;
+startGps2();
 
 
 map.on("dragstart", () => { following = false; $("follow").textContent = "Follow: off"; $("follow").classList.add("off"); });
