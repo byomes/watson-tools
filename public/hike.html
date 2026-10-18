@@ -20,6 +20,18 @@
   #btns button { flex:1; min-width:30%; padding:12px 6px; font-size:15px; border:0; border-radius:8px; background:var(--accent); color:#fff; }
   #btns button.off { background:#666; }
   .dot { width:18px; height:18px; border-radius:50%; background:#0b5fff; border:3px solid #fff; box-shadow:0 0 6px #000a; }
+
+  #sosWrap { position:absolute; z-index:1100; left:10px; top:50%; transform:translateY(-50%); display:flex; flex-direction:column; align-items:center; gap:6px; }
+  #sos { width:112px; height:112px; border-radius:50%; border:6px solid #fff; background:#d70015; color:#fff; font-size:30px; font-weight:800; box-shadow:0 3px 14px #000a; }
+  #sos:active { background:#a00010; }
+  #sosMode { font-size:12px; font-weight:700; padding:5px 9px; border:0; border-radius:12px; background:#1b8a3a; color:#fff; }
+  #sosMode.live { background:#d70015; }
+  #sosOv { position:fixed; inset:0; z-index:3000; background:#b00012; color:#fff; display:none; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:20px; gap:14px; overflow:auto; }
+  #sosOv h1 { margin:0; font-size:34px; }
+  #sosOv .big { font-size:80px; font-weight:800; line-height:1; }
+  #sosOv button, #sosOv a.btn { font-size:22px; font-weight:700; padding:16px 26px; border:0; border-radius:12px; background:#fff; color:#b00012; text-decoration:none; }
+  #sosOv .stop { background:#111; color:#fff; font-size:26px; padding:22px 30px; }
+  #sosMsg { font-size:17px; max-width:420px; white-space:pre-line; }
 </style>
 </head>
 <body>
@@ -33,6 +45,10 @@
   <button id="mark">Drop pin</button>
   <button id="gpx" class="off">Save GPX</button>
 </div>
+
+
+<div id="sosWrap"><button id="sos">SOS</button><button id="sosMode">TEST: Emily only</button></div>
+<div id="sosOv"><h1 id="sosTitle"></h1><div class="big" id="sosBig"></div><div id="sosMsg"></div><div id="sosBtns" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"></div></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/esri-leaflet@3.0.12/dist/esri-leaflet.js"></script>
@@ -144,6 +160,8 @@ function onPos(pos) {
   if (trailOn) record(pos, ll);
   if (following) map.panTo(ll, { animate:true });
   curAcc = a; showAcc();
+  lastPos = { lat:ll.lat, lng:ll.lng, acc:a, ts:pos.timestamp };
+  try { localStorage.setItem("hikeLastPos", JSON.stringify(lastPos)); } catch (e) {}
   const now = Date.now();
   if (now - lastQ > 8000) { lastQ = now; showParcel(ll, "You are on: "); }
 }
@@ -206,6 +224,128 @@ $("mark").onclick = () => {
   const ll = me.getLatLng();
   L.marker(ll).addTo(map).bindPopup("Pin<br>" + ll.lat.toFixed(6) + ", " + ll.lng.toFixed(6) + "<br>±" + feet(circle.getRadius())).openPopup();
 };
+
+// ---------- SOS safety button ----------
+// Server decides recipients: test = Emily only, live = Melanie, Emily, Micah, Khaela.
+let lastPos = null, sosTest = true, sosState = null;
+try { lastPos = JSON.parse(localStorage.getItem("hikeLastPos") || "null"); sosTest = localStorage.getItem("hikeSosLive") !== "1"; } catch (e) {}
+function paintMode() { const b = $("sosMode"); b.textContent = sosTest ? "TEST: Emily only" : "LIVE: family"; b.classList.toggle("live", !sosTest); }
+paintMode();
+$("sosMode").onclick = () => {
+  if (sosTest) {
+    if (!confirm("Switch to LIVE mode? The SOS button will text Melanie, Emily, Micah and Khaela.")) return;
+    sosTest = false;
+  } else sosTest = true;
+  try { localStorage.setItem("hikeSosLive", sosTest ? "0" : "1"); } catch (e) {}
+  paintMode();
+};
+
+const ov = $("sosOv");
+function ovShow(title, big, msg, btns) {
+  ov.style.display = "flex"; $("sosTitle").textContent = title; $("sosBig").textContent = big || ""; $("sosMsg").textContent = msg || "";
+  const box = $("sosBtns"); box.innerHTML = "";
+  (btns || []).forEach(b => {
+    const el = document.createElement(b.href ? "a" : "button"); el.textContent = b.label; if (b.href) { el.href = b.href; el.className = "btn"; } if (b.cls) el.className = b.cls; if (b.fn) el.onclick = b.fn; box.appendChild(el);
+  });
+}
+function ovHide() { ov.style.display = "none"; }
+const CALL911 = { label:"Call 911", href:"tel:911" };
+
+async function getPos() {
+  if (lastPos && Date.now() - lastPos.ts < 10 * 60 * 1000) return lastPos;
+  const fresh = await new Promise(res => navigator.geolocation.getCurrentPosition(
+    p => res({ lat:p.coords.latitude, lng:p.coords.longitude, acc:p.coords.accuracy, ts:p.timestamp }), () => res(null), { enableHighAccuracy:true, timeout:6000, maximumAge:60000 }));
+  return fresh || lastPos;
+}
+async function post(url, body) {
+  const r = await fetch(url, { method:"POST", headers:{ "Content-Type":"application/json" }, body:JSON.stringify(body) });
+  if (r.status === 401) throw new Error("login");
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || ("HTTP " + r.status));
+  return d;
+}
+const names = rs => rs.filter(x => x.ok).map(x => x.name).join(", ");
+
+$("sos").onclick = () => {
+  if (sosState) return;
+  const test = sosTest;
+  sosState = { test, cancelled:false, stream:null };
+  // Ask for the microphone now, while we still have the tap gesture.
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
+    navigator.mediaDevices.getUserMedia({ audio:true }).then(st => { if (sosState) sosState.stream = st; else st.getTracks().forEach(t => t.stop()); }).catch(() => {});
+  let n = test ? 3 : 5;
+  const who = test ? "TEST MODE: Emily only" : "LIVE: Melanie, Emily, Micah, Khaela";
+  const tick = () => {
+    if (!sosState || sosState.cancelled) return;
+    if (n === 0) return sendSos();
+    ovShow("Sending SOS in", String(n), who, [{ label:"CANCEL", fn:cancelSos }]);
+    n--; sosState.timer = setTimeout(tick, 1000);
+  };
+  tick();
+};
+function cancelSos() {
+  if (sosState) { sosState.cancelled = true; clearTimeout(sosState.timer); if (sosState.stream) sosState.stream.getTracks().forEach(t => t.stop()); }
+  sosState = null; ovHide();
+}
+function closeSos() { cancelSos(); }
+
+async function sendSos() {
+  const st = sosState; if (!st) return;
+  ovShow("Sending...", "", "Getting your location and texting your family.", [CALL911]);
+  const pos = await getPos();
+  if (!pos) return ovShow("No GPS position yet", "", "I can't text without a location. Call 911 or move to open sky and try again.", [CALL911, { label:"Try again", fn:() => { sosState = null; $("sos").click(); } }, { label:"Close", fn:closeSos }]);
+  const coord = pos.lat.toFixed(6) + ", " + pos.lng.toFixed(6);
+  let d = null, err = null;
+  for (let i = 0; i < 6 && !d && !st.cancelled; i++) {
+    try { d = await post("/api/hike/sos", { mode:st.test ? "test" : "live", lat:pos.lat, lng:pos.lng, acc:pos.acc, ts:pos.ts }); }
+    catch (e) { err = e; if (e.message === "login") break; ovShow("Sending...", "", "Retrying (" + (i + 1) + "/6). " + e.message + "\nYour position: " + coord, [CALL911]); await new Promise(r => setTimeout(r, 4000)); }
+  }
+  if (st.cancelled) return;
+  if (!d) {
+    const m = err && err.message === "login" ? "You are not logged in. Open wtsn.me/sms once and enter your PIN, then come back." : "Could not send. Check cell signal.";
+    return ovShow("NOT SENT", "", m + "\nRead this to 911 or a family member: " + coord, [CALL911, { label:"Retry", fn:() => { sosState = null; $("sos").click(); } }, { label:"Close", fn:closeSos }]);
+  }
+  st.sent = names(d.results);
+  startRecording(coord);
+}
+
+async function startRecording(coord) {
+  const st = sosState; if (!st) return;
+  let stream = st.stream;
+  if (!stream) { try { stream = await navigator.mediaDevices.getUserMedia({ audio:true }); } catch (e) {} }
+  const head = "Location texted to " + (st.sent || "no one") + ".\n" + coord;
+  if (!stream || typeof MediaRecorder === "undefined")
+    return ovShow("Location sent", "", head + "\n\nMicrophone not available, so no voice message.", [CALL911, { label:"Close", fn:closeSos }]);
+  const mt = ["audio/mp4", "audio/webm;codecs=opus", "audio/webm"].find(t => MediaRecorder.isTypeSupported(t)) || "";
+  const rec = new MediaRecorder(stream, mt ? { mimeType:mt } : undefined), chunks = [];
+  rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  let secs = 0, stopped = false;
+  const stop = () => { if (stopped) return; stopped = true; clearInterval(iv); rec.stop(); };
+  rec.onstop = async () => {
+    stream.getTracks().forEach(t => t.stop());
+    const blob = new Blob(chunks, { type: rec.mimeType || mt || "audio/webm" });
+    await uploadAudio(blob, head);
+  };
+  const paint = () => ovShow("RECORDING", fmtT(secs), head + "\nSpeak your message, then tap Stop. It sends right away to their phones.", [{ label:"Stop and send", cls:"stop", fn:stop }]);
+  const iv = setInterval(() => { secs++; if (secs >= 120) stop(); else paint(); }, 1000);
+  rec.start(1000); paint();
+}
+
+async function uploadAudio(blob, head) {
+  const st = sosState; if (!st) return;
+  if (blob.size < 500) return ovShow("Nothing recorded", "", head, [CALL911, { label:"Close", fn:closeSos }]);
+  const b64 = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(",")[1]); fr.readAsDataURL(blob); });
+  const attempt = async () => {
+    ovShow("Sending voice message...", "", head, [CALL911]);
+    try {
+      const d = await post("/api/hike/audio", { mode:st.test ? "test" : "live", audio_base64:b64 });
+      ovShow("Voice message sent", "", "Sent to " + names(d.results) + ".\n" + head, [CALL911, { label:"Close", fn:closeSos }]);
+    } catch (e) {
+      ovShow("Voice message NOT sent", "", e.message + "\n" + head, [{ label:"Retry send", fn:attempt }, CALL911, { label:"Close", fn:closeSos }]);
+    }
+  };
+  attempt();
+}
 </script>
 </body>
 </html>
