@@ -42,7 +42,7 @@ const topo = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/W
 let useSat = true; sat.addTo(map);
 
 // Parcel boundaries (State of Delaware parcels; drawn only when zoomed in to about 1:24,000)
-esri.dynamicMapLayer({ url:SVC, layers:[0], opacity:1, f:"image" }).addTo(map);
+L.esri.dynamicMapLayer({ url:SVC, layers:[0], opacity:1, f:"image" }).addTo(map);
 
 const OWN = "https://gis.nccde.org/agsserver/rest/services/CustomMaps/Ownership/MapServer/0";
 const $ = id => document.getElementById(id);
@@ -51,7 +51,7 @@ const trail = L.polyline([], { color:"#ff2d55", weight:3 }).addTo(map);
 const hl = L.layerGroup().addTo(map);
 
 function showParcel(latlng, label) {
-  esri.query({ url: SVC + "/0" }).intersects(latlng).run((err, fc) => {
+  L.esri.query({ url: SVC + "/0" }).intersects(latlng).run((err, fc) => {
     hl.clearLayers();
     if (err || !fc || !fc.features.length) { $("where").textContent = label + "no parcel found here"; return; }
     const f = fc.features[0], p = f.properties;
