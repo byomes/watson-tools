@@ -131,7 +131,9 @@ load();
 
 function feet(m) { return Math.round(m * 3.281) + " ft"; }
 
+let lastFix = 0, fixes = 0, wid = null, curAcc = 0, curSpd = null;
 function onPos(pos) {
+  lastFix = Date.now(); fixes++; curSpd = pos.coords.speed;
   const ll = L.latLng(pos.coords.latitude, pos.coords.longitude), a = pos.coords.accuracy;
   if (!me) {
     me = L.marker(ll, { icon:L.divIcon({ className:"", html:'<div class="dot"></div>', iconSize:[18,18] }), zIndexOffset:1000 }).addTo(map);
@@ -141,10 +143,21 @@ function onPos(pos) {
   me.setLatLng(ll); circle.setLatLng(ll).setRadius(a);
   if (trailOn) record(pos, ll);
   if (following) map.panTo(ll, { animate:true });
-  $("acc").textContent = "GPS accuracy ±" + feet(a) + (a > 30 ? " (weak, wait or move to open sky)" : "");
+  curAcc = a; showAcc();
   const now = Date.now();
   if (now - lastQ > 8000) { lastQ = now; showParcel(ll, "You are on: "); }
 }
+function showAcc() {
+  if (!lastFix) return;
+  const age = Math.round((Date.now() - lastFix) / 1000);
+  $("acc").textContent = "GPS ±" + feet(curAcc) + " | " + (curSpd != null && curSpd > 0.5 ? Math.round(curSpd * 2.237) + " mph | " : "") + "fix " + (age < 2 ? "now" : age + "s ago") + " (#" + fixes + ")" + (curAcc > 30 ? " weak signal" : "");
+}
+setInterval(() => {
+  if (!lastFix) return;
+  const age = (Date.now() - lastFix) / 1000;
+  if (age > 15 && wid != null) { navigator.geolocation.clearWatch(wid); wid = null; watching = false; startGps(); }
+  else showAcc();
+}, 2000);
 function onErr(err) {
   $("acc").textContent = (err.code === 1
     ? "Location blocked. If you're in Telegram's browser, tap the ... menu and choose Open in Safari/Chrome. Also check Settings > Privacy > Location Services > your browser."
@@ -154,7 +167,7 @@ let watching = false;
 function startGps() {
   if (!navigator.geolocation) { $("acc").textContent = "This browser has no location support. Open in Safari or Chrome."; return; }
   $("acc").textContent = "Requesting location...";
-  navigator.geolocation.watchPosition(p => { watching = true; $("loc").style.display = "none"; onPos(p); }, onErr,
+  wid = navigator.geolocation.watchPosition(p => { watching = true; $("loc").style.display = "none"; onPos(p); }, onErr,
     { enableHighAccuracy:true, maximumAge:1000, timeout:30000 });
 }
 let t0 = 0;
