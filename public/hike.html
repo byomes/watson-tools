@@ -44,6 +44,7 @@ let useSat = true; sat.addTo(map);
 // Parcel boundaries (State of Delaware parcels; drawn only when zoomed in to about 1:24,000)
 esri.dynamicMapLayer({ url:SVC, layers:[0], opacity:1, f:"image" }).addTo(map);
 
+const OWN = "https://gis.nccde.org/agsserver/rest/services/CustomMaps/Ownership/MapServer/0";
 const $ = id => document.getElementById(id);
 let me = null, circle = null, following = true, trailOn = true, lastQ = 0;
 const trail = L.polyline([], { color:"#ff2d55", weight:3 }).addTo(map);
@@ -55,7 +56,16 @@ function showParcel(latlng, label) {
     if (err || !fc || !fc.features.length) { $("where").textContent = label + "no parcel found here"; return; }
     const f = fc.features[0], p = f.properties;
     L.geoJSON(f, { style:{ color:"#ffd400", weight:4, fillOpacity:.08 } }).addTo(hl);
-    $("where").textContent = label + "Parcel " + p.PIN + " (" + (+p.ACRES).toFixed(1) + " ac)";
+    const base = label + "Parcel " + p.PIN + " (" + (+p.ACRES).toFixed(1) + " ac)";
+    $("where").textContent = base;
+    const q = new URLSearchParams({ f:"json", geometry:latlng.lng + "," + latlng.lat, geometryType:"esriGeometryPoint", inSR:"4326",
+      spatialRel:"esriSpatialRelIntersects", outFields:"CNTCTLAST,ADDRESS", returnGeometry:"false" });
+    fetch(OWN + "/query?" + q).then(r => r.json()).then(d => {
+      const a = d.features && d.features[0] && d.features[0].attributes;
+      if (!a) return;
+      const addr = (a.ADDRESS || "").replace(/\s+/g, " ").trim();
+      $("where").textContent = base + " | Owner: " + (a.CNTCTLAST || "unknown").trim() + (addr ? " | " + addr : "");
+    }).catch(() => {});
   });
 }
 
