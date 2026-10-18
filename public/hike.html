@@ -21,7 +21,7 @@
 </head>
 <body>
 <div id="map"></div>
-<div class="bar" id="info"><b id="where">Waiting for GPS...</b><br><span id="acc">Allow location access when asked.</span></div>
+<div class="bar" id="info"><b id="where">Waiting for GPS...</b><br><span id="acc">Allow location access when asked.</span> <button id="loc" style="margin-top:6px;padding:10px 12px;font-size:15px;border:0;border-radius:8px;background:#0b5fff;color:#fff">Tap to enable my location</button></div>
 <div class="bar" id="btns">
   <button id="follow">Follow: on</button>
   <button id="sat">Imagery</button>
@@ -73,7 +73,7 @@ map.on("click", e => showParcel(e.latlng, "Tapped: "));
 
 function feet(m) { return Math.round(m * 3.281) + " ft"; }
 
-navigator.geolocation.watchPosition(pos => {
+function onPos(pos) {
   const ll = L.latLng(pos.coords.latitude, pos.coords.longitude), a = pos.coords.accuracy;
   if (!me) {
     me = L.marker(ll, { icon:L.divIcon({ className:"", html:'<div class="dot"></div>', iconSize:[18,18] }), zIndexOffset:1000 }).addTo(map);
@@ -86,8 +86,22 @@ navigator.geolocation.watchPosition(pos => {
   $("acc").textContent = "GPS accuracy ±" + feet(a) + (a > 30 ? " (weak, wait or move to open sky)" : "");
   const now = Date.now();
   if (now - lastQ > 8000) { lastQ = now; showParcel(ll, "You are on: "); }
-}, err => { $("acc").textContent = "GPS error: " + err.message; },
-{ enableHighAccuracy:true, maximumAge:1000, timeout:30000 });
+}
+function onErr(err) {
+  $("acc").textContent = (err.code === 1
+    ? "Location blocked. If you're in Telegram's browser, tap the ... menu and choose Open in Safari/Chrome. Also check Settings > Privacy > Location Services > your browser."
+    : "GPS error: " + err.message);
+}
+let watching = false;
+function startGps() {
+  if (!navigator.geolocation) { $("acc").textContent = "This browser has no location support. Open in Safari or Chrome."; return; }
+  $("acc").textContent = "Requesting location...";
+  navigator.geolocation.watchPosition(p => { watching = true; $("loc").style.display = "none"; onPos(p); }, onErr,
+    { enableHighAccuracy:true, maximumAge:1000, timeout:30000 });
+}
+$("loc").onclick = startGps;
+startGps();
+
 
 map.on("dragstart", () => { following = false; $("follow").textContent = "Follow: off"; $("follow").classList.add("off"); });
 $("follow").onclick = () => { following = !following; $("follow").textContent = "Follow: " + (following ? "on" : "off"); $("follow").classList.toggle("off", !following); if (following && me) map.panTo(me.getLatLng()); };
