@@ -32,6 +32,8 @@
   #sosOv button, #sosOv a.btn { font-size:22px; font-weight:700; padding:16px 26px; border:0; border-radius:12px; background:#fff; color:#b00012; text-decoration:none; }
   #sosOv .stop { background:#111; color:#fff; font-size:26px; padding:22px 30px; }
   #sosMsg { font-size:17px; max-width:420px; white-space:pre-line; }
+  .hrow { padding:10px 0; border-bottom:1px solid #8884; }
+  .hrow button { margin:6px 6px 0 0; padding:9px 14px; font-size:15px; border:0; border-radius:8px; background:#0b5fff; color:#fff; }
 </style>
 </head>
 <body>
@@ -44,9 +46,11 @@
   <button id="trail" class="off">Record: off</button>
   <button id="mark">Drop pin</button>
   <button id="gpx" class="off">Save GPX</button>
+  <button id="histBtn" class="off">History</button>
 </div>
 
 
+<div id="hist" style="display:none;position:fixed;inset:0;z-index:2500;background:var(--bg);color:var(--fg);overflow:auto;padding:14px calc(14px + env(safe-area-inset-right)) 14px 14px"><h2 style="margin:4px 0 10px">Saved hikes</h2><div id="histList"></div><button id="histClose" style="margin-top:12px;padding:14px 20px;font-size:16px;border:0;border-radius:8px;background:#0b5fff;color:#fff">Close</button></div>
 <div id="sosWrap"><button id="sos">SOS</button><button id="sosMode">TEST: Emily only</button></div>
 <div id="sosOv"><h1 id="sosTitle"></h1><div class="big" id="sosBig"></div><div id="sosMsg"></div><div id="sosBtns" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"></div></div>
 
@@ -68,7 +72,7 @@ L.esri.dynamicMapLayer({ url:SVC, layers:[0], opacity:1, f:"image" }).addTo(map)
 const OWN = "https://gis.nccde.org/agsserver/rest/services/CustomMaps/Ownership/MapServer/0";
 const $ = id => document.getElementById(id);
 let me = null, circle = null, following = true, trailOn = false, lastQ = 0;
-const R = { pts:[], dist:0, moving:0, gain:0, loss:0, start:0, lastT:0, altRef:null, alts:[] };
+const R = { id:0, pts:[], dist:0, moving:0, gain:0, loss:0, start:0, lastT:0, altRef:null, alts:[] };
 const trail = L.polyline([], { color:"#ff2d55", weight:3 }).addTo(map);
 const hl = L.layerGroup().addTo(map);
 
@@ -136,12 +140,42 @@ function load() {
   try { const r = JSON.parse(localStorage.getItem("hikeRec") || "null"); if (r && r.pts && r.pts.length) { Object.assign(R, r); trail.setLatLngs(R.pts.map(p => [p.lat, p.lng])); $("stats").style.display = "grid"; renderStats(); } } catch (e) {}
 }
 setInterval(() => { if (trailOn) renderStats(); }, 1000);
-function gpx() {
-  const pts = R.pts.map(p => '<trkpt lat="' + p.lat + '" lon="' + p.lng + '">' + (p.alt != null ? "<ele>" + p.alt.toFixed(1) + "</ele>" : "") + "<time>" + new Date(p.t).toISOString() + "</time></trkpt>").join("");
+function gpx(points, startMs) {
+  const pts = points.map(p => '<trkpt lat="' + p.lat + '" lon="' + p.lng + '">' + (p.alt != null ? "<ele>" + p.alt.toFixed(1) + "</ele>" : "") + "<time>" + new Date(p.t).toISOString() + "</time></trkpt>").join("");
   const xml = '<?xml version="1.0"?><gpx version="1.1" creator="wtsn.me/hike" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>Hike</name><trkseg>' + pts + "</trkseg></trk></gpx>";
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([xml], { type:"application/gpx+xml" }));
-  a.download = "hike-" + new Date().toISOString().slice(0, 10) + ".gpx"; a.click();
+  a.download = "hike-" + new Date(startMs || Date.now()).toISOString().slice(0, 16).replace(/[:T]/g, "-") + ".gpx"; a.click();
+}
+
+// ---------- hike history (saved automatically when Record is stopped) ----------
+function getHist() { try { return JSON.parse(localStorage.getItem("hikeHistory") || "[]"); } catch (e) { return []; } }
+function putHist(h) { try { localStorage.setItem("hikeHistory", JSON.stringify(h)); return true; } catch (e) { alert("Could not save hike history: phone storage is full or blocked."); return false; } }
+function archiveHike() {
+  if (R.pts.length < 2) return;
+  if (!R.id) R.id = R.start || Date.now();
+  const h = getHist().filter(x => x.id !== R.id);
+  h.unshift({ id:R.id, start:R.start, end:R.lastT, dist:R.dist, moving:R.moving, gain:R.gain, loss:R.loss,
+    pts:R.pts.map(p => [+p.lat.toFixed(6), +p.lng.toFixed(6), p.alt == null ? null : +p.alt.toFixed(1), p.t]) });
+  putHist(h); save();
+}
+const toPts = a => a.map(q => ({ lat:q[0], lng:q[1], alt:q[2], t:q[3] }));
+let viewLine = null;
+function openHist() {
+  const h = getHist(), box = $("histList");
+  box.innerHTML = h.length ? "" : "<p>No saved hikes yet. A hike is saved here automatically each time you stop recording.</p>";
+  h.forEach(x => {
+    const mi = x.dist * M2MI, pace = mi > 0.02 ? fmtT(x.moving / 60 / mi * 60) + "/mi" : "--";
+    const d = document.createElement("div"); d.className = "hrow";
+    d.innerHTML = "<b>" + new Date(x.start).toLocaleString([], { month:"short", day:"numeric", hour:"numeric", minute:"2-digit" }) + "</b><br>" +
+      mi.toFixed(2) + " mi | " + fmtT((x.end - x.start) / 1000) + " | " + pace + " | +" + Math.round(x.gain * M2FT) + " / -" + Math.round(x.loss * M2FT) + " ft<br>";
+    [["View", () => { if (viewLine) map.removeLayer(viewLine); viewLine = L.polyline(x.pts.map(q => [q[0], q[1]]), { color:"#ff9500", weight:4 }).addTo(map); map.fitBounds(viewLine.getBounds(), { padding:[40, 40] }); $("hist").style.display = "none"; following = false; $("follow").textContent = "Follow: off"; $("follow").classList.add("off"); }],
+     ["GPX", () => gpx(toPts(x.pts), x.start)],
+     ["Delete", () => { if (confirm("Delete this saved hike?")) { putHist(getHist().filter(y => y.id !== x.id)); openHist(); } }]
+    ].forEach(([l, fn]) => { const b = document.createElement("button"); b.textContent = l; b.onclick = fn; d.appendChild(b); });
+    box.appendChild(d);
+  });
+  $("hist").style.display = "block";
 }
 load();
 
@@ -212,13 +246,16 @@ $("sat").onclick = () => { map.removeLayer(useSat ? sat : topo); useSat = !useSa
 $("trail").onclick = () => {
   trailOn = !trailOn;
   $("trail").textContent = "Record: " + (trailOn ? "on" : "off"); $("trail").classList.toggle("off", !trailOn);
-  if (trailOn) {
-    if (R.pts.length && !confirm("Continue the saved hike? Cancel starts a new one.")) { Object.assign(R, { pts:[], dist:0, moving:0, gain:0, loss:0, start:0, lastT:0, altRef:null, alts:[] }); trail.setLatLngs([]); }
-    if (!R.start) R.start = Date.now();
-    $("stats").style.display = "grid"; renderStats();
-  }
+  if (!trailOn) { archiveHike(); return; }       // stopped: saved to History automatically
+  if (R.pts.length && !confirm("Continue the last hike? Cancel starts a new one (the last one stays in History).")) { archiveHike(); Object.assign(R, { id:0, pts:[], dist:0, moving:0, gain:0, loss:0, start:0, lastT:0, altRef:null, alts:[] }); trail.setLatLngs([]); }
+  if (viewLine) { map.removeLayer(viewLine); viewLine = null; }
+  if (!R.start) R.start = Date.now();
+  if (!R.id) R.id = R.start;
+  $("stats").style.display = "grid"; renderStats();
 };
-$("gpx").onclick = () => { if (R.pts.length) gpx(); else alert("Nothing recorded yet. Tap Record first."); };
+$("gpx").onclick = () => { if (R.pts.length) gpx(R.pts, R.start); else alert("Nothing recorded yet. Tap Record first."); };
+$("histBtn").onclick = openHist;
+$("histClose").onclick = () => { $("hist").style.display = "none"; };
 $("mark").onclick = () => {
   if (!me) return;
   const ll = me.getLatLng();
