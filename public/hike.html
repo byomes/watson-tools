@@ -13,6 +13,9 @@
   .bar { position:absolute; z-index:1000; left:8px; right:8px; background:var(--card); border-radius:10px; padding:8px 10px; box-shadow:0 2px 8px #0005; }
   #info { top:calc(8px + env(safe-area-inset-top)); }
   #info b { font-size:16px; }
+  #stats { bottom:calc(112px + env(safe-area-inset-bottom)); font-variant-numeric:tabular-nums; display:grid; grid-template-columns:repeat(3,1fr); gap:4px 8px; text-align:center; }
+  #stats small { display:block; opacity:.65; font-size:11px; }
+  #stats b { font-size:17px; }
   #btns { bottom:calc(8px + env(safe-area-inset-bottom)); display:flex; gap:6px; flex-wrap:wrap; }
   #btns button { flex:1; min-width:30%; padding:12px 6px; font-size:15px; border:0; border-radius:8px; background:var(--accent); color:#fff; }
   #btns button.off { background:#666; }
@@ -22,11 +25,13 @@
 <body>
 <div id="map"></div>
 <div class="bar" id="info"><b id="where">Waiting for GPS...</b><br><span id="acc">Allow location access when asked.</span> <button id="loc" style="margin-top:6px;padding:10px 12px;font-size:15px;border:0;border-radius:8px;background:#0b5fff;color:#fff">Tap to enable my location</button></div>
+<div class="bar" id="stats" style="display:none"></div>
 <div class="bar" id="btns">
   <button id="follow">Follow: on</button>
   <button id="sat">Imagery</button>
-  <button id="trail">Trail: on</button>
+  <button id="trail" class="off">Record: off</button>
   <button id="mark">Drop pin</button>
+  <button id="gpx" class="off">Save GPX</button>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -46,7 +51,8 @@ L.esri.dynamicMapLayer({ url:SVC, layers:[0], opacity:1, f:"image" }).addTo(map)
 
 const OWN = "https://gis.nccde.org/agsserver/rest/services/CustomMaps/Ownership/MapServer/0";
 const $ = id => document.getElementById(id);
-let me = null, circle = null, following = true, trailOn = true, lastQ = 0;
+let me = null, circle = null, following = true, trailOn = false, lastQ = 0;
+const R = { pts:[], dist:0, moving:0, gain:0, loss:0, start:0, lastT:0, altRef:null, alts:[] };
 const trail = L.polyline([], { color:"#ff2d55", weight:3 }).addTo(map);
 const hl = L.layerGroup().addTo(map);
 
@@ -71,6 +77,58 @@ function showParcel(latlng, label) {
 
 map.on("click", e => showParcel(e.latlng, "Tapped: "));
 
+
+const M2FT = 3.28084, M2MI = 1 / 1609.344;
+function record(pos, ll) {
+  const a = pos.coords.accuracy, t = pos.timestamp;
+  if (a > 40) return;                       // ignore poor fixes
+  const last = R.pts[R.pts.length - 1];
+  if (last) {
+    const d = L.latLng(last.lat, last.lng).distanceTo(ll), dt = (t - last.t) / 1000;
+    if (d < Math.max(4, a * 0.3)) return;   // jitter while standing still
+    R.dist += d;
+    if (dt > 0 && d / dt > 0.3) R.moving += dt;
+  } else { R.start = R.start || t; }
+  let alt = pos.coords.altitude;
+  if (alt != null) {                        // smooth, then count only changes over 3 m
+    R.alts.push(alt); if (R.alts.length > 5) R.alts.shift();
+    const sm = R.alts.reduce((x, y) => x + y, 0) / R.alts.length;
+    if (R.altRef == null) R.altRef = sm;
+    else if (Math.abs(sm - R.altRef) >= 3) { if (sm > R.altRef) R.gain += sm - R.altRef; else R.loss += R.altRef - sm; R.altRef = sm; }
+    alt = sm;
+  }
+  R.pts.push({ lat:ll.lat, lng:ll.lng, alt, t });
+  R.lastT = t;
+  trail.addLatLng(ll);
+  save(); renderStats();
+}
+function fmtT(sec) { sec = Math.round(sec); const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), x = sec % 60; return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(x).padStart(2, "0"); }
+function renderStats() {
+  const mi = R.dist * M2MI, el = R.start ? (Date.now() - R.start) / 1000 : 0;
+  const pace = mi > 0.02 ? R.moving / 60 / mi : 0;
+  const alt = R.altRef == null ? "n/a" : Math.round(R.altRef * M2FT) + " ft";
+  $("stats").innerHTML =
+    "<div><b>" + mi.toFixed(2) + " mi</b><small>Distance</small></div>" +
+    "<div><b>" + fmtT(el) + "</b><small>Elapsed</small></div>" +
+    "<div><b>" + (pace ? fmtT(pace * 60) + "/mi" : "--") + "</b><small>Pace (moving)</small></div>" +
+    "<div><b>+" + Math.round(R.gain * M2FT) + " ft</b><small>Climb</small></div>" +
+    "<div><b>-" + Math.round(R.loss * M2FT) + " ft</b><small>Descent</small></div>" +
+    "<div><b>" + alt + "</b><small>Elevation (GPS)</small></div>";
+}
+function save() { try { localStorage.setItem("hikeRec", JSON.stringify(R)); } catch (e) {} }
+function load() {
+  try { const r = JSON.parse(localStorage.getItem("hikeRec") || "null"); if (r && r.pts && r.pts.length) { Object.assign(R, r); trail.setLatLngs(R.pts.map(p => [p.lat, p.lng])); $("stats").style.display = "grid"; renderStats(); } } catch (e) {}
+}
+setInterval(() => { if (trailOn) renderStats(); }, 1000);
+function gpx() {
+  const pts = R.pts.map(p => '<trkpt lat="' + p.lat + '" lon="' + p.lng + '">' + (p.alt != null ? "<ele>" + p.alt.toFixed(1) + "</ele>" : "") + "<time>" + new Date(p.t).toISOString() + "</time></trkpt>").join("");
+  const xml = '<?xml version="1.0"?><gpx version="1.1" creator="wtsn.me/hike" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>Hike</name><trkseg>' + pts + "</trkseg></trk></gpx>";
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([xml], { type:"application/gpx+xml" }));
+  a.download = "hike-" + new Date().toISOString().slice(0, 10) + ".gpx"; a.click();
+}
+load();
+
 function feet(m) { return Math.round(m * 3.281) + " ft"; }
 
 function onPos(pos) {
@@ -81,7 +139,7 @@ function onPos(pos) {
     map.setView(ll, 18);
   }
   me.setLatLng(ll); circle.setLatLng(ll).setRadius(a);
-  if (trailOn) trail.addLatLng(ll);
+  if (trailOn) record(pos, ll);
   if (following) map.panTo(ll, { animate:true });
   $("acc").textContent = "GPS accuracy ±" + feet(a) + (a > 30 ? " (weak, wait or move to open sky)" : "");
   const now = Date.now();
@@ -120,7 +178,16 @@ startGps2();
 map.on("dragstart", () => { following = false; $("follow").textContent = "Follow: off"; $("follow").classList.add("off"); });
 $("follow").onclick = () => { following = !following; $("follow").textContent = "Follow: " + (following ? "on" : "off"); $("follow").classList.toggle("off", !following); if (following && me) map.panTo(me.getLatLng()); };
 $("sat").onclick = () => { map.removeLayer(useSat ? sat : topo); useSat = !useSat; (useSat ? sat : topo).addTo(map).bringToBack(); };
-$("trail").onclick = () => { trailOn = !trailOn; $("trail").textContent = "Trail: " + (trailOn ? "on" : "off"); $("trail").classList.toggle("off", !trailOn); };
+$("trail").onclick = () => {
+  trailOn = !trailOn;
+  $("trail").textContent = "Record: " + (trailOn ? "on" : "off"); $("trail").classList.toggle("off", !trailOn);
+  if (trailOn) {
+    if (R.pts.length && !confirm("Continue the saved hike? Cancel starts a new one.")) { Object.assign(R, { pts:[], dist:0, moving:0, gain:0, loss:0, start:0, lastT:0, altRef:null, alts:[] }); trail.setLatLngs([]); }
+    if (!R.start) R.start = Date.now();
+    $("stats").style.display = "grid"; renderStats();
+  }
+};
+$("gpx").onclick = () => { if (R.pts.length) gpx(); else alert("Nothing recorded yet. Tap Record first."); };
 $("mark").onclick = () => {
   if (!me) return;
   const ll = me.getLatLng();
