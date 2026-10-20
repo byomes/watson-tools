@@ -30,8 +30,13 @@ interface Candidate {
 }
 
 // Display-only renames. The stored team_name stays the key for check-offs and history.
+// The five kids-class teams use the same names as the Kids tab, so the adults in each class read across to the kids in it.
 const TEAM_LABELS: Record<string, string> = {
-  '9AM NURSERY TEAM': '9AM KIDS TEAM',
+  '9AM NURSERY TEAM': '9 AM Nursery',
+  '9AM ELEMENTARY KIDS TEAM': '9 AM Elementary Kids',
+  NURSERY: '10 AM Nursery',
+  TODDLER: '10 AM Toddler/Pre-K',
+  'ELEMENTARY KIDS CHURCH': '10 AM Elementary Kids Church',
 }
 
 function isLeader(position: string | null): boolean {
