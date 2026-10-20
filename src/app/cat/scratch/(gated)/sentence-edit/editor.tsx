@@ -1,0 +1,223 @@
+'use client'
+
+import { useEffect, useRef, useState } from 'react'
+
+// Scratch prototype (2026-10-19): one sentence at a time, approve / speak a
+// rewrite / tap to type. Edits live in this browser only (localStorage) and
+// are NOT written back to the Google Doc yet -- "Copy entry" is the way out.
+
+type Block = { type: string; text?: string; label?: string; sentences?: string[] }
+type Entry = { source: string; docId: string; blocks: Block[] }
+type State = { text: string; status: 'pending' | 'approved' | 'edited' | 'spoken'; prev?: string }
+
+// Minimal typing for the browser speech API, which isn't in lib.dom.
+type Rec = {
+  lang: string
+  interimResults: boolean
+  continuous: boolean
+  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }> }) => void) | null
+  onend: (() => void) | null
+  onerror: ((e: { error: string }) => void) | null
+  start: () => void
+  stop: () => void
+}
+
+const STORE = 'sentence-edit-entry1-v1'
+
+export default function Editor({ entry }: { entry: Entry }) {
+  const keyOf = (b: number, s: number) => `${b}.${s}`
+  const [st, setSt] = useState<Record<string, State>>({})
+  const [loaded, setLoaded] = useState(false)
+  const [editing, setEditing] = useState<string | null>(null)
+  const [draft, setDraft] = useState('')
+  const [listening, setListening] = useState<string | null>(null)
+  const [heard, setHeard] = useState('')
+  const [msg, setMsg] = useState('')
+  const recRef = useRef<Rec | null>(null)
+
+  useEffect(() => {
+    const init: Record<string, State> = {}
+    entry.blocks.forEach((b, bi) => {
+      if (b.sentences) b.sentences.forEach((t, si) => (init[keyOf(bi, si)] = { text: t, status: 'pending' }))
+    })
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORE) || '{}')
+      for (const k of Object.keys(saved)) if (init[k]) init[k] = saved[k]
+    } catch {}
+    // localStorage only exists client-side, so state has to be hydrated in an effect.
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setSt(init)
+    setLoaded(true)
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [entry])
+
+  useEffect(() => {
+    if (!loaded) return
+    try {
+      localStorage.setItem(STORE, JSON.stringify(st))
+    } catch {}
+  }, [st, loaded])
+
+  const set = (k: string, v: Partial<State>) => setSt((s) => ({ ...s, [k]: { ...s[k], ...v } }))
+
+  function speak(k: string) {
+    if (listening) {
+      recRef.current?.stop()
+      return
+    }
+    const w = window as unknown as { SpeechRecognition?: new () => Rec; webkitSpeechRecognition?: new () => Rec }
+    const Ctor = w.SpeechRecognition || w.webkitSpeechRecognition
+    if (!Ctor) {
+      setMsg('This browser has no speech recognition. Use Chrome or Safari.')
+      return
+    }
+    const rec = new Ctor()
+    rec.lang = 'en-US'
+    rec.interimResults = true
+    rec.continuous = true
+    let final = ''
+    rec.onresult = (e) => {
+      let interim = ''
+      for (let i = 0; i < e.results.length; i++) {
+        const r = e.results[i]
+        if (r.isFinal) final += r[0].transcript
+        else interim += r[0].transcript
+      }
+      setHeard((final + interim).trim())
+    }
+    rec.onerror = (e) => setMsg(`Mic error: ${e.error}`)
+    rec.onend = () => {
+      const text = final.trim()
+      setListening(null)
+      setHeard('')
+      if (text) {
+        const out = text.charAt(0).toUpperCase() + text.slice(1)
+        setSt((s) => ({ ...s, [k]: { text: out, status: 'spoken', prev: s[k].prev ?? s[k].text } }))
+      }
+    }
+    recRef.current = rec
+    setMsg('')
+    setHeard('')
+    setListening(k)
+    rec.start()
+  }
+
+  function saveEdit(k: string) {
+    const t = draft.trim()
+    if (t && t !== st[k].text) set(k, { text: t, status: 'edited', prev: st[k].prev ?? st[k].text })
+    setEditing(null)
+  }
+
+  const all = Object.values(st)
+  const done = all.filter((s) => s.status !== 'pending').length
+
+  function copyEntry() {
+    const out = entry.blocks
+      .map((b, bi) => {
+        const sents = b.sentences
+        if (!sents) return b.text ?? ''
+        const body = sents.map((_, si) => st[keyOf(bi, si)]?.text ?? '').join(' ')
+        return b.label ? `${b.label} ${body}` : body
+      })
+      .join('\n\n')
+    navigator.clipboard.writeText(out).then(
+      () => setMsg('Copied. Paste into the Google Doc.'),
+      () => setMsg('Copy failed.'),
+    )
+  }
+
+  const badge: Record<State['status'], string> = {
+    pending: '',
+    approved: 'border-l-4 border-green-500 bg-green-50 dark:bg-green-950/30',
+    edited: 'border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-950/30',
+    spoken: 'border-l-4 border-purple-500 bg-purple-50 dark:bg-purple-950/30',
+  }
+  const btn = 'rounded-lg px-4 py-2 text-sm font-medium active:scale-95'
+
+  return (
+    <div className="min-h-screen bg-white dark:bg-gray-950 text-black dark:text-white">
+      <div className="sticky top-0 z-10 border-b border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-950/95 px-4 py-2 flex items-center justify-between gap-3">
+        <span className="text-sm text-gray-600 dark:text-gray-400">
+          {done} of {all.length} reviewed
+        </span>
+        <button onClick={copyEntry} className={`${btn} bg-gray-900 text-white dark:bg-white dark:text-black`}>
+          Copy entry
+        </button>
+      </div>
+      {msg && <p className="px-4 pt-2 text-sm text-amber-600">{msg}</p>}
+
+      <main className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+        {entry.blocks.map((b, bi) => {
+          if (b.type === 'title') return <h1 key={bi} className="text-2xl font-bold font-serif">{b.text}</h1>
+          if (b.type === 'heading') return <h2 key={bi} className="pt-6 text-sm font-bold tracking-wide text-gray-500">{b.text}</h2>
+          return (
+            <div key={bi} className="space-y-3">
+              {b.label && <div className="text-sm text-gray-500">{b.label}</div>}
+              {(b.sentences ?? []).map((_, si) => {
+                const k = keyOf(bi, si)
+                const s = st[k]
+                if (!s) return null
+                const isEd = editing === k
+                const isMic = listening === k
+                return (
+                  <div key={k} className={`rounded-lg p-3 ${badge[s.status]} ${s.status === 'pending' ? 'border-l-4 border-gray-200 dark:border-gray-800' : ''}`}>
+                    {isEd ? (
+                      <textarea
+                        autoFocus
+                        value={draft}
+                        onChange={(e) => setDraft(e.target.value)}
+                        rows={Math.max(3, Math.ceil(draft.length / 45))}
+                        className="w-full rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 p-2 text-lg font-serif"
+                      />
+                    ) : (
+                      <p
+                        onClick={() => {
+                          setDraft(s.text)
+                          setEditing(k)
+                        }}
+                        className="text-lg leading-relaxed font-serif cursor-text"
+                      >
+                        {s.text}
+                      </p>
+                    )}
+                    {isMic && (
+                      <p className="mt-2 text-sm italic text-red-600">Listening... {heard || 'say it your way, tap Stop when done'}</p>
+                    )}
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {isEd ? (
+                        <>
+                          <button onClick={() => saveEdit(k)} className={`${btn} bg-blue-600 text-white`}>Save</button>
+                          <button onClick={() => setEditing(null)} className={`${btn} bg-gray-200 dark:bg-gray-800`}>Cancel</button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => set(k, { status: s.status === 'pending' ? 'approved' : s.status })}
+                            className={`${btn} bg-green-600 text-white`}
+                          >
+                            ✓ Approve
+                          </button>
+                          <button onClick={() => speak(k)} className={`${btn} ${isMic ? 'bg-red-600 text-white' : 'bg-purple-600 text-white'}`}>
+                            {isMic ? '■ Stop' : '🎤 Speak'}
+                          </button>
+                          {s.prev !== undefined && (
+                            <button
+                              onClick={() => setSt((x) => ({ ...x, [k]: { text: s.prev!, status: 'pending' } }))}
+                              className={`${btn} bg-gray-200 dark:bg-gray-800`}
+                            >
+                              ↺ Original
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )
+        })}
+      </main>
+    </div>
+  )
+}
