@@ -80,7 +80,7 @@ export async function createSession(name: string) {
   const store = await cookies()
   store.set(COOKIE_NAME, makeToken(name), {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.NODE_ENV === 'production' && !process.env.PRIVATE_HTTP,
     sameSite: 'lax',
     path: '/',
     maxAge: SESSION_TTL_MS / 1000,

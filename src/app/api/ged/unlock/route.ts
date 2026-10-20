@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   const res = NextResponse.json({ ok: true })
   res.cookies.set(GED_COOKIE, makeGedToken(), {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.NODE_ENV === 'production' && !process.env.PRIVATE_HTTP,
     sameSite: 'lax',
     path: '/',
     maxAge: GED_TTL_MS / 1000,

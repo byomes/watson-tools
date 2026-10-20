@@ -1,6 +1,26 @@
 import type { NextConfig } from "next";
 
+// Personal and family apps live on the Beelink, reachable only over
+// Tailscale (see the private instance: systemd user service
+// watson-tools-private, port 10001, built with PRIVATE_HTTP=1). On the
+// public Vercel build these paths just forward to a static page that
+// explains how to reach them; the same repo built on the Beelink serves
+// the real pages (VERCEL is unset there, so no redirects).
+// /books and /ged join this list once their PINs are set on the private instance.
+const PRIVATE_PATHS = ["/upload", "/voice-editor"];
+
 const nextConfig: NextConfig = {
+  async redirects() {
+    if (!process.env.VERCEL) return [];
+    return PRIVATE_PATHS.flatMap((p) => {
+      const app = p.slice(1);
+      return [
+        { source: p, destination: `/private-forward.html?app=${app}`, permanent: false },
+        { source: `${p}/:path*`, destination: `/private-forward.html?app=${app}`, permanent: false },
+        { source: `/api${p}/:path*`, destination: `/private-forward.html?app=${app}`, permanent: false },
+      ];
+    });
+  },
   // hamprep (Technician exam prep) lives as its own separate Vercel
   // project/Neon DB, not folded into this app's public_tools registry.
   // It's built with basePath: "/ham", so its own links/assets already

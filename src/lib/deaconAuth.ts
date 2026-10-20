@@ -112,7 +112,7 @@ export async function createSession(name: string, sessionToken: string) {
   const store = await cookies()
   store.set(COOKIE_NAME, makeToken(name, sessionToken), {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.NODE_ENV === 'production' && !process.env.PRIVATE_HTTP,
     sameSite: 'lax',
     path: '/',
     maxAge: SESSION_TTL_MS / 1000,
@@ -159,7 +159,7 @@ export async function createPendingChoice(names: string[], sessionTokens: Record
   const store = await cookies()
   store.set(PENDING_COOKIE, `${payload}.${sign(payload)}`, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.NODE_ENV === 'production' && !process.env.PRIVATE_HTTP,
     sameSite: 'lax',
     path: '/',
     maxAge: PENDING_TTL_MS / 1000,
