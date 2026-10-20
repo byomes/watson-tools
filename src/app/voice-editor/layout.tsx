@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'Voice Editor' },
+  // Not capable: true. iOS standalone (Home Screen) mode has no SpeechRecognition,
+  // so the Speak button's mic never opens; the shortcut must open in Safari.
+  appleWebApp: { capable: false, title: 'Voice Editor' },
   icons: {
     icon: [
       { url: '/voice-editor-icon-192.png', sizes: '192x192', type: 'image/png' },
