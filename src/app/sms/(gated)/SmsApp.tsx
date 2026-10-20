@@ -455,6 +455,16 @@ export default function SmsApp() {
   const [query, setQuery] = useState('')
   const [activeId, setActiveId] = useState<number | null>(null)
   const [editingGroupName, setEditingGroupName] = useState(false)
+  // "Add person" panel in an open thread: adds to a group in place, or
+  // turns a 1:1 into a new group (server decides, see add_participant).
+  const [addPersonOpen, setAddPersonOpen] = useState(false)
+  const [addPersonName, setAddPersonName] = useState('')
+  const [addPersonPhone, setAddPersonPhone] = useState('')
+  const [addPersonPicked, setAddPersonPicked] = useState(false)
+  const [addPersonContacts, setAddPersonContacts] = useState<Contact[]>([])
+  const [addPersonError, setAddPersonError] = useState('')
+  const [addPersonBusy, setAddPersonBusy] = useState(false)
+  const [composeError, setComposeError] = useState('')
   const [groupNameDraft, setGroupNameDraft] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [compose, setCompose] = useState('')
@@ -1291,6 +1301,19 @@ export default function SmsApp() {
     return () => clearTimeout(timer)
   }, [composeName, composeOpen, composeContactPicked])
 
+  useEffect(() => {
+    if (!addPersonOpen || addPersonPicked || !addPersonName.trim()) {
+      setAddPersonContacts([])
+      return
+    }
+    const timer = setTimeout(() => {
+      api<{ contacts: Contact[] }>(`/api/sms/contacts?q=${encodeURIComponent(addPersonName.trim())}`)
+        .then((data) => setAddPersonContacts(data.contacts))
+        .catch(() => {})
+    }, 250)
+    return () => clearTimeout(timer)
+  }, [addPersonName, addPersonOpen, addPersonPicked])
+
   // Same contact-picker autocomplete as above, for whichever extra-recipient
   // row is currently being edited. activeExtraContactIndex is cleared on
   // pick (and on row removal) so it behaves like composeContactPicked.
@@ -1463,6 +1486,7 @@ export default function SmsApp() {
     setAttachedImage(null)
     setEditingScheduledId(null)
     setEditingGroupName(false)
+    closeAddPerson()
     setContext(null)
     setThreads((prev) => prev.map((t) => (t.id === id ? { ...t, unread: 0 } : t)))
     patchThread(id, { unread: 0 }).catch(() => {})
@@ -1651,8 +1675,51 @@ export default function SmsApp() {
     setExtraContacts([])
   }
 
+  function closeAddPerson() {
+    setAddPersonOpen(false)
+    setAddPersonName('')
+    setAddPersonPhone('')
+    setAddPersonPicked(false)
+    setAddPersonContacts([])
+    setAddPersonError('')
+  }
+
+  async function addPersonToThread() {
+    if (!activeThread || !addPersonPhone.trim() || addPersonBusy) return
+    setAddPersonBusy(true)
+    setAddPersonError('')
+    try {
+      const data = await api<{ thread: Thread; created: boolean }>(`/api/sms/threads/${activeThread.id}/participants`, {
+        method: 'POST',
+        body: JSON.stringify({ phone: addPersonPhone.trim(), name: addPersonName.trim() || undefined }),
+      })
+      setThreads((prev) =>
+        prev.some((t) => t.id === data.thread.id)
+          ? prev.map((t) => (t.id === data.thread.id ? data.thread : t))
+          : [data.thread, ...prev],
+      )
+      const switching = data.thread.id !== activeThread.id
+      closeAddPerson()
+      if (switching) await openThread(data.thread.id)
+    } catch (err) {
+      setAddPersonError(err instanceof Error ? err.message : 'Could not add that person')
+    } finally {
+      setAddPersonBusy(false)
+    }
+  }
+
   async function sendNewMessage() {
     if (!composePhone.trim() || !composeText.trim() || composeSending) return
+    // A row with a name but no phone used to be dropped silently, sending
+    // the group text without that person. Refuse instead and say which.
+    const incomplete = extraRecipients.findIndex((r) => !r.phone.trim() && r.name.trim())
+    if (incomplete >= 0) {
+      setComposeError(
+        `"${extraRecipients[incomplete].name.trim()}" has no phone number yet. Pick them from the dropdown or type their number, or remove that row.`,
+      )
+      return
+    }
+    setComposeError('')
     if (composeShowSchedule && !composeScheduleAt) return
     setComposeSending(true)
     try {
@@ -2064,6 +2131,13 @@ export default function SmsApp() {
               <div className={mono('text-xs')} style={{ color: COLORS.inkSoft }}>
                 {activeThread.is_group ? `${activeThread.participants.length} people` : activeThread.phone}
               </div>
+              <button
+                onClick={() => setAddPersonOpen((o) => !o)}
+                className="text-xs font-medium"
+                style={{ color: COLORS.moss }}
+              >
+                + Add person
+              </button>
             </div>
             <button
               onClick={manualRefresh}
@@ -2088,6 +2162,79 @@ export default function SmsApp() {
               </svg>
             </button>
           </div>
+
+          {addPersonOpen && (
+            <div className="flex flex-col gap-2 px-4 py-3 border-b" style={{ borderColor: COLORS.line }}>
+              <div className="text-xs" style={{ color: COLORS.inkSoft }}>
+                {activeThread.is_group
+                  ? 'Adds them to this group. They will only see messages sent from now on.'
+                  : 'Starts a new group text with this person and the new one.'}
+              </div>
+              <div className="relative">
+                <input
+                  value={addPersonName}
+                  onChange={(e) => {
+                    setAddPersonName(e.target.value)
+                    setAddPersonPicked(false)
+                  }}
+                  placeholder="Name -- search contacts or type your own"
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                  style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
+                />
+                {addPersonContacts.length > 0 && (
+                  <div
+                    className="absolute left-0 right-0 top-full mt-1 z-10 rounded-lg border max-h-40 overflow-y-auto flex flex-col"
+                    style={{ background: COLORS.surface, borderColor: COLORS.line }}
+                  >
+                    {addPersonContacts.map((c) => (
+                      <button
+                        key={c.id}
+                        onClick={() => {
+                          setAddPersonName(c.name)
+                          setAddPersonPhone(c.phone)
+                          setAddPersonPicked(true)
+                          setAddPersonContacts([])
+                        }}
+                        className="text-left px-3 py-2 text-sm flex flex-col"
+                        style={{ borderBottom: `1px solid ${COLORS.line}` }}
+                      >
+                        <span>{c.name}</span>
+                        <span className={mono('text-xs')} style={{ color: COLORS.inkSoft }}>
+                          {c.phone}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <input
+                value={addPersonPhone}
+                onChange={(e) => setAddPersonPhone(e.target.value)}
+                placeholder="Phone number"
+                inputMode="tel"
+                className="w-full border rounded-lg px-3 py-2 text-sm"
+                style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
+              />
+              {addPersonError && (
+                <div className="text-xs" style={{ color: COLORS.clay }}>
+                  {addPersonError}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <button
+                  onClick={addPersonToThread}
+                  disabled={!addPersonPhone.trim() || addPersonBusy}
+                  className="text-sm font-medium px-3 py-2 rounded-lg disabled:opacity-50"
+                  style={{ background: COLORS.moss, color: '#fff' }}
+                >
+                  {addPersonBusy ? 'Adding...' : 'Add'}
+                </button>
+                <button onClick={closeAddPerson} className="text-sm px-3 py-2" style={{ color: COLORS.inkSoft }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center gap-2 px-4 py-2 border-b" style={{ borderColor: COLORS.line }}>
             <button
@@ -3615,6 +3762,11 @@ export default function SmsApp() {
                 </button>
               </div>
             ))}
+            {composeError && (
+              <div className="text-xs" style={{ color: COLORS.clay }}>
+                {composeError}
+              </div>
+            )}
             <button
               onClick={() => setExtraRecipients((prev) => [...prev, { phone: '', name: '' }])}
               className="text-xs font-medium self-start"
