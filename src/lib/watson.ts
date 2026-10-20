@@ -53,7 +53,7 @@ function headersToObject(headers: HeadersInit | undefined): Record<string, strin
   return { ...headers } as Record<string, string>;
 }
 
-function nodeRequest(url: string, init: RequestInit): Promise<Response> {
+function nodeRequest(url: string, init: RequestInit, timeoutMs = 8000): Promise<Response> {
   return new Promise((resolve, reject) => {
     const u = new URL(url);
     const body = typeof init.body === 'string' ? init.body : undefined;
@@ -65,7 +65,7 @@ function nodeRequest(url: string, init: RequestInit): Promise<Response> {
         method: init.method ?? 'GET',
         headers: headersToObject(init.headers),
         lookup: watsonLookup,
-        timeout: 8000,
+        timeout: timeoutMs,
       },
       (res) => {
         const chunks: Buffer[] = [];
@@ -93,15 +93,19 @@ function nodeRequest(url: string, init: RequestInit): Promise<Response> {
   });
 }
 
-export async function watsonFetch(path: string, init: RequestInit = {}): Promise<Response> {
+export async function watsonFetch(path: string, init: RequestInit = {}, timeoutMs?: number): Promise<Response> {
   if (!WATSON_API_URL) {
     throw new Error('WATSON_API_URL must be set');
   }
-  return nodeRequest(`${WATSON_API_URL}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...headersToObject(init.headers),
+  return nodeRequest(
+    `${WATSON_API_URL}${path}`,
+    {
+      ...init,
+      headers: {
+        'Content-Type': 'application/json',
+        ...headersToObject(init.headers),
+      },
     },
-  });
+    timeoutMs,
+  );
 }

@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from 'react'
 
 // Voice editor (2026-10-19, writing ministry, not Catalyst): one sentence at a time, approve / speak a
-// rewrite / tap to type. Edits live in this browser only (localStorage) and
-// are NOT written back to the Google Doc yet -- "Copy entry" is the way out.
+// rewrite / tap to type. Edits save to this browser (localStorage) and to
+// Watson (~/watson/data/voice_editor/, via /api/voice-editor/*); the newest
+// copy wins on load. Spoken text gets a punctuation/grammar pass from Watson.
 
 type Block = { type: string; text?: string; label?: string; sentences?: string[] }
 type Entry = { source: string; docId: string; blocks: Block[] }
@@ -23,6 +24,8 @@ type Rec = {
 }
 
 const STORE = 'sentence-edit-entry1-v1'
+const ENTRY_ID = 'entry1'
+type Saved = { savedAt: number; st: Record<string, State> }
 
 export default function Editor({ entry }: { entry: Entry }) {
   const keyOf = (b: number, s: number) => `${b}.${s}`
@@ -33,6 +36,9 @@ export default function Editor({ entry }: { entry: Entry }) {
   const [listening, setListening] = useState<string | null>(null)
   const [heard, setHeard] = useState('')
   const [msg, setMsg] = useState('')
+  const [polishing, setPolishing] = useState<Record<string, boolean>>({})
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const lastSaved = useRef('')
   const recRef = useRef<Rec | null>(null)
   const heardRef = useRef('')
 
@@ -41,23 +47,100 @@ export default function Editor({ entry }: { entry: Entry }) {
     entry.blocks.forEach((b, bi) => {
       if (b.sentences) b.sentences.forEach((t, si) => (init[keyOf(bi, si)] = { text: t, status: 'pending' }))
     })
+    const merge = (saved: Record<string, State> | undefined) => {
+      const out = { ...init }
+      for (const k of Object.keys(saved ?? {})) if (out[k]) out[k] = saved![k]
+      return out
+    }
+    let local: Saved = { savedAt: 0, st: {} }
     try {
-      const saved = JSON.parse(localStorage.getItem(STORE) || '{}')
-      for (const k of Object.keys(saved)) if (init[k]) init[k] = saved[k]
+      const raw = JSON.parse(localStorage.getItem(STORE) || '{}')
+      local = raw.st ? raw : { savedAt: 0, st: raw }
     } catch {}
     // localStorage only exists client-side, so state has to be hydrated in an effect.
     /* eslint-disable react-hooks/set-state-in-effect */
-    setSt(init)
+    setSt(merge(local.st))
     setLoaded(true)
     /* eslint-enable react-hooks/set-state-in-effect */
+
+    // Then ask Watson; whichever copy was saved last wins.
+    let cancelled = false
+    fetch(`/api/voice-editor/load?entry=${ENTRY_ID}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const remote: Saved | null = d?.state ?? null
+        if (cancelled || !remote || !remote.st || remote.savedAt <= local.savedAt) return
+        lastSaved.current = JSON.stringify(remote.st)
+        setSt(merge(remote.st))
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
   }, [entry])
 
   useEffect(() => {
     if (!loaded) return
+    const json = JSON.stringify(st)
+    if (json === lastSaved.current) return
+    const savedAt = Date.now()
     try {
-      localStorage.setItem(STORE, JSON.stringify(st))
+      localStorage.setItem(STORE, JSON.stringify({ savedAt, st }))
     } catch {}
+    const t = setTimeout(() => {
+      setSaveState('saving')
+      fetch('/api/voice-editor/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entry: ENTRY_ID, state: { savedAt, st }, assembled: assemble(st) }),
+      })
+        .then((r) => {
+          if (!r.ok) throw new Error('save failed')
+          lastSaved.current = json
+          setSaveState('saved')
+        })
+        .catch(() => setSaveState('error'))
+    }, 1500)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [st, loaded])
+
+  function assemble(state: Record<string, State>) {
+    return entry.blocks
+      .map((b, bi) => {
+        const sents = b.sentences
+        if (!sents) return b.text ?? ''
+        const body = sents.map((_, si) => state[keyOf(bi, si)]?.text ?? '').join(' ')
+        return b.label ? `${b.label} ${body}` : body
+      })
+      .join('\n\n')
+  }
+
+  async function polish(k: string, text: string) {
+    setPolishing((p) => ({ ...p, [k]: true }))
+    try {
+      const r = await fetch('/api/voice-editor/polish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      })
+      const d = await r.json()
+      if (r.ok && d.changed && typeof d.text === 'string') {
+        setSt((s) => {
+          const cur = s[k]
+          // Skip if the sentence was changed again while the model was thinking.
+          if (!cur || cur.text !== text) return s
+          return { ...s, [k]: { ...cur, text: d.text, status: cur.status === 'spoken' ? 'spoken' : 'edited', prev: cur.prev ?? text } }
+        })
+      } else if (r.ok && d.reason === 'drifted') {
+        setMsg('Cleanup would have changed too many words, so I left that sentence as you said it.')
+      }
+    } catch {
+      setMsg('Cleanup is unavailable right now. Your text is unchanged.')
+    } finally {
+      setPolishing((p) => ({ ...p, [k]: false }))
+    }
+  }
 
   const set = (k: string, v: Partial<State>) => setSt((s) => ({ ...s, [k]: { ...s[k], ...v } }))
 
@@ -98,6 +181,7 @@ export default function Editor({ entry }: { entry: Entry }) {
       if (text) {
         const out = text.charAt(0).toUpperCase() + text.slice(1)
         setSt((s) => ({ ...s, [k]: { text: out, status: 'spoken', prev: s[k].prev ?? s[k].text } }))
+        polish(k, out)
       }
     }
     recRef.current = rec
@@ -118,14 +202,7 @@ export default function Editor({ entry }: { entry: Entry }) {
   const done = all.filter((s) => s.status !== 'pending').length
 
   function copyEntry() {
-    const out = entry.blocks
-      .map((b, bi) => {
-        const sents = b.sentences
-        if (!sents) return b.text ?? ''
-        const body = sents.map((_, si) => st[keyOf(bi, si)]?.text ?? '').join(' ')
-        return b.label ? `${b.label} ${body}` : body
-      })
-      .join('\n\n')
+    const out = assemble(st)
     navigator.clipboard.writeText(out).then(
       () => setMsg('Copied. Paste into the Google Doc.'),
       () => setMsg('Copy failed.'),
@@ -145,6 +222,9 @@ export default function Editor({ entry }: { entry: Entry }) {
       <div className="sticky top-0 z-10 border-b border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-950/95 px-4 py-2 flex items-center justify-between gap-3">
         <span className="text-sm text-gray-600 dark:text-gray-400">
           {done} of {all.length} reviewed
+          <span className="ml-3 text-xs">
+            {saveState === 'saving' ? 'Saving...' : saveState === 'saved' ? 'Saved to Watson' : saveState === 'error' ? 'Not saved to Watson yet' : ''}
+          </span>
         </span>
         <button onClick={copyEntry} className={`${btn} bg-gray-900 text-white dark:bg-white dark:text-black`}>
           Copy entry
@@ -186,6 +266,7 @@ export default function Editor({ entry }: { entry: Entry }) {
                         {s.text}
                       </p>
                     )}
+                    {polishing[k] && <p className="mt-2 text-sm italic text-gray-500">Adding punctuation...</p>}
                     {isMic && (
                       <p className="mt-2 text-sm italic text-red-600">Listening... {heard || 'say it your way, tap Stop when done'}</p>
                     )}
@@ -205,6 +286,13 @@ export default function Editor({ entry }: { entry: Entry }) {
                           </button>
                           <button onClick={() => speak(k)} className={`${btn} ${isMic ? 'bg-red-600 text-white' : 'bg-purple-600 text-white'}`}>
                             {isMic ? '■ Stop' : '🎤 Speak'}
+                          </button>
+                          <button
+                            onClick={() => polish(k, s.text)}
+                            disabled={!!polishing[k]}
+                            className={`${btn} bg-gray-200 dark:bg-gray-800 disabled:opacity-50`}
+                          >
+                            ✨ Polish
                           </button>
                           {s.prev !== undefined && (
                             <button
