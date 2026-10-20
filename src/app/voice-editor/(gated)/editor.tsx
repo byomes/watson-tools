@@ -312,7 +312,7 @@ export default function Editor({ entry }: { entry: Entry }) {
                           <button
                             onClick={() => set(k, { deleted: true })}
                             disabled={isMic}
-                            className={`${btn} bg-red-600 text-white disabled:opacity-50`}
+                            className={`${btn} border-2 border-red-400 bg-white text-red-600 dark:bg-gray-950 dark:text-red-400 disabled:opacity-50`}
                           >
                             🗑 Delete
                           </button>
