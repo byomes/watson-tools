@@ -398,13 +398,16 @@ function GroupSection({ item }: { item: SeriesItem }) {
   const [opened, setOpened] = useState(false)
   return (
     <section className="mb-4">
-      <details onToggle={e => { if ((e.currentTarget as HTMLDetailsElement).open) setOpened(true) }}>
-        <summary className="text-lg font-semibold text-black dark:text-white mb-2 cursor-pointer select-none">
-          {item.title}{' '}
-          <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
-            {item.latest_date ? `(${formatDate(item.latest_date)}) ` : ''}
+      <details className="group" onToggle={e => { if ((e.currentTarget as HTMLDetailsElement).open) setOpened(true) }}>
+        <summary className="flex items-center gap-2 cursor-pointer select-none mb-2 list-none">
+          <svg className="shrink-0 w-4 h-4 text-gray-400 transition-transform group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path d="M7 4l6 6-6 6V4z" />
+          </svg>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-base font-semibold text-black dark:text-white">{item.title}</span>
+            {item.latest_date && <span className="block text-xs text-gray-500 dark:text-gray-400">{formatDate(item.latest_date)}</span>}
           </span>
-          {statusPill(item.latest_status)}
+          <span className="shrink-0 whitespace-nowrap">{statusPill(item.latest_status)}</span>
         </summary>
         <div className="mt-2">{opened && <GroupPanel series={item.series} />}</div>
       </details>
