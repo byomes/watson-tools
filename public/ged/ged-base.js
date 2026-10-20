@@ -52,4 +52,15 @@ const SUBJECTS = [
 
 const TOPICS = [];
 const TESTS = { math: [], rla: [], sci: [], soc: [] };
+
+// Wrong-answer explanations. why-*.js files push W(questionText, correctChoiceText, { "wrong choice text": "why it's wrong" }).
+// Keyed by choice TEXT, so it survives shuffling. attachWhy() (called by app.js) sets q.w = that map on the matching questions.
+const WHY = [];
+const W = (q, right, wrong) => WHY.push([q, right, wrong]);
+function attachWhy() {
+  const idx = new Map(WHY.map(([q, r, w]) => [q + "|" + r, w]));
+  const tag = q => { const w = idx.get(q.q + "|" + q.c[q.a]); if (w) q.w = w; };
+  TOPICS.forEach(t => (t.qs || []).forEach(tag));
+  Object.values(TESTS).forEach(a => a.forEach(T => T.qs.forEach(tag)));
+}
 const ESSAYS = [];

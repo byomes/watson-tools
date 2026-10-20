@@ -73,3 +73,4 @@ textarea{width:100%;min-height:340px;line-height:1.6;resize:vertical}
 
 .rv .choice{cursor:default}.rv .choice .tag{white-space:nowrap;font-size:13px}
 .rv .choice.right .k{background:var(--ok);border-color:var(--ok);color:#fff}.rv .choice.wrong .k{background:var(--bad);border-color:var(--bad);color:#fff}
+.expl.wy{background:var(--badbg)}

@@ -16,6 +16,7 @@ if (!P || !Array.isArray(P.list) || !P.list.length) {
 }
 const saveP = () => { try { localStorage.setItem(PKEY, JSON.stringify(P)); } catch (e) {} };
 const curProf = () => P.list.find(x => x.id === P.active) || P.list[0];
+attachWhy();
 let S;
 function loadState() { S = Object.assign(DEF(), rd(dataKey(curProf().id)) || {}); }
 loadState();
@@ -152,13 +153,17 @@ function startCheck(sid) {
   const items = []; tl.forEach(t => pickQs(t.id, 3).forEach(qi => items.push(mkItem(t.id, qi))));
   runQuiz({ title: subjById(sid).name + " skip-check", items, feedback: false, onDone: r => checkResults(r, tl) });
 }
+// The explanation for the specific wrong choice she picked, when one has been written for that question.
+const whyWrong = (q, pick) => q.w && pick !== null && pick !== undefined && pick !== q.a && q.w[q.c[pick]]
+  ? `<div class="expl wy"><b>Why ${LETTERS[pick]} is not right:</b> ${esc(q.w[q.c[pick]])}</div>` : "";
+
 // One question laid out for review: every choice shown, the right one green, the learner's wrong pick red, then why.
 function reviewCard(q, pick, head, tid) {
   const ok = pick === q.a, missed = pick !== null && pick !== undefined && !ok;
   return `<div class="card">${head || ""}<span class="chip ${ok ? "done" : "bad"}">${ok ? "Correct" : pick === null || pick === undefined ? "Not answered" : "Missed"}</span>${stim(q)}<h3 style="margin-top:8px">${esc(q.q)}</h3>
   <div class="rv">${q.c.map((c, n) => `<div class="choice ${n === q.a ? "right" : n === pick ? "wrong" : ""}"><span class="k">${LETTERS[n]}</span><span>${esc(c)}${n === q.a ? ` <b class="tag">&#10003; Correct answer</b>` : n === pick ? ` <b class="tag">&#10007; Your answer</b>` : ""}</span></div>`).join("")}</div>
   ${missed ? `<p class="mute" style="margin:8px 0 0">You chose <b>${LETTERS[pick]}</b>, but the answer is <b>${LETTERS[q.a]}</b>.</p>` : ""}
-  <div class="expl"><b>Why:</b> ${esc(q.e)}</div>${!ok && tid ? `<div class="row" style="margin-top:8px"><a class="btn sm alt" href="#/topic/${tid}">Study ${esc(topicById(tid).name)}</a></div>` : ""}</div>`;
+  ${whyWrong(q, pick)}<div class="expl"><b>Why ${LETTERS[q.a]} is right:</b> ${esc(q.e)}</div>${!ok && tid ? `<div class="row" style="margin-top:8px"><a class="btn sm alt" href="#/topic/${tid}">Study ${esc(topicById(tid).name)}</a></div>` : ""}</div>`;
 }
 
 function checkResults(r, tl) {
@@ -221,7 +226,7 @@ function runQuiz(cfg) {
     const next = () => { i++; i < items.length ? draw() : onDone(results); };
     if (!feedback) return next();
     document.querySelectorAll(".choice").forEach(b => { b.disabled = true; const o = +b.dataset.o; if (o === it.q.a) b.classList.add("right"); else if (o === pick) b.classList.add("wrong"); });
-    $("#fb").innerHTML = `<div class="expl"><b>${ok ? "✓ Correct." : "Not quite."}</b> ${esc(it.q.e)}</div><div class="row"><button class="btn" id="nx">${i + 1 < items.length ? "Next" : "Finish"}</button></div>`;
+    $("#fb").innerHTML = `${ok ? "" : whyWrong(it.q, pick)}<div class="expl"><b>${ok ? "✓ Correct." : "Not quite."}</b> ${esc(it.q.e)}</div><div class="row"><button class="btn" id="nx">${i + 1 < items.length ? "Next" : "Finish"}</button></div>`;
     $("#nx").onclick = next; $("#nx").focus();
   };
   draw();
