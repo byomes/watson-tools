@@ -34,6 +34,7 @@ export default function Editor({ entry }: { entry: Entry }) {
   const [heard, setHeard] = useState('')
   const [msg, setMsg] = useState('')
   const recRef = useRef<Rec | null>(null)
+  const heardRef = useRef('')
 
   useEffect(() => {
     const init: Record<string, State> = {}
@@ -77,17 +78,23 @@ export default function Editor({ entry }: { entry: Entry }) {
     rec.continuous = true
     let final = ''
     rec.onresult = (e) => {
+      // Each event carries the whole session's results, so rebuild the text
+      // from scratch every time instead of appending (appending duplicated
+      // every phrase on each update).
+      let finalText = ''
       let interim = ''
       for (let i = 0; i < e.results.length; i++) {
         const r = e.results[i]
-        if (r.isFinal) final += r[0].transcript
+        if (r.isFinal) finalText += r[0].transcript
         else interim += r[0].transcript
       }
-      setHeard((final + interim).trim())
+      final = finalText
+      heardRef.current = (finalText + interim).trim()
+      setHeard(heardRef.current)
     }
     rec.onerror = (e) => setMsg(`Mic error: ${e.error}`)
     rec.onend = () => {
-      const text = final.trim()
+      const text = (final || heardRef.current).trim()
       setListening(null)
       setHeard('')
       if (text) {
@@ -97,6 +104,7 @@ export default function Editor({ entry }: { entry: Entry }) {
     }
     recRef.current = rec
     setMsg('')
+    heardRef.current = ''
     setHeard('')
     setListening(k)
     rec.start()
