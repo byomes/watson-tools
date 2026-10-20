@@ -21,6 +21,8 @@ interface State {
   registration_known?: boolean
   guests?: number
   headcount?: number | null
+  men?: number | null
+  women?: number | null
   did_not_meet?: boolean
 }
 
@@ -67,7 +69,8 @@ function GroupPanel({ series: fixedSeries, groupToken }: { series?: string; grou
   const [query, setQuery] = useState('')
   const [candidates, setCandidates] = useState<{ id: number; name: string }[] | null>(null)
   const [guests, setGuests] = useState(0)
-  const [headcount, setHeadcount] = useState('')
+  const [men, setMen] = useState('')
+  const [women, setWomen] = useState('')
   const [saved, setSaved] = useState(false)
   const [confirmRemove, setConfirmRemove] = useState<number | null>(null)
   const [adding, setAdding] = useState(false)
@@ -80,7 +83,8 @@ function GroupPanel({ series: fixedSeries, groupToken }: { series?: string; grou
     setState(data)
     if (data.series) setSeries(data.series)
     setGuests(data.guests ?? 0)
-    setHeadcount(data.headcount != null ? String(data.headcount) : '')
+    setMen(data.men != null ? String(data.men) : '')
+    setWomen(data.women != null ? String(data.women) : '')
     if (data.event_date) setDate(data.event_date)
   }, [gfetch])
 
@@ -93,7 +97,8 @@ function GroupPanel({ series: fixedSeries, groupToken }: { series?: string; grou
         setState(data)
         if (data.series) setSeries(data.series)
         setGuests(data.guests ?? 0)
-        setHeadcount(data.headcount != null ? String(data.headcount) : '')
+        setMen(data.men != null ? String(data.men) : '')
+        setWomen(data.women != null ? String(data.women) : '')
         if (data.event_date) setDate(data.event_date)
       })
       .catch(() => setError('Could not load. Try again.'))
@@ -183,11 +188,11 @@ function GroupPanel({ series: fixedSeries, groupToken }: { series?: string; grou
     if (!state?.series || !state.event_date) return
     setError(null)
     const body = state.counts_only
-      ? { series: state.series, event_date: state.event_date, headcount: Number(headcount) }
+      ? { series: state.series, event_date: state.event_date, men: Number(men), women: Number(women) }
       : { series: state.series, event_date: state.event_date, guests }
     const res = await gfetch('/api/cat/groups/counts', { method: 'POST', body: JSON.stringify(body) })
     if (!res.ok) { setError('That did not save. Check the number.'); return }
-    if ((body.headcount ?? 0) > 0 || (body.guests ?? 0) > 0) setState(s => (s ? { ...s, did_not_meet: false } : s))
+    if (('men' in body ? (body.men ?? 0) + (body.women ?? 0) : 0) > 0 || ('guests' in body ? (body.guests ?? 0) : 0) > 0) setState(s => (s ? { ...s, did_not_meet: false } : s))
     setSaved(true)
     setTimeout(() => setSaved(false), 1500)
   }
@@ -292,12 +297,23 @@ function GroupPanel({ series: fixedSeries, groupToken }: { series?: string; grou
 
           {state.counts_only ? (
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">This group records a head count only. No names are kept.</p>
-              <label className="block text-sm text-black dark:text-white mb-1">How many were there?</label>
-              <input type="number" min={0} max={500} inputMode="numeric" value={headcount}
-                onChange={e => setHeadcount(e.target.value)}
-                className="w-28 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-black dark:text-white bg-white dark:bg-gray-900 mr-3" />
-              <button type="button" onClick={saveCounts} disabled={headcount === ''}
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">This group records numbers only, men and women separately. No names are kept.</p>
+              <div className="flex items-end gap-3 mb-3">
+                <div>
+                  <label htmlFor="cr-men" className="block text-sm text-black dark:text-white mb-1">Men</label>
+                  <input id="cr-men" type="number" min={0} max={500} inputMode="numeric" value={men}
+                    onChange={e => setMen(e.target.value)}
+                    className="w-24 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-black dark:text-white bg-white dark:bg-gray-900" />
+                </div>
+                <div>
+                  <label htmlFor="cr-women" className="block text-sm text-black dark:text-white mb-1">Women</label>
+                  <input id="cr-women" type="number" min={0} max={500} inputMode="numeric" value={women}
+                    onChange={e => setWomen(e.target.value)}
+                    className="w-24 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-black dark:text-white bg-white dark:bg-gray-900" />
+                </div>
+                <p className="pb-2 text-sm text-gray-500 dark:text-gray-400">Total {(Number(men) || 0) + (Number(women) || 0)}</p>
+              </div>
+              <button type="button" onClick={saveCounts} disabled={men === '' || women === ''}
                 className="px-4 py-2 rounded-lg bg-green-600 text-white disabled:opacity-50">{saved ? 'Saved' : 'Save'}</button>
               <button type="button" onClick={() => setDidNotMeet(!state.did_not_meet)}
                 className="ml-2 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-black dark:text-white text-xs whitespace-nowrap">{state.did_not_meet ? 'Undo did not meet' : 'Did not meet'}</button>
