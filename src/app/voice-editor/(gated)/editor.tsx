@@ -221,6 +221,8 @@ export default function Editor({ entry }: { entry: Entry }) {
     spoken: 'border-l-4 border-purple-500 bg-purple-50 dark:bg-purple-950/30',
   }
   const btn = 'rounded-lg px-4 py-2 text-sm font-medium active:scale-95'
+  // Icon-over-label buttons so all five fit on one row on a phone.
+  const tile = 'flex-1 min-w-0 flex flex-col items-center gap-0.5 rounded-lg px-1 py-1.5 text-[11px] leading-tight font-medium active:scale-95'
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 text-black dark:text-white">
@@ -285,7 +287,7 @@ export default function Editor({ entry }: { entry: Entry }) {
                     {isMic && (
                       <p className="mt-2 text-sm italic text-red-600">Listening... {heard || 'say it your way, tap Stop when done'}</p>
                     )}
-                    <div className="mt-2 flex flex-wrap gap-2">
+                    <div className={`mt-2 flex ${isEd ? 'flex-wrap gap-2' : 'gap-1.5'}`}>
                       {isEd ? (
                         <>
                           <button onClick={() => saveEdit(k)} className={`${btn} bg-blue-600 text-white`}>Save</button>
@@ -295,33 +297,38 @@ export default function Editor({ entry }: { entry: Entry }) {
                         <>
                           <button
                             onClick={() => set(k, { approved: true, status: s.status === 'pending' ? 'approved' : s.status })}
-                            className={`${btn} ${s.approved ? 'border-2 border-green-600 bg-white text-green-700 dark:bg-gray-950 dark:text-green-400' : 'bg-green-600 text-white'}`}
+                            className={`${tile} ${s.approved ? 'border-2 border-green-600 bg-white text-green-700 dark:bg-gray-950 dark:text-green-400' : 'bg-green-600 text-white'}`}
                           >
-                            {s.approved ? '✓ Approved' : '✓ Approve'}
+                            <span className="text-lg">✓</span>
+                            {s.approved ? 'Approved' : 'Approve'}
                           </button>
-                          <button onClick={() => speak(k)} className={`${btn} ${isMic ? 'bg-red-600 text-white' : 'bg-purple-600 text-white'}`}>
-                            {isMic ? '■ Stop' : '🎤 Speak'}
+                          <button onClick={() => speak(k)} className={`${tile} ${isMic ? 'bg-red-600 text-white' : 'bg-purple-600 text-white'}`}>
+                            <span className="text-lg">{isMic ? '■' : '🎤'}</span>
+                            {isMic ? 'Stop' : 'Speak'}
                           </button>
                           <button
                             onClick={() => polish(k, s.text)}
                             disabled={!!polishing[k]}
-                            className={`${btn} bg-gray-200 dark:bg-gray-800 disabled:opacity-50`}
+                            className={`${tile} bg-gray-200 dark:bg-gray-800 disabled:opacity-50`}
                           >
-                            ✨ Polish
+                            <span className="text-lg">✨</span>
+                            Polish
                           </button>
                           <button
                             onClick={() => set(k, { deleted: true })}
                             disabled={isMic}
-                            className={`${btn} border-2 border-red-400 bg-white text-red-600 dark:bg-gray-950 dark:text-red-400 disabled:opacity-50`}
+                            className={`${tile} border-2 border-red-400 bg-white text-red-600 dark:bg-gray-950 dark:text-red-400 disabled:opacity-50`}
                           >
-                            🗑 Delete
+                            <span className="text-lg">🗑</span>
+                            Delete
                           </button>
                           {s.prev !== undefined && (
                             <button
                               onClick={() => setSt((x) => ({ ...x, [k]: { text: s.prev!, status: 'pending' } }))}
-                              className={`${btn} bg-gray-200 dark:bg-gray-800`}
+                              className={`${tile} bg-gray-200 dark:bg-gray-800`}
                             >
-                              ↺ Original
+                              <span className="text-lg">↺</span>
+                              Original
                             </button>
                           )}
                         </>
