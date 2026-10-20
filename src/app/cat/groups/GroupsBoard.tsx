@@ -384,13 +384,6 @@ function GroupPanel({ series: fixedSeries, groupToken }: { series?: string; grou
   )
 }
 
-// "Sun. 10/18": short day and date for the group rows.
-function shortDate(iso: string): string {
-  const [y, m, d] = iso.split('-').map(Number)
-  const day = ['Sun.', 'Mon.', 'Tue.', 'Wed.', 'Thu.', 'Fri.', 'Sat.'][new Date(y, m - 1, d).getDay()]
-  return `${day} ${m}/${d}`
-}
-
 function statusPill(status?: string) {
   const base = 'text-xs font-medium rounded-full px-2 py-0.5 align-middle'
   if (!status || status === 'no sessions yet') return <span className={`${base} bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300`}>{status ?? ''}</span>
@@ -412,7 +405,7 @@ function GroupSection({ item }: { item: SeriesItem }) {
           </svg>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-base font-semibold text-black dark:text-white">{item.title}</span>
-            {item.latest_date && <span className="block text-xs text-gray-500 dark:text-gray-400">{shortDate(item.latest_date)}</span>}
+            {item.latest_date && <span className="block text-xs text-gray-500 dark:text-gray-400">{formatDate(item.latest_date)}</span>}
           </span>
           <span className="shrink-0 whitespace-nowrap">{statusPill(item.latest_status)}</span>
         </summary>
