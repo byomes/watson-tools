@@ -2,7 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-interface SeriesItem { series: string; title: string; counts_only: boolean }
+interface SeriesItem {
+  series: string
+  title: string
+  counts_only: boolean
+  sunday?: boolean
+  latest_date?: string | null
+  latest_status?: string
+}
 interface Person { id: number; name: string; present: boolean; registered?: boolean; regular?: boolean }
 interface State {
   series_list: SeriesItem[]
@@ -40,7 +47,9 @@ function Toggle({ on, onClick, disabled }: { on: boolean; onClick: () => void; d
 
 const selectCls = 'w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-[15px] text-black dark:text-white bg-white dark:bg-gray-900 mb-3'
 
-export default function GroupsBoard({ groupToken }: { groupToken?: string } = {}) {
+// One group's attendance: its date picker, regulars with toggles, guests and Save. Used inside each group's section on the
+// Groups tab, and on its own for a leader's per-group link (groupToken).
+function GroupPanel({ series: fixedSeries, groupToken }: { series?: string; groupToken?: string }) {
   // With a per-group link every request carries the token; the backend then refuses any other group.
   const gfetch = useCallback(
     (url: string, init?: RequestInit) =>
@@ -69,20 +78,27 @@ export default function GroupsBoard({ groupToken }: { groupToken?: string } = {}
     const data: State = await res.json()
     setError(null)
     setState(data)
+    if (data.series) setSeries(data.series)
     setGuests(data.guests ?? 0)
     setHeadcount(data.headcount != null ? String(data.headcount) : '')
     if (data.event_date) setDate(data.event_date)
   }, [gfetch])
 
   useEffect(() => {
-    // Initial series list only; fetched inline so state is set from a callback, not synchronously.
-    gfetch('/api/cat/groups/state')
+    // Opening a group (or a leader link, where the backend picks the group) loads its newest session. Fetched inline so
+    // state is set from a callback, not synchronously.
+    gfetch(`/api/cat/groups/state?series=${encodeURIComponent(fixedSeries ?? '')}&date=`)
       .then(r => (r.ok ? r.json() : Promise.reject()))
-      .then((d: State) => { setState(d); if (groupToken && d.series) setSeries(d.series); if (d.event_date) setDate(d.event_date) })
+      .then((data: State) => {
+        setState(data)
+        if (data.series) setSeries(data.series)
+        setGuests(data.guests ?? 0)
+        setHeadcount(data.headcount != null ? String(data.headcount) : '')
+        if (data.event_date) setDate(data.event_date)
+      })
       .catch(() => setError('Could not load. Try again.'))
-  }, [gfetch, groupToken])
+  }, [gfetch, fixedSeries])
 
-  function pickSeries(s: string) { setSeries(s); setDate(''); setCandidates(null); setQuery(''); load(s, '') }
   function pickDate(d: string) { setDate(d); load(series, d) }
 
   async function setPresent(id: number, present: boolean, name?: string) {
@@ -212,12 +228,7 @@ export default function GroupsBoard({ groupToken }: { groupToken?: string } = {}
   }
   return (
     <div>
-      {!groupToken && (
-        <select className={selectCls} value={series} onChange={e => pickSeries(e.target.value)}>
-          <option value="">Choose a group or event...</option>
-          {state.series_list.map(s => <option key={s.series} value={s.series}>{s.title}</option>)}
-        </select>
-      )}
+      {!state.series && <p className="text-sm text-gray-500 dark:text-gray-400">This group is not available.</p>}
 
       {state.series && (state.dates ?? []).length === 0 && !state.counts_only && (
         <div className="mb-4">
@@ -369,6 +380,70 @@ export default function GroupsBoard({ groupToken }: { groupToken?: string } = {}
         </>
       )}
       {error && <p className="text-sm text-red-600 mt-3">{error}</p>}
+    </div>
+  )
+}
+
+function statusPill(status?: string) {
+  const base = 'text-xs font-medium rounded-full px-2 py-0.5 align-middle'
+  if (!status || status === 'no sessions yet') return <span className={`${base} bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300`}>{status ?? ''}</span>
+  if (status === 'not logged') return <span className={`${base} bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200`}>Not logged</span>
+  if (status === 'did not meet') return <span className={`${base} bg-amber-100 text-amber-900 dark:bg-amber-900 dark:text-amber-100`}>Did not meet</span>
+  return <span className={`${base} bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200`}>{status}</span>
+}
+
+// One collapsible group, same nested style as the Serving tab: a heading with a one-line status, and the group's
+// attendance inside. The body loads the first time it is opened.
+function GroupSection({ item }: { item: SeriesItem }) {
+  const [opened, setOpened] = useState(false)
+  return (
+    <section className="mb-4">
+      <details onToggle={e => { if ((e.currentTarget as HTMLDetailsElement).open) setOpened(true) }}>
+        <summary className="text-lg font-semibold text-black dark:text-white mb-2 cursor-pointer select-none">
+          {item.title}{' '}
+          <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+            {item.latest_date ? `(${formatDate(item.latest_date)}) ` : ''}
+          </span>
+          {statusPill(item.latest_status)}
+        </summary>
+        <div className="mt-2">{opened && <GroupPanel series={item.series} />}</div>
+      </details>
+    </section>
+  )
+}
+
+export default function GroupsBoard({ groupToken }: { groupToken?: string } = {}) {
+  const [items, setItems] = useState<SeriesItem[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (groupToken) return
+    fetch('/api/cat/groups/state')
+      .then(r => (r.ok ? r.json() : Promise.reject()))
+      .then((d: State) => setItems(d.series_list))
+      .catch(() => setError('Could not load. Try again.'))
+  }, [groupToken])
+
+  // A leader's per-group link: just that group, no list around it.
+  if (groupToken) return <GroupPanel groupToken={groupToken} />
+  if (!items) return <p className="text-gray-500 dark:text-gray-400">{error ?? 'Loading...'}</p>
+
+  const sunday = items.filter(i => i.sunday)
+  const other = items.filter(i => !i.sunday)
+  return (
+    <div>
+      {sunday.length > 0 && (
+        <>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">Sunday groups</h2>
+          {sunday.map(i => <GroupSection key={i.series} item={i} />)}
+        </>
+      )}
+      {other.length > 0 && (
+        <>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mt-6 mb-3">Other groups and events</h2>
+          {other.map(i => <GroupSection key={i.series} item={i} />)}
+        </>
+      )}
     </div>
   )
 }
