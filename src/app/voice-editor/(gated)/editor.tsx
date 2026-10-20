@@ -281,7 +281,7 @@ export default function Editor({ entry }: { entry: Entry }) {
                         <>
                           <button
                             onClick={() => set(k, { approved: true, status: s.status === 'pending' ? 'approved' : s.status })}
-                            className={`${btn} bg-green-600 text-white`}
+                            className={`${btn} ${s.approved ? 'border-2 border-green-600 bg-white text-green-700 dark:bg-gray-950 dark:text-green-400' : 'bg-green-600 text-white'}`}
                           >
                             {s.approved ? '✓ Approved' : '✓ Approve'}
                           </button>
