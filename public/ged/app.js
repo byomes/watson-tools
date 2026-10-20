@@ -2,9 +2,25 @@
 // GED Study Coach. Everything runs in the browser; progress is saved in localStorage on this device.
 const KEY = "ged-study-v2", DAY = 86400000, REVIEW_DAYS = 14;
 const DEF = () => ({ name: "", testDate: "", topics: {}, qstat: {}, tests: [], essays: {}, days: {}, exam: null });
+// ---------- profiles ----------
+// Several people can share one browser. Each profile keeps its own progress under its own key. The first profile
+// ("p1") uses the original key, so progress saved before profiles existed is still there, untouched.
+const PKEY = "ged-profiles-v1";
+const dataKey = id => id === "p1" ? KEY : KEY + "-" + id;
+const rd = k => { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } };
+let P = rd(PKEY);
+if (!P || !Array.isArray(P.list) || !P.list.length) {
+  const old = rd(KEY);
+  P = { list: [{ id: "p1", name: (old && old.name) || "" }], active: "p1" };
+  try { localStorage.setItem(PKEY, JSON.stringify(P)); } catch (e) {}
+}
+const saveP = () => { try { localStorage.setItem(PKEY, JSON.stringify(P)); } catch (e) {} };
+const curProf = () => P.list.find(x => x.id === P.active) || P.list[0];
 let S;
-try { S = Object.assign(DEF(), JSON.parse(localStorage.getItem(KEY) || "null") || {}); } catch (e) { S = DEF(); }
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+function loadState() { S = Object.assign(DEF(), rd(dataKey(curProf().id)) || {}); }
+loadState();
+const save = () => { try { localStorage.setItem(dataKey(curProf().id), JSON.stringify(S)); } catch (e) {} const c = curProf(); if (c.name !== S.name) { c.name = S.name; saveP(); } };
+function switchTo(id) { P.active = id; saveP(); loadState(); location.hash = "#/home"; route(); }
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -65,7 +81,9 @@ function route() {
   clearInterval(timer); timer = null; examView = false;
   const h = location.hash || "#/home", p = h.slice(2).split("/"), v = p[0];
   $("#nav").innerHTML = NAV.map(([a, n]) => `<a href="${a}" class="${h.startsWith(a) ? "on" : ""}">${n}</a>`).join("");
+  $("#nav").innerHTML += `<a href="#/who" class="who ${v === "who" ? "on" : ""}">👤 ${esc(curProf().name || "Me")}</a>`;
   window.scrollTo(0, 0);
+  if (v === "who") return viewWho();
   if (v === "check") return p[1] ? startCheck(p[1]) : viewCheck();
   if (v === "topic") return viewTopic(p[1]);
   if (v === "review") return startReview();
@@ -80,6 +98,38 @@ function route() {
   viewHome();
 }
 addEventListener("hashchange", route);
+
+// ---------- who is studying ----------
+function viewWho() {
+  const rows = P.list.map(x => `<tr><td><b>${esc(x.name || "(no name yet)")}</b>${x.id === P.active ? ` <span class="chip done">Active</span>` : ""}</td>
+    <td style="text-align:right">${x.id === P.active ? "" : `<button class="btn sm" data-sw="${x.id}">Switch</button> `}<button class="btn sm alt" data-rn="${x.id}">Rename</button>${P.list.length > 1 ? ` <button class="btn sm alt" data-rm="${x.id}">Remove</button>` : ""}</td></tr>`).join("");
+  $("#app").innerHTML = `<h1>Who is studying?</h1><p class="mute">Each person has their own progress, tests and essays. Switching never changes anyone else's.</p>
+  <div class="card"><table>${rows}</table></div>
+  <h2>Add a person</h2><div class="row"><input type="text" id="np" placeholder="First name" maxlength="30"><button class="btn sm" id="npb">Add and switch</button></div>`;
+  document.querySelectorAll("[data-sw]").forEach(b => b.onclick = () => switchTo(b.dataset.sw));
+  document.querySelectorAll("[data-rn]").forEach(b => b.onclick = () => {
+    const x = P.list.find(y => y.id === b.dataset.rn), n = prompt("Name for this profile:", x.name || "");
+    if (n === null) return; x.name = n.trim().slice(0, 30); saveP();
+    if (x.id === P.active) { S.name = x.name; save(); } else { const d = Object.assign(DEF(), rd(dataKey(x.id)) || {}); d.name = x.name; try { localStorage.setItem(dataKey(x.id), JSON.stringify(d)); } catch (e) {} }
+    route();
+  });
+  document.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => {
+    const x = P.list.find(y => y.id === b.dataset.rm);
+    if (!confirm("Remove " + (x.name || "this profile") + " and ALL of their progress on this device? This cannot be undone.")) return;
+    try { localStorage.removeItem(dataKey(x.id)); } catch (e) {}
+    P.list = P.list.filter(y => y.id !== x.id);
+    if (P.active === x.id) { P.active = P.list[0].id; loadState(); }
+    saveP(); route();
+  });
+  const add = () => {
+    const n = $("#np").value.trim().slice(0, 30); if (!n) return $("#np").focus();
+    const id = "p" + Date.now().toString(36);
+    P.list.push({ id, name: n });
+    try { localStorage.setItem(dataKey(id), JSON.stringify(Object.assign(DEF(), { name: n }))); } catch (e) {}
+    switchTo(id);
+  };
+  $("#npb").onclick = add; $("#np").onkeydown = e => { if (e.key === "Enter") add(); };
+}
 
 // ---------- home ----------
 function viewHome() {
@@ -348,11 +398,11 @@ function viewProgress() {
     return `<tr><td><a href="#/topic/${t.id}">${esc(t.name)}</a></td><td>${n ? Math.round(acc5(t.id) * 100) + "%" : "-"}</td><td><span class="chip ${st}">${st === "done" ? "Done" : st === "work" ? "Studying" : "New"}</span></td></tr>`; }).join("")}</table>
     ${S.tests.filter(x => x.subj === s.id).length ? `<div class="mute" style="margin-top:8px">Practice tests: ${S.tests.map((x, i) => [x, i]).filter(([x]) => x.subj === s.id).map(([x, i]) => `<a href="#/result/${i}">T${x.n + 1}: ${x.pct}%</a>`).join(" · ")}</div>` : ""}</div>`).join("");
   $("#app").innerHTML = `<h1>Progress</h1>${named}
-  <h2>Your data</h2><p class="mute">Progress is saved in this browser on this device only. Download a backup to keep it safe or move it to another device.</p>
+  <h2>Your data</h2><p class="mute">Progress for <b>${esc(curProf().name || "this profile")}</b> is saved in this browser on this device only. Download a backup to keep it safe or move it to another device.</p>
   <div class="row"><button class="btn sm alt" id="ex">Download backup</button><label class="btn sm alt">Restore backup<input type="file" id="im" accept=".json" hidden></label><button class="btn sm alt" id="rs">Reset everything</button></div>`;
   $("#ex").onclick = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(S)], { type: "application/json" })); a.download = "ged-progress.json"; a.click(); };
   $("#im").onchange = e => { const f = e.target.files[0]; if (!f) return; f.text().then(t => { try { const d = JSON.parse(t); if (d && d.topics) { S = Object.assign(DEF(), d); save(); viewProgress(); } else alert("That file doesn't look right."); } catch (_) { alert("That file doesn't look right."); } }); };
-  $("#rs").onclick = () => { if (confirm("Erase all progress on this device?")) { S = DEF(); save(); route(); } };
+  $("#rs").onclick = () => { if (confirm("Erase all progress on this device?")) { const nm = S.name; S = DEF(); S.name = nm; save(); route(); } };
 }
 
 // ---------- resources ----------
