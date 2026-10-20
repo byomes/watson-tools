@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react'
 
 type Block = { type: string; text?: string; label?: string; sentences?: string[] }
 type Entry = { source: string; docId: string; blocks: Block[] }
-type State = { text: string; status: 'pending' | 'approved' | 'edited' | 'spoken'; prev?: string }
+type State = { text: string; status: 'pending' | 'approved' | 'edited' | 'spoken'; prev?: string; approved?: boolean }
 
 // Minimal typing for the browser speech API, which isn't in lib.dom.
 type Rec = {
@@ -130,7 +130,7 @@ export default function Editor({ entry }: { entry: Entry }) {
           const cur = s[k]
           // Skip if the sentence was changed again while the model was thinking.
           if (!cur || cur.text !== text) return s
-          return { ...s, [k]: { ...cur, text: d.text, status: cur.status === 'spoken' ? 'spoken' : 'edited', prev: cur.prev ?? text } }
+          return { ...s, [k]: { ...cur, text: d.text, status: cur.status === 'spoken' ? 'spoken' : 'edited', approved: false, prev: cur.prev ?? text } }
         })
       } else if (r.ok && d.reason === 'drifted') {
         setMsg('Cleanup would have changed too many words, so I left that sentence as you said it.')
@@ -194,7 +194,7 @@ export default function Editor({ entry }: { entry: Entry }) {
 
   function saveEdit(k: string) {
     const t = draft.trim()
-    if (t && t !== st[k].text) set(k, { text: t, status: 'edited', prev: st[k].prev ?? st[k].text })
+    if (t && t !== st[k].text) set(k, { text: t, status: 'edited', approved: false, prev: st[k].prev ?? st[k].text })
     setEditing(null)
   }
 
@@ -209,6 +209,7 @@ export default function Editor({ entry }: { entry: Entry }) {
     )
   }
 
+  const approvedStyle = 'border-l-4 border-green-500 bg-green-50 dark:bg-green-950/30'
   const badge: Record<State['status'], string> = {
     pending: '',
     approved: 'border-l-4 border-green-500 bg-green-50 dark:bg-green-950/30',
@@ -246,7 +247,7 @@ export default function Editor({ entry }: { entry: Entry }) {
                 const isEd = editing === k
                 const isMic = listening === k
                 return (
-                  <div key={k} className={`rounded-lg p-3 ${badge[s.status]} ${s.status === 'pending' ? 'border-l-4 border-gray-200 dark:border-gray-800' : ''}`}>
+                  <div key={k} className={`rounded-lg p-3 ${s.approved ? approvedStyle : badge[s.status]} ${s.status === 'pending' ? 'border-l-4 border-gray-200 dark:border-gray-800' : ''}`}>
                     {isEd ? (
                       <textarea
                         autoFocus
@@ -279,10 +280,10 @@ export default function Editor({ entry }: { entry: Entry }) {
                       ) : (
                         <>
                           <button
-                            onClick={() => set(k, { status: s.status === 'pending' ? 'approved' : s.status })}
+                            onClick={() => set(k, { approved: true, status: s.status === 'pending' ? 'approved' : s.status })}
                             className={`${btn} bg-green-600 text-white`}
                           >
-                            ✓ Approve
+                            {s.approved ? '✓ Approved' : '✓ Approve'}
                           </button>
                           <button onClick={() => speak(k)} className={`${btn} ${isMic ? 'bg-red-600 text-white' : 'bg-purple-600 text-white'}`}>
                             {isMic ? '■ Stop' : '🎤 Speak'}
