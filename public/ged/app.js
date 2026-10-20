@@ -374,7 +374,14 @@ function viewResources() {
   <li>Rules and fees change, so confirm everything on <a href="https://ged.com" target="_blank" rel="noopener">GED.com</a> (choose Maryland) before you register.</li></ul></div>
   <div class="card"><h3>Official</h3><ul class="l">
   ${L("GED.com", "https://ged.com", "schedule your tests and find the official study materials")}
-  ${L("GED Study resources", "https://www.ged.com/study", "")}
+  ${L("GED study guides (all four subjects)", "https://www.ged.com/educators-admins/teaching/classroom_materials/study_guides/", "official, with sample questions")}
+  ${L("Official Assessment Guide: Math", "https://www.ged.com/wp-content/uploads/assessment_guide_for_educators_math.pdf", "PDF with real GED-style sample items")}
+  ${L("Official Assessment Guide: Language Arts", "https://www.ged.com/wp-content/uploads/assessment_guide_for_educators_rla.pdf", "PDF")}
+  ${L("Official Assessment Guide: Science", "https://www.ged.com/wp-content/uploads/assessment_guide_for_educators_science.pdf", "PDF")}
+  ${L("Official Assessment Guide: Social Studies", "https://www.ged.com/wp-content/uploads/assessment_guide_for_educators_social_studies.pdf", "PDF")}
+  ${L("Official essay scoring tool", "https://www.ged.com/wp-content/uploads/extended_response_scoring_tool_for_ged_ready.pdf", "how the essay is scored, with sample responses")}
+  ${L("GED study tools", "https://www.ged.com/ged-study-tools.html", "official paid practice products")}
+  <li>Maryland adult education programs can sometimes waive the GED Ready fee for enrolled students. Ask your program.</li>
   <li><b>GED Ready</b> (official practice test, sold on GED.com): the closest thing to the real exam and the best predictor of your score. Take it after you're scoring well on the practice tests here.</li></ul></div>
   <div class="card"><h3>Free study help</h3><ul class="l">
   ${L("Khan Academy: Arithmetic", "https://www.khanacademy.org/math/arithmetic", "videos and exercises")}
