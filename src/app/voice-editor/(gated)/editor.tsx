@@ -76,7 +76,6 @@ export default function Editor({ entry }: { entry: Entry }) {
     rec.lang = 'en-US'
     rec.interimResults = true
     rec.continuous = true
-    let final = ''
     rec.onresult = (e) => {
       // Each event carries the whole session's results, so rebuild the text
       // from scratch every time instead of appending (appending duplicated
@@ -88,13 +87,12 @@ export default function Editor({ entry }: { entry: Entry }) {
         if (r.isFinal) finalText += r[0].transcript
         else interim += r[0].transcript
       }
-      final = finalText
       heardRef.current = (finalText + interim).trim()
       setHeard(heardRef.current)
     }
     rec.onerror = (e) => setMsg(`Mic error: ${e.error}`)
     rec.onend = () => {
-      const text = (final || heardRef.current).trim()
+      const text = heardRef.current.trim()
       setListening(null)
       setHeard('')
       if (text) {
