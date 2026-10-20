@@ -14,6 +14,14 @@ const nextConfig: NextConfig = {
         source: "/ged",
         destination: "/ged/index.html",
       },
+      // Thrift (Emily's resale business app) runs on the Beelink and is
+      // reachable ONLY over Tailscale, so Vercel cannot proxy it. /thrift
+      // serves a tiny static page that sends the phone to the tailnet
+      // address, with a "turn on Tailscale" hint if it cannot connect.
+      {
+        source: "/thrift",
+        destination: "/thrift/index.html",
+      },
       // Exact-match /ham separately: "/ham/:path*" alone rewrites a bare
       // /ham request to ".../ham/" (trailing slash), which hamprep then
       // 308s back to "/ham" — a redirect loop on the primary entry URL.
