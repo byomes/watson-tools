@@ -14,6 +14,7 @@ interface State {
   registration_known?: boolean
   guests?: number
   headcount?: number | null
+  did_not_meet?: boolean
 }
 
 function formatDate(iso: string): string {
@@ -100,6 +101,7 @@ export default function GroupsBoard({ groupToken }: { groupToken?: string } = {}
       const exists = roster.some(r => r.id === id)
       return {
         ...s,
+        did_not_meet: present ? false : s.did_not_meet,
         roster: exists
           ? roster.map(r => (r.id === id ? { ...r, present } : r))
           : [...roster, { id, name: name ?? '', present }].sort((a, b) => a.name.localeCompare(b.name)),
@@ -169,8 +171,22 @@ export default function GroupsBoard({ groupToken }: { groupToken?: string } = {}
       : { series: state.series, event_date: state.event_date, guests }
     const res = await gfetch('/api/cat/groups/counts', { method: 'POST', body: JSON.stringify(body) })
     if (!res.ok) { setError('That did not save. Check the number.'); return }
+    if ((body.headcount ?? 0) > 0 || (body.guests ?? 0) > 0) setState(s => (s ? { ...s, did_not_meet: false } : s))
     setSaved(true)
     setTimeout(() => setSaved(false), 1500)
+  }
+
+  // "Did not meet": records that the session was not held, so a missing record is not read as a forgotten one.
+  async function setDidNotMeet(flag: boolean) {
+    if (!state?.series || !state.event_date) return
+    setError(null)
+    const res = await gfetch('/api/cat/groups/did_not_meet', {
+      method: 'POST',
+      body: JSON.stringify({ series: state.series, event_date: state.event_date, did_not_meet: flag }),
+    })
+    if (res.status === 409) { setError('Attendance is already recorded for this date. Clear it first if the group did not meet.'); return }
+    if (!res.ok) { setError('That did not save. Try again.'); return }
+    setState(s => (s ? { ...s, did_not_meet: flag } : s))
   }
 
   if (!state) return <p className="text-gray-500 dark:text-gray-400">{error ?? 'Loading...'}</p>
@@ -257,6 +273,12 @@ export default function GroupsBoard({ groupToken }: { groupToken?: string } = {}
             {(state.dates ?? []).map(d => <option key={d} value={d}>{formatDate(d)}</option>)}
           </select>
 
+          {state.did_not_meet && (
+            <p className="text-sm rounded-lg px-3 py-2 mb-3 bg-amber-100 text-amber-900 dark:bg-amber-900 dark:text-amber-100">
+              Marked as did not meet on {formatDate(state.event_date)}. Checking someone in or saving a count will clear this.
+            </p>
+          )}
+
           {state.counts_only ? (
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">This group records a head count only. No names are kept.</p>
@@ -266,6 +288,8 @@ export default function GroupsBoard({ groupToken }: { groupToken?: string } = {}
                 className="w-28 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-black dark:text-white bg-white dark:bg-gray-900 mr-3" />
               <button type="button" onClick={saveCounts} disabled={headcount === ''}
                 className="px-4 py-2 rounded-lg bg-green-600 text-white disabled:opacity-50">{saved ? 'Saved' : 'Save'}</button>
+              <button type="button" onClick={() => setDidNotMeet(!state.did_not_meet)}
+                className="ml-3 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-black dark:text-white">{state.did_not_meet ? 'Undo did not meet' : 'Did not meet'}</button>
             </div>
           ) : (
             <>
@@ -337,6 +361,8 @@ export default function GroupsBoard({ groupToken }: { groupToken?: string } = {}
                   onChange={e => setGuests(Math.max(0, Number(e.target.value) || 0))}
                   className="w-16 border border-gray-300 dark:border-gray-700 rounded-lg px-2 py-1 text-black dark:text-white bg-white dark:bg-gray-900" />
                 <button type="button" onClick={saveCounts} className="px-3 py-1 rounded-lg bg-green-600 text-white">{saved ? 'Saved' : 'Save'}</button>
+                <button type="button" onClick={() => setDidNotMeet(!state.did_not_meet)}
+                className="px-3 py-1 rounded-lg border border-gray-300 dark:border-gray-700 text-black dark:text-white">{state.did_not_meet ? 'Undo did not meet' : 'Did not meet'}</button>
               </div>
             </>
           )}
