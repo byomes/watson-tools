@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react'
 
 type Block = { type: string; text?: string; label?: string; sentences?: string[] }
 type Entry = { source: string; docId: string; blocks: Block[] }
-type State = { text: string; status: 'pending' | 'approved' | 'edited' | 'spoken'; prev?: string; approved?: boolean }
+type State = { text: string; status: 'pending' | 'approved' | 'edited' | 'spoken'; prev?: string; approved?: boolean; deleted?: boolean }
 
 // Minimal typing for the browser speech API, which isn't in lib.dom.
 type Rec = {
@@ -110,7 +110,11 @@ export default function Editor({ entry }: { entry: Entry }) {
       .map((b, bi) => {
         const sents = b.sentences
         if (!sents) return b.text ?? ''
-        const body = sents.map((_, si) => state[keyOf(bi, si)]?.text ?? '').join(' ')
+        const body = sents
+          .map((_, si) => state[keyOf(bi, si)])
+          .filter((x) => x && !x.deleted)
+          .map((x) => x.text)
+          .join(' ')
         return b.label ? `${b.label} ${body}` : body
       })
       .join('\n\n')
@@ -199,7 +203,7 @@ export default function Editor({ entry }: { entry: Entry }) {
   }
 
   const all = Object.values(st)
-  const done = all.filter((s) => s.status !== 'pending').length
+  const done = all.filter((s) => s.status !== 'pending' || s.deleted).length
 
   function copyEntry() {
     const out = assemble(st)
@@ -246,6 +250,16 @@ export default function Editor({ entry }: { entry: Entry }) {
                 if (!s) return null
                 const isEd = editing === k
                 const isMic = listening === k
+                if (s.deleted) {
+                  return (
+                    <div key={k} className="rounded-lg p-3 border-l-4 border-red-400 bg-red-50 dark:bg-red-950/30 flex items-center justify-between gap-3">
+                      <p className="text-sm font-serif line-through text-gray-500 line-clamp-2">{s.text}</p>
+                      <button onClick={() => set(k, { deleted: false })} className={`${btn} shrink-0 bg-gray-200 dark:bg-gray-800`}>
+                        Restore
+                      </button>
+                    </div>
+                  )
+                }
                 return (
                   <div key={k} className={`rounded-lg p-3 ${s.approved ? approvedStyle : badge[s.status]} ${s.status === 'pending' ? 'border-l-4 border-gray-200 dark:border-gray-800' : ''}`}>
                     {isEd ? (
@@ -294,6 +308,13 @@ export default function Editor({ entry }: { entry: Entry }) {
                             className={`${btn} bg-gray-200 dark:bg-gray-800 disabled:opacity-50`}
                           >
                             ✨ Polish
+                          </button>
+                          <button
+                            onClick={() => set(k, { deleted: true })}
+                            disabled={isMic}
+                            className={`${btn} bg-red-600 text-white disabled:opacity-50`}
+                          >
+                            🗑 Delete
                           </button>
                           {s.prev !== undefined && (
                             <button
