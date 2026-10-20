@@ -3,7 +3,7 @@ import Editor from './editor'
 import entry from './entry1.json'
 
 export const metadata: Metadata = {
-  title: 'Sentence Edit',
+  title: 'Voice Editor',
   robots: { index: false, follow: false },
 }
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 
-// Scratch prototype (2026-10-19): one sentence at a time, approve / speak a
+// Voice editor (2026-10-19, writing ministry, not Catalyst): one sentence at a time, approve / speak a
 // rewrite / tap to type. Edits live in this browser only (localStorage) and
 // are NOT written back to the Google Doc yet -- "Copy entry" is the way out.
 
