@@ -28,7 +28,8 @@ export async function POST(req: NextRequest) {
     // fall through with empty pin
   }
 
-  if (!/^\d{4}$/.test(pin) || !checkGedPin(pin)) {
+  const user = /^\d{4}$/.test(pin) ? checkGedPin(pin) : null
+  if (user === null) {
     const cur = f && now < f.resetAt ? f : { count: 0, resetAt: now + WINDOW_MS }
     cur.count += 1
     fails.set(key, cur)
@@ -36,8 +37,8 @@ export async function POST(req: NextRequest) {
   }
 
   fails.delete(key)
-  const res = NextResponse.json({ ok: true })
-  res.cookies.set(GED_COOKIE, makeGedToken(), {
+  const res = NextResponse.json({ ok: true, user })
+  res.cookies.set(GED_COOKIE, makeGedToken(user), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production' && !process.env.PRIVATE_HTTP,
     sameSite: 'lax',

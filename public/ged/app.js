@@ -20,7 +20,14 @@ let S;
 function loadState() { S = Object.assign(DEF(), rd(dataKey(curProf().id)) || {}); }
 loadState();
 const save = () => { try { localStorage.setItem(dataKey(curProf().id), JSON.stringify(S)); } catch (e) {} const c = curProf(); if (c.name !== S.name) { c.name = S.name; saveP(); } };
-function switchTo(id) { P.active = id; saveP(); loadState(); location.hash = "#/home"; route(); }
+// The PIN identifies the person. Khaela's progress from before profiles existed is the first profile ("p1").
+function adopt(user) {
+  let x = P.list.find(y => y.name.toLowerCase() === user.toLowerCase());
+  if (!x && user.toLowerCase() === "khaela") { x = P.list.find(y => y.id === "p1"); x.name = user; }
+  if (!x) { x = { id: "p" + Date.now().toString(36), name: user }; P.list.push(x); }
+  P.active = x.id; saveP(); loadState();
+  if (S.name !== x.name) { S.name = x.name; save(); }
+}
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -81,9 +88,9 @@ function route() {
   clearInterval(timer); timer = null; examView = false;
   const h = location.hash || "#/home", p = h.slice(2).split("/"), v = p[0];
   $("#nav").innerHTML = NAV.map(([a, n]) => `<a href="${a}" class="${h.startsWith(a) ? "on" : ""}">${n}</a>`).join("");
-  $("#nav").innerHTML += `<a href="#/who" class="who ${v === "who" ? "on" : ""}">👤 ${esc(curProf().name || "Me")}</a>`;
+  $("#nav").innerHTML += `<a href="#/signout" class="who">👤 ${esc(curProf().name || "Me")} · Sign out</a>`;
   window.scrollTo(0, 0);
-  if (v === "who") return viewWho();
+  if (v === "signout") { fetch("/api/ged/logout", { method: "POST" }).finally(() => { location.hash = "#/home"; location.reload(); }); return; }
   if (v === "check") return p[1] ? startCheck(p[1]) : viewCheck();
   if (v === "topic") return viewTopic(p[1]);
   if (v === "review") return startReview();
@@ -98,38 +105,6 @@ function route() {
   viewHome();
 }
 addEventListener("hashchange", route);
-
-// ---------- who is studying ----------
-function viewWho() {
-  const rows = P.list.map(x => `<tr><td><b>${esc(x.name || "(no name yet)")}</b>${x.id === P.active ? ` <span class="chip done">Active</span>` : ""}</td>
-    <td style="text-align:right">${x.id === P.active ? "" : `<button class="btn sm" data-sw="${x.id}">Switch</button> `}<button class="btn sm alt" data-rn="${x.id}">Rename</button>${P.list.length > 1 ? ` <button class="btn sm alt" data-rm="${x.id}">Remove</button>` : ""}</td></tr>`).join("");
-  $("#app").innerHTML = `<h1>Who is studying?</h1><p class="mute">Each person has their own progress, tests and essays. Switching never changes anyone else's.</p>
-  <div class="card"><table>${rows}</table></div>
-  <h2>Add a person</h2><div class="row"><input type="text" id="np" placeholder="First name" maxlength="30"><button class="btn sm" id="npb">Add and switch</button></div>`;
-  document.querySelectorAll("[data-sw]").forEach(b => b.onclick = () => switchTo(b.dataset.sw));
-  document.querySelectorAll("[data-rn]").forEach(b => b.onclick = () => {
-    const x = P.list.find(y => y.id === b.dataset.rn), n = prompt("Name for this profile:", x.name || "");
-    if (n === null) return; x.name = n.trim().slice(0, 30); saveP();
-    if (x.id === P.active) { S.name = x.name; save(); } else { const d = Object.assign(DEF(), rd(dataKey(x.id)) || {}); d.name = x.name; try { localStorage.setItem(dataKey(x.id), JSON.stringify(d)); } catch (e) {} }
-    route();
-  });
-  document.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => {
-    const x = P.list.find(y => y.id === b.dataset.rm);
-    if (!confirm("Remove " + (x.name || "this profile") + " and ALL of their progress on this device? This cannot be undone.")) return;
-    try { localStorage.removeItem(dataKey(x.id)); } catch (e) {}
-    P.list = P.list.filter(y => y.id !== x.id);
-    if (P.active === x.id) { P.active = P.list[0].id; loadState(); }
-    saveP(); route();
-  });
-  const add = () => {
-    const n = $("#np").value.trim().slice(0, 30); if (!n) return $("#np").focus();
-    const id = "p" + Date.now().toString(36);
-    P.list.push({ id, name: n });
-    try { localStorage.setItem(dataKey(id), JSON.stringify(Object.assign(DEF(), { name: n }))); } catch (e) {}
-    switchTo(id);
-  };
-  $("#npb").onclick = add; $("#np").onkeydown = e => { if (e.key === "Enter") add(); };
-}
 
 // ---------- home ----------
 function viewHome() {
@@ -520,4 +495,4 @@ function toggleCalc() {
   document.body.appendChild(c); $("#cx").onclick = () => c.remove();
 }
 
-route();
+fetch("/api/ged/me", { cache: "no-store" }).then(r => r.json()).catch(() => ({})).then(j => { if (j.user) adopt(j.user); route(); });
