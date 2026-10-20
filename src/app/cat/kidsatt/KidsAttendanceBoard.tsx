@@ -15,6 +15,7 @@ interface ClassGroup {
   class_name: string
   present_count: number
   kids: Kid[]
+  empty?: boolean
 }
 
 interface StateResponse {
@@ -138,6 +139,7 @@ function ClassSection({
   onStartAdd,
   onCancelAdd,
   onAdded,
+  onClassEmpty,
 }: {
   group: ClassGroup
   classNames: string[]
@@ -152,6 +154,7 @@ function ClassSection({
   onStartAdd: () => void
   onCancelAdd: () => void
   onAdded: () => void
+  onClassEmpty: (empty: boolean) => void
 }) {
   const visible = group.kids.filter((k) => k.name.toLowerCase().includes(filter.toLowerCase()))
 
@@ -163,6 +166,11 @@ function ClassSection({
           <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
             ({group.present_count}/{group.kids.length} present)
           </span>
+          {group.empty && (
+            <span className="ml-2 text-xs font-medium rounded-full px-2 py-0.5 bg-amber-100 text-amber-900 dark:bg-amber-900 dark:text-amber-100">
+              Class empty
+            </span>
+          )}
         </summary>
         {isAdding ? (
           <AddKidForm
@@ -172,13 +180,24 @@ function ClassSection({
             onCancel={onCancelAdd}
           />
         ) : (
-          <button
-            type="button"
-            onClick={onStartAdd}
-            className="mb-2 text-xs font-medium text-blue-600 dark:text-blue-400 underline underline-offset-2"
-          >
-            + Add a kid
-          </button>
+          <div className="mb-2 flex items-center gap-4">
+            <button
+              type="button"
+              onClick={onStartAdd}
+              className="text-xs font-medium text-blue-600 dark:text-blue-400 underline underline-offset-2"
+            >
+              + Add a kid
+            </button>
+            {(group.empty || group.present_count === 0) && (
+              <button
+                type="button"
+                onClick={() => onClassEmpty(!group.empty)}
+                className="text-xs font-medium text-blue-600 dark:text-blue-400 underline underline-offset-2"
+              >
+                {group.empty ? 'Undo class empty' : 'Class Empty'}
+              </button>
+            )}
+          </div>
         )}
         <ul className="divide-y divide-gray-200 dark:divide-gray-800 border-y border-gray-200 dark:border-gray-800 mt-2">
           {visible.map((k) => (
@@ -310,6 +329,26 @@ export default function KidsAttendanceBoard() {
     await fetchState(data.service_date)
   }
 
+  // "Class Empty": no kids came to this class on this date. Logged, so it is not mistaken for a forgotten class.
+  const handleClassEmpty = async (className: string, empty: boolean) => {
+    if (!data) return
+    setError(null)
+    const res = await fetch('/api/cat/kidsatt/class_empty', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ service_date: data.service_date, class_name: className, empty }),
+    })
+    if (res.status === 409) {
+      setError('Kids are already checked in to that class. Remove them first if the class was empty.')
+      return
+    }
+    if (!res.ok) {
+      setError('Could not save that. Try again.')
+      return
+    }
+    await fetchState(data.service_date)
+  }
+
   const handleRemove = async (kid: Kid, fromClass: string) => {
     if (!data) return
     if (!window.confirm(`Remove ${kid.name} from this class? They won't show up in Kids Attendance again until they check in or are moved back in.`)) {
@@ -384,6 +423,7 @@ export default function KidsAttendanceBoard() {
           onStartAdd={() => setAddingClass(group.class_name)}
           onCancelAdd={() => setAddingClass(null)}
           onAdded={() => { setAddingClass(null); fetchState(data.service_date) }}
+          onClassEmpty={(empty) => handleClassEmpty(group.class_name, empty)}
         />
       ))}
     </div>
