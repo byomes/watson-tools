@@ -70,3 +70,6 @@ textarea{width:100%;min-height:340px;line-height:1.6;resize:vertical}
 .stat{display:flex;gap:18px;flex-wrap:wrap}.stat div{min-width:90px}.stat b{display:block;font-size:24px;line-height:1.2}
 .tbar{display:flex;align-items:center;gap:10px;margin:6px 0;font-size:15px}.tbar .nm{flex:1 1 55%}.tbar .bg{flex:1 1 35%;height:10px;background:var(--line);border-radius:6px;overflow:hidden}.tbar .bg i{display:block;height:100%}
 @media print{header,.row,.exambar,nav{display:none}}
+
+.rv .choice{cursor:default}.rv .choice .tag{white-space:nowrap;font-size:13px}
+.rv .choice.right .k{background:var(--ok);border-color:var(--ok);color:#fff}.rv .choice.wrong .k{background:var(--bad);border-color:var(--bad);color:#fff}

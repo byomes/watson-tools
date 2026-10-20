@@ -152,11 +152,21 @@ function startCheck(sid) {
   const items = []; tl.forEach(t => pickQs(t.id, 3).forEach(qi => items.push(mkItem(t.id, qi))));
   runQuiz({ title: subjById(sid).name + " skip-check", items, feedback: false, onDone: r => checkResults(r, tl) });
 }
+// One question laid out for review: every choice shown, the right one green, the learner's wrong pick red, then why.
+function reviewCard(q, pick, head, tid) {
+  const ok = pick === q.a, missed = pick !== null && pick !== undefined && !ok;
+  return `<div class="card">${head || ""}<span class="chip ${ok ? "done" : "bad"}">${ok ? "Correct" : pick === null || pick === undefined ? "Not answered" : "Missed"}</span>${stim(q)}<h3 style="margin-top:8px">${esc(q.q)}</h3>
+  <div class="rv">${q.c.map((c, n) => `<div class="choice ${n === q.a ? "right" : n === pick ? "wrong" : ""}"><span class="k">${LETTERS[n]}</span><span>${esc(c)}${n === q.a ? ` <b class="tag">&#10003; Correct answer</b>` : n === pick ? ` <b class="tag">&#10007; Your answer</b>` : ""}</span></div>`).join("")}</div>
+  ${missed ? `<p class="mute" style="margin:8px 0 0">You chose <b>${LETTERS[pick]}</b>, but the answer is <b>${LETTERS[q.a]}</b>.</p>` : ""}
+  <div class="expl"><b>Why:</b> ${esc(q.e)}</div>${!ok && tid ? `<div class="row" style="margin-top:8px"><a class="btn sm alt" href="#/topic/${tid}">Study ${esc(topicById(tid).name)}</a></div>` : ""}</div>`;
+}
+
 function checkResults(r, tl) {
   $("#app").innerHTML = `<h1>Skip-check results</h1><p class="mute">Topics marked done are skipped. The rest are your study list.</p>` +
     tl.map(t => { const rs = r.filter(x => x.tid === t.id), c = rs.filter(x => x.ok).length, d = isDone(t.id);
       return `<div class="card"><div class="row sb" style="margin:0"><div><h3>${esc(t.name)}</h3><span class="mute">${c} of ${rs.length} correct</span></div>
       ${d ? `<span class="chip done">✓ Done, skip</span>` : `<a class="btn sm" href="#/topic/${t.id}">Study this</a>`}</div></div>`; }).join("") +
+    (r.some(x => !x.ok) ? `<h2>Questions you missed</h2>` + r.map((x, k) => x.ok ? "" : reviewCard(x.q, x.pick, `<span class="mute">Question ${k + 1} &middot; </span>`, x.tid)).join("") : "") +
     `<div class="row"><a class="btn" href="#/home">Back home</a></div>`;
 }
 
@@ -181,7 +191,8 @@ function practiceDone(id, r) {
   const c = r.filter(x => x.ok).length, d = isDone(id), nx = nextTopic(topicById(id).subj);
   $("#app").innerHTML = `<h1>${c} of ${r.length} correct</h1>
   <div class="card">${d ? `<h3>✅ Topic mastered. You can skip this one.</h3>` : `<h3>Keep going, you're building it.</h3><p class="mute">Reread the key ideas, then try again.</p>`}</div>
-  <div class="row"><a class="btn alt" href="#/topic/${id}">${d ? "Topic page" : "Review & retry"}</a>${nx && nx.id !== id ? `<a class="btn" href="#/topic/${nx.id}">Next: ${esc(nx.name)}</a>` : ""}</div>`;
+  <div class="row"><a class="btn alt" href="#/topic/${id}">${d ? "Topic page" : "Review & retry"}</a>${nx && nx.id !== id ? `<a class="btn" href="#/topic/${nx.id}">Next: ${esc(nx.name)}</a>` : ""}</div>
+  ${r.some(x => !x.ok) ? `<h2>Questions you missed</h2>` + r.map(x => x.ok ? "" : reviewCard(x.q, x.pick, "")).join("") : ""}`;
 }
 
 // ---------- missed-question drill ----------
@@ -327,9 +338,7 @@ function viewResult(i, mode) {
   <h2>By topic (weakest first)</h2>${rows.map(([tid, [c, t]]) => { const p = c / t;
     return `<div class="tbar"><span class="nm">${esc(topicById(tid).name)}</span><span class="bg"><i style="width:${p * 100}%;background:${p >= .7 ? "var(--ok)" : p >= .5 ? "var(--warn)" : "var(--bad)"}"></i></span><span>${c}/${t}</span>${p < .8 ? `<a class="btn sm alt" href="#/topic/${tid}">Study</a>` : ""}</div>`; }).join("")}
   <h2>Review answers</h2><div class="row"><a class="btn sm ${showAll ? "alt" : ""}" href="#/result/${i}">Missed (${wrong.length})</a><a class="btn sm ${showAll ? "" : "alt"}" href="#/result/${i}/all">All questions</a></div>
-  ${list.length ? list.map(k => { const q = T.qs[k], pk = r.picks[k], ok = pk === q.a;
-    return `<div class="card"><span class="chip ${ok ? "done" : "bad"}">${ok ? "Correct" : "Missed"}</span> <span class="mute">Question ${k + 1} · ${esc(topicById(q.t).name)}</span>${stim(q)}<b>${esc(q.q)}</b>
-    <p style="margin:8px 0 2px">Your answer: ${pk === null ? "<i>no answer</i>" : esc(q.c[pk])}</p><p style="margin:2px 0;color:var(--ok)">Correct answer: ${esc(q.c[q.a])}</p><div class="expl">${esc(q.e)}</div></div>`; }).join("") : `<div class="card">Nothing missed. 🎉</div>`}
+  ${list.length ? list.map(k => { const q = T.qs[k]; return reviewCard(q, r.picks[k], `<span class="mute">Question ${k + 1} &middot; ${esc(topicById(q.t).name)}</span> `, q.t); }).join("") : `<div class="card">Nothing missed. 🎉</div>`}
   <div class="row"><a class="btn" href="#/tests">Back to tests</a><a class="btn alt" href="#/home">Home</a></div>`;
 }
 
