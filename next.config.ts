@@ -7,6 +7,13 @@ const nextConfig: NextConfig = {
   // carry this prefix — the destination just needs to match.
   async rewrites() {
     return [
+      // GED Study Coach: a static, client-side app served from public/ged/.
+      // /ged has no file of its own, so map it to the page; assets are
+      // referenced by absolute /ged/* paths.
+      {
+        source: "/ged",
+        destination: "/ged/index.html",
+      },
       // Exact-match /ham separately: "/ham/:path*" alone rewrites a bare
       // /ham request to ".../ham/" (trailing slash), which hamprep then
       // 308s back to "/ham" — a redirect loop on the primary entry URL.
