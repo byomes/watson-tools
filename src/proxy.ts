@@ -12,6 +12,7 @@
 // notes/wtsn-me-public-tools-spec.md).
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { GED_COOKIE, gedTokenValid } from "@/lib/gedAuth";
 
 const WINDOW_MS = 60_000;
 const MAX_REQUESTS_PER_WINDOW = 60;
@@ -35,7 +36,23 @@ function clientIp(request: NextRequest): string {
   return request.headers.get("x-real-ip") ?? "unknown";
 }
 
+// PIN gate for the GED Study Coach (static files under public/ged). Page
+// requests show the lock screen; asset requests get 401 until unlocked via
+// /api/ged/unlock. See src/lib/gedAuth.ts.
+function gedGate(request: NextRequest): NextResponse | null {
+  const path = request.nextUrl.pathname;
+  if (path !== "/ged" && !path.startsWith("/ged/")) return null;
+  if (gedTokenValid(request.cookies.get(GED_COOKIE)?.value)) return null;
+  if (path === "/ged" || path === "/ged/" || path === "/ged/index.html") {
+    return NextResponse.rewrite(new URL("/ged-lock.html", request.url));
+  }
+  return new NextResponse("Locked", { status: 401 });
+}
+
 export default function proxy(request: NextRequest) {
+  const gated = gedGate(request);
+  if (gated) return gated;
+
   const now = Date.now();
   sweepExpired(now);
 
