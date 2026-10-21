@@ -17,6 +17,7 @@ type TableRow = {
   sensitive: string[]
   open_now: boolean
   locked: boolean
+  is_view?: boolean
   suggest: 'open now' | 'suggest open' | 'suggest closed' | 'your call'
   grants: Record<Group, boolean>
 }
@@ -301,6 +302,7 @@ export default function TableAccessBoard() {
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span className="font-medium break-all">{t.name}</span>
                       <span className={`text-[10px] rounded px-1.5 py-0.5 ${BADGE[t.suggest]}`}>{t.suggest}</span>
+                      {t.is_view && <span className="text-[10px] rounded px-1.5 py-0.5 bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">filtered view</span>}
                       {t.locked && <span className="text-[10px] rounded px-1.5 py-0.5 bg-gray-200 dark:bg-gray-800">🔒 locked</span>}
                     </div>
                     <div className="text-[11px] text-gray-500 dark:text-gray-400">
