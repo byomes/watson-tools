@@ -429,7 +429,7 @@ export default function Editor({ entry, n, total }: { entry: Entry; n: number; t
             ← Previous entry
           </button>
           <button onClick={addToDoc} disabled={adding} className={`${btn} flex-1 bg-blue-600 text-white disabled:opacity-60`}>
-            {adding ? 'Adding...' : 'Add to Google Docs'}
+            {adding ? 'Adding...' : 'Add to document'}
           </button>
           <button onClick={() => goTo(n + 1)} disabled={n >= total || adding} className={`${btn} flex-1 bg-gray-900 text-white dark:bg-white dark:text-black disabled:opacity-40`}>
             Next entry →
