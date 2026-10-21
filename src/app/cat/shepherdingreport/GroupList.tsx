@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { BUCKET_META, ENGAGEMENT_META, weeksLabel, type Bucket, type Engagement } from '@/lib/shepherdingReportShared'
+import { BUCKET_META, COMMITTED_META, ENGAGEMENT_META, weeksLabel, type Bucket, type Committed, type Engagement } from '@/lib/shepherdingReportShared'
 import AttendanceWeeksModal from './AttendanceWeeksModal'
 
 interface Member {
@@ -13,6 +13,7 @@ interface Member {
   email: string | null
   phone: string | null
   engagement: Engagement
+  committed?: Committed | null
 }
 
 interface Group {
@@ -26,6 +27,15 @@ interface Group {
 // clickable last-seen badge.
 function EngagementBadge({ engagement }: { engagement: Engagement }) {
   const meta = ENGAGEMENT_META[engagement]
+  return (
+    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${meta.className}`}>
+      {meta.label}
+    </span>
+  )
+}
+
+function CommittedBadge({ committed }: { committed: Committed }) {
+  const meta = COMMITTED_META[committed]
   return (
     <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${meta.className}`}>
       {meta.label}
@@ -242,6 +252,7 @@ export default function GroupList({ groups, smsMode }: { groups: Group[]; smsMod
                     <span className="flex flex-col items-end gap-1 shrink-0">
                       <LastSeenBadge member={m} className={meta.className} />
                       <EngagementBadge engagement={m.engagement} />
+                      {m.committed && <CommittedBadge committed={m.committed} />}
                     </span>
                   </li>
                 )

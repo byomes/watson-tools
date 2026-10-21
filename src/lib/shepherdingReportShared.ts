@@ -115,6 +115,14 @@ export const ENGAGEMENT_META: Record<Engagement, { label: string; className: str
   lapsed: { label: 'Lapsed', className: 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800' },
 }
 
+// Committed row pills (small group x serving), same green -> red ramp as the other two rows.
+export const COMMITTED_META: Record<Committed, { label: string; className: string }> = {
+  committed: { label: 'Committed', className: 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 border-green-300 dark:border-green-800' },
+  rooted: { label: 'Rooted', className: 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800' },
+  serving_alone: { label: 'Serving Alone', className: 'text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-950/40 border-orange-300 dark:border-orange-800' },
+  unconnected: { label: 'Unconnected', className: 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800' },
+}
+
 export interface AttendanceWeek {
   service_date: string
   present: boolean
