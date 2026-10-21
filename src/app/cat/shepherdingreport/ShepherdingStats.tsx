@@ -68,7 +68,7 @@ function LabelPeopleList({ members, onSelect, smsMode }: { members: MemberWithGr
 // passes through to the stat-box people list's ContactIcons the same way
 // GroupList's does, so deaconapp-bill's text icons point at the Watson SMS
 // PWA here too instead of silently falling back to the stock sms: link.
-export default function ShepherdingStats({ groups, totals, smsMode, showCommitted }: { groups: Group[]; totals: Totals; smsMode?: 'native' | 'webapp'; showCommitted?: boolean }) {
+export default function ShepherdingStats({ groups, totals, smsMode, showCommitted = true }: { groups: Group[]; totals: Totals; smsMode?: 'native' | 'webapp'; showCommitted?: boolean }) {
   const engagementTotals = computeEngagementTotals(groups)
   const committedTotals = computeCommittedTotals(groups)
   const [expandedLabel, setExpandedLabel] = useState<LabelKey | null>(null)
@@ -245,16 +245,17 @@ export default function ShepherdingStats({ groups, totals, smsMode, showCommitte
       </div>
 
       {/* Committed row: small group x serving, rolling windows (serving in
-          last 5 wks, small group in last 3 wks; Worship Team counts as
-          both). Opt-in via showCommitted -- only deaconapp-bill passes it
-          while Bill evaluates it before the deacons see it. */}
+          last 5 wks, small group in last 3 wks). Shown to everyone since
+          2026-10-21; showCommitted defaults to true. The Worship Team
+          rule (counts as both) lives in the backend and is deliberately
+          not mentioned on the page. */}
       {showCommitted && (
         <div className="mb-6">
           <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
             Committed
           </p>
           <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-2">
-            Small group (last 3 wks) and serving (last 5 wks). Worship Team counts as both.
+            Small group (last 3 wks) and serving (last 5 wks).
           </p>
           <div className="flex gap-2 text-xs font-semibold">
             {([
