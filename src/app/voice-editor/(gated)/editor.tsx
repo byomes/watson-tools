@@ -156,9 +156,8 @@ export default function Editor({ entry, n, total }: { entry: Entry; n: number; t
         body: JSON.stringify({ entry: ENTRY_ID, blocks: blocksOf(stRef.current) }),
       })
       const d = await r.json().catch(() => ({}))
-      if (r.ok && d.pushed) setMsg(`Entry ${n} added to the Google Doc.`)
-      else if (r.ok && d.reason === 'needs_google_auth') setMsg(`Entry ${n} is stored on Watson, but the Google Doc is not connected yet. It will be added once Watson is authorized.`)
-      else if (r.ok) setMsg(`Entry ${n} is stored on Watson, but Google did not accept it. Try again in a moment.`)
+      if (r.ok && d.pushed) setMsg(`Entry ${n} added to the Google Doc and the Watson document.`)
+      else if (r.ok && d.localDoc) setMsg(`Entry ${n} added to the document on Watson (${d.entriesInDoc} entries so far).`)
       else setMsg('Could not add this entry. Nothing was lost; try again.')
       setDocUrl(d.docUrl ?? '')
     } catch {
