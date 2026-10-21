@@ -3,7 +3,7 @@ import { useEffect, useImperativeHandle, useMemo, useState, forwardRef } from 'r
 import { createPortal } from 'react-dom'
 import { EditableSelect } from './EditableSelect'
 import { formatDeaconNoteDate } from '@/lib/deaconNotes'
-import { BUCKET_META, ENGAGEMENT_META, weeksLabel, type Bucket, type Engagement } from '@/lib/shepherdingReportShared'
+import { BUCKET_META, COMMITTED_META, ENGAGEMENT_META, weeksLabel, type Bucket, type Committed, type Engagement } from '@/lib/shepherdingReportShared'
 
 interface PrayerRequest {
   request_text: string
@@ -38,6 +38,7 @@ interface Person {
   bucket: Bucket | null
   days_since: number | null
   engagement: Engagement | null
+  committed?: Committed | null
   prayer_requests: PrayerRequest[]
   next_steps: NextStep[]
   deacon_notes: DeaconNote[]
@@ -685,13 +686,14 @@ function PersonCard({
   // without the card ever needing to be opened or scrolled to see them.
   const bucketMeta = p.bucket ? BUCKET_META[p.bucket] : null
   const engagementMeta = p.engagement ? ENGAGEMENT_META[p.engagement] : null
+  const committedMeta = p.committed ? COMMITTED_META[p.committed] : null
 
   return (
     <div className="border-2 border-gray-200 dark:border-gray-700 rounded-xl p-4 bg-white dark:bg-gray-900">
       <div className="flex items-start justify-between gap-2">
         <div>
           <div className="font-bold text-gray-900 dark:text-gray-100 text-base leading-tight">{p.name}</div>
-          {(bucketMeta || engagementMeta) && (
+          {(bucketMeta || engagementMeta || committedMeta) && (
             <div className="flex items-center gap-1.5 flex-wrap mt-1">
               {bucketMeta && p.days_since !== null && (
                 <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${bucketMeta.className}`}>
@@ -701,6 +703,11 @@ function PersonCard({
               {engagementMeta && (
                 <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${engagementMeta.className}`}>
                   {engagementMeta.label}
+                </span>
+              )}
+              {committedMeta && (
+                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${committedMeta.className}`}>
+                  {committedMeta.label}
                 </span>
               )}
             </div>
