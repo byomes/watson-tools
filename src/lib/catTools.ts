@@ -33,6 +33,17 @@ export const CAT_TOOL_SECTIONS: CatToolSection[] = [
     ],
   },
   {
+    title: 'Events',
+    tools: [
+      {
+        name: 'Events',
+        href: '/cat/events',
+        note: 'Live RSVPs',
+        children: [{ name: 'Servant Leaders Banquet', href: '/cat/events', note: 'Who is coming, who has not answered' }],
+      },
+    ],
+  },
+  {
     title: 'Clean-up',
     tools: [
       { name: 'Duplicate Members', href: '/cat/duplicates', note: 'Review and merge' },
