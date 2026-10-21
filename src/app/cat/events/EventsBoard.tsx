@@ -10,9 +10,10 @@ type Report = {
   total_adults: number
   total_children: number
   invited_count: number
+  member_ids?: Record<string, number>
 }
 type Recent = { name: string; status: string; guests: number; kids: number; at: string }
-type Data = { events: EventInfo[]; event: EventInfo | null; report?: Report; recent?: Recent[] }
+type Data = { events: EventInfo[]; event: EventInfo | null; report?: Report; recent?: Recent[]; manual?: Record<string, number> }
 type Tab = 'no_response' | 'yes' | 'no'
 
 const REFRESH_MS = 10000
@@ -40,6 +41,11 @@ export default function EventsBoard() {
   const [error, setError] = useState('')
   const [updated, setUpdated] = useState<Date | null>(null)
   const [, tick] = useState(0)
+  const [asking, setAsking] = useState<number | null>(null) // member id whose Yes form is open
+  const [adults, setAdults] = useState(1)
+  const [kids, setKids] = useState(0)
+  const [busy, setBusy] = useState(false)
+  const [notice, setNotice] = useState('')
 
   const load = useCallback(async () => {
     try {
@@ -71,6 +77,30 @@ export default function EventsBoard() {
       document.removeEventListener('visibilitychange', onVisible)
     }
   }, [load])
+
+  async function send(path: 'set' | 'undo', body: Record<string, unknown>) {
+    setBusy(true)
+    setNotice('')
+    try {
+      const res = await fetch(`/api/cat/events/rsvp/${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event_id: data?.event?.id, ...body }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok || j.ok === false) setNotice(j.error || 'Could not save that.')
+      else {
+        setAsking(null)
+        setAdults(1)
+        setKids(0)
+        await load()
+      }
+    } catch {
+      setNotice('Could not save that. Try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   if (!data) {
     return <div className="p-6 text-sm text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-950 min-h-screen">{error || 'Loading...'}</div>
@@ -160,11 +190,59 @@ export default function EventsBoard() {
           ))}
         </div>
 
+        {notice && <div className="mt-3 text-sm text-red-600 dark:text-red-400">{notice}</div>}
         <ul className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-6 text-sm">
           {lists[tab].length === 0 && <li className="py-2 text-slate-500 dark:text-slate-400">Nobody here.</li>}
-          {lists[tab].map((n) => (
-            <li key={n} className="py-1.5 border-b border-slate-100 dark:border-slate-800">{n}</li>
-          ))}
+          {lists[tab].map((n) => {
+            const mid = report.member_ids?.[n]
+            const handEntered = mid !== undefined && data.manual?.[String(mid)] !== undefined
+            const btn = 'rounded-md border px-3 py-1 text-xs font-semibold disabled:opacity-50'
+            return (
+              <li key={n} className="py-1.5 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center justify-between gap-2">
+                  <span>{n}{handEntered && <span className="ml-1 text-[11px] text-slate-500 dark:text-slate-400">(entered by hand)</span>}</span>
+                  {tab === 'no_response' && mid !== undefined && (
+                    <span className="flex gap-1 shrink-0">
+                      <button
+                        disabled={busy}
+                        onClick={() => { setAsking(asking === mid ? null : mid); setAdults(1); setKids(0) }}
+                        className={`${btn} border-emerald-600 text-emerald-700 dark:text-emerald-400 dark:border-emerald-500`}
+                      >
+                        Yes
+                      </button>
+                      <button
+                        disabled={busy}
+                        onClick={() => send('set', { member_id: mid, status: 'no' })}
+                        className={`${btn} border-red-600 text-red-700 dark:text-red-400 dark:border-red-500`}
+                      >
+                        No
+                      </button>
+                    </span>
+                  )}
+                  {tab !== 'no_response' && handEntered && (
+                    <button disabled={busy} onClick={() => send('undo', { member_id: mid })} className={`${btn} border-slate-400 text-slate-600 dark:text-slate-300`}>
+                      Undo
+                    </button>
+                  )}
+                </div>
+                {tab === 'no_response' && asking === mid && (
+                  <div className="mt-2 flex flex-wrap items-center gap-3 rounded-lg bg-slate-50 dark:bg-slate-900 px-3 py-2 text-xs">
+                    <label className="flex items-center gap-1">
+                      Adults coming
+                      <input type="number" min={1} max={10} value={adults} onChange={(e) => setAdults(Number(e.target.value) || 1)} className="w-14 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-1 py-0.5" />
+                    </label>
+                    <label className="flex items-center gap-1">
+                      Kids for childcare
+                      <input type="number" min={0} max={15} value={kids} onChange={(e) => setKids(Number(e.target.value) || 0)} className="w-14 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-1 py-0.5" />
+                    </label>
+                    <button disabled={busy} onClick={() => send('set', { member_id: mid, status: 'yes', adults, kids })} className="rounded-md bg-emerald-600 text-white px-3 py-1 font-semibold disabled:opacity-50">
+                      Save yes
+                    </button>
+                  </div>
+                )}
+              </li>
+            )
+          })}
         </ul>
 
         <h2 className="mt-7 text-sm font-semibold">Latest RSVPs</h2>
@@ -183,7 +261,7 @@ export default function EventsBoard() {
           ))}
         </ul>
         <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">
-          Refreshes every 10 seconds. Adults counts everyone who said yes, including spouses and guests who are not on a team.
+          Yes and No on a name record an RSVP by hand; hand-entered ones can be undone. Refreshes every 10 seconds. Adults counts everyone who said yes, including spouses and guests who are not on a team.
         </p>
       </div>
     </div>
