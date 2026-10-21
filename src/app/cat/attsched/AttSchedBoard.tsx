@@ -185,7 +185,7 @@ export default function AttSchedBoard() {
                       return (
                         <span key={id} className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-sm">
                           {nameOf(id)}
-                          {known && <span className="text-xs text-slate-500 dark:text-slate-400">({known.channel ? CHANNEL[known.channel] : 'no way to reach'})</span>}
+                          {known && <span className="text-xs text-slate-500 dark:text-slate-400">({known.channel ? CHANNEL[known.channel] : 'not on Telegram yet'})</span>}
                           <button
                             type="button"
                             aria-label={`Remove ${nameOf(id)}`}
@@ -376,7 +376,7 @@ export default function AttSchedBoard() {
           {kind === 'groups'
             ? `For each group, Watson sends the leaders your message plus that session's attendance link, the chosen number of minutes after the calendar start time (standard ${defaultDelay}).`
             : `For each serving team, Watson sends the leaders your message plus the Serving tab link every Sunday, the chosen number of minutes after the service start (standard ${defaultDelay}). Set a start time on a team that serves earlier, like the 9 AM nursery.`}{' '}
-          Telegram is used first for leaders Watson already knows there, SMS for everyone else. Nothing is sent until
+          Reminders go out on Telegram only. A leader who has not joined Telegram yet is waited on, never texted, and their reminder goes out by itself once they join. Nothing is sent until
           one is turned on, and nothing goes out before 9am or after 10pm; a send that would land later waits until 9am
           the next day.
         </p>
