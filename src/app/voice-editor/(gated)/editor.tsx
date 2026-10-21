@@ -23,11 +23,11 @@ type Rec = {
   stop: () => void
 }
 
-const STORE = 'sentence-edit-entry1-v1'
-const ENTRY_ID = 'entry1'
 type Saved = { savedAt: number; st: Record<string, State> }
 
-export default function Editor({ entry }: { entry: Entry }) {
+export default function Editor({ entry, n, total }: { entry: Entry; n: number; total: number }) {
+  const STORE = `sentence-edit-entry${n}-v1`
+  const ENTRY_ID = `entry${n}`
   const keyOf = (b: number, s: number) => `${b}.${s}`
   const [st, setSt] = useState<Record<string, State>>({})
   const [loaded, setLoaded] = useState(false)
@@ -38,6 +38,10 @@ export default function Editor({ entry }: { entry: Entry }) {
   const [msg, setMsg] = useState('')
   const [polishing, setPolishing] = useState<Record<string, boolean>>({})
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [adding, setAdding] = useState(false)
+  const [docUrl, setDocUrl] = useState('')
+  const stRef = useRef(st)
+  stRef.current = st
   const lastSaved = useRef('')
   const recRef = useRef<Rec | null>(null)
   const heardRef = useRef('')
@@ -88,22 +92,81 @@ export default function Editor({ entry }: { entry: Entry }) {
       localStorage.setItem(STORE, JSON.stringify({ savedAt, st }))
     } catch {}
     const t = setTimeout(() => {
-      setSaveState('saving')
-      fetch('/api/voice-editor/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ entry: ENTRY_ID, state: { savedAt, st }, assembled: assemble(st) }),
-      })
-        .then((r) => {
-          if (!r.ok) throw new Error('save failed')
-          lastSaved.current = json
-          setSaveState('saved')
-        })
-        .catch(() => setSaveState('error'))
+      saveNow(savedAt).catch(() => {})
     }, 1500)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [st, loaded])
+
+  // Save to Watson right now (the debounce can be cut short by navigating away).
+  function saveNow(savedAt = Date.now()) {
+    const cur = stRef.current
+    const json = JSON.stringify(cur)
+    setSaveState('saving')
+    return fetch('/api/voice-editor/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entry: ENTRY_ID, state: { savedAt, st: cur }, assembled: assemble(cur) }),
+    })
+      .then((r) => {
+        if (!r.ok) throw new Error('save failed')
+        lastSaved.current = json
+        setSaveState('saved')
+      })
+      .catch((e) => {
+        setSaveState('error')
+        throw e
+      })
+  }
+
+  function blocksOf(state: Record<string, State>) {
+    return entry.blocks
+      .map((b, bi) => {
+        if (!b.sentences) return { type: b.type, text: b.text ?? '' }
+        const body = b.sentences
+          .map((_, si) => state[keyOf(bi, si)])
+          .filter((x) => x && !x.deleted)
+          .map((x) => x.text)
+          .join(' ')
+        return { type: b.type, text: b.label ? `${b.label} ${body}` : body }
+      })
+      .filter((b) => b.text.trim())
+  }
+
+  async function goTo(target: number) {
+    if (target < 1 || target > total) return
+    if (JSON.stringify(stRef.current) !== lastSaved.current) {
+      try {
+        await saveNow()
+      } catch {
+        // localStorage still has it, so moving on is safe.
+      }
+    }
+    window.location.href = `/voice-editor?e=${target}`
+  }
+
+  async function addToDoc() {
+    setAdding(true)
+    setMsg('')
+    try {
+      await saveNow().catch(() => {})
+      const r = await fetch('/api/voice-editor/add-to-doc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entry: ENTRY_ID, blocks: blocksOf(stRef.current) }),
+      })
+      const d = await r.json().catch(() => ({}))
+      if (r.ok && d.pushed) setMsg(`Entry ${n} added to the Google Doc.`)
+      else if (r.ok && d.reason === 'needs_google_auth') setMsg(`Entry ${n} is stored on Watson, but the Google Doc is not connected yet. It will be added once Watson is authorized.`)
+      else if (r.ok) setMsg(`Entry ${n} is stored on Watson, but Google did not accept it. Try again in a moment.`)
+      else setMsg('Could not add this entry. Nothing was lost; try again.')
+      setDocUrl(d.docUrl ?? '')
+    } catch {
+      setMsg('Could not reach Watson. Nothing was lost; try again.')
+    } finally {
+      setAdding(false)
+    }
+  }
 
   function assemble(state: Record<string, State>) {
     return entry.blocks
@@ -228,7 +291,7 @@ export default function Editor({ entry }: { entry: Entry }) {
     <div className="min-h-screen bg-white dark:bg-gray-950 text-black dark:text-white">
       <div className="sticky top-0 z-10 border-b border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-950/95 px-4 py-2 flex items-center justify-between gap-3">
         <span className="text-sm text-gray-600 dark:text-gray-400">
-          {done} of {all.length} reviewed
+          Entry {n} of {total}: {done} of {all.length} reviewed
           <span className="ml-3 text-xs">
             {saveState === 'saving' ? 'Saving...' : saveState === 'saved' ? 'Saved to Watson' : saveState === 'error' ? 'Not saved to Watson yet' : ''}
           </span>
@@ -237,7 +300,17 @@ export default function Editor({ entry }: { entry: Entry }) {
           Copy entry
         </button>
       </div>
-      {msg && <p className="px-4 pt-2 text-sm text-amber-600">{msg}</p>}
+      {msg && (
+        <p className="px-4 pt-2 text-sm text-amber-600">
+          {msg}
+          {docUrl && (
+            <>
+              {' '}
+              <a href={docUrl} target="_blank" rel="noreferrer" className="underline">Open the Doc</a>
+            </>
+          )}
+        </p>
+      )}
 
       <main className="max-w-2xl mx-auto px-4 py-6 space-y-4">
         {entry.blocks.map((b, bi) => {
@@ -340,6 +413,18 @@ export default function Editor({ entry }: { entry: Entry }) {
             </div>
           )
         })}
+
+        <nav className="flex gap-2 pt-8 pb-10">
+          <button onClick={() => goTo(n - 1)} disabled={n <= 1 || adding} className={`${btn} flex-1 bg-gray-200 dark:bg-gray-800 disabled:opacity-40`}>
+            ← Previous entry
+          </button>
+          <button onClick={addToDoc} disabled={adding} className={`${btn} flex-1 bg-blue-600 text-white disabled:opacity-60`}>
+            {adding ? 'Adding...' : 'Add to Google Docs'}
+          </button>
+          <button onClick={() => goTo(n + 1)} disabled={n >= total || adding} className={`${btn} flex-1 bg-gray-900 text-white dark:bg-white dark:text-black disabled:opacity-40`}>
+            Next entry →
+          </button>
+        </nav>
       </main>
     </div>
   )
