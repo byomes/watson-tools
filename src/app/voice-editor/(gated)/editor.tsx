@@ -145,6 +145,12 @@ export default function Editor({ entry, n, total }: { entry: Entry; n: number; t
     window.location.href = `/voice-editor?e=${target}`
   }
 
+  async function refresh() {
+    // Save first so the reload doesn't lose a pending edit.
+    if (JSON.stringify(stRef.current) !== lastSaved.current) await saveNow().catch(() => {})
+    window.location.reload()
+  }
+
   async function addToDoc() {
     setAdding(true)
     setMsg('')
@@ -295,9 +301,14 @@ export default function Editor({ entry, n, total }: { entry: Entry; n: number; t
             {saveState === 'saving' ? 'Saving...' : saveState === 'saved' ? 'Saved to Watson' : saveState === 'error' ? 'Not saved to Watson yet' : ''}
           </span>
         </span>
-        <button onClick={copyEntry} className={`${btn} bg-gray-900 text-white dark:bg-white dark:text-black`}>
-          Copy entry
-        </button>
+        <div className="flex gap-2">
+          <button onClick={refresh} className={`${btn} bg-gray-200 dark:bg-gray-800`}>
+            ↻ Refresh
+          </button>
+          <button onClick={copyEntry} className={`${btn} bg-gray-900 text-white dark:bg-white dark:text-black`}>
+            Copy entry
+          </button>
+        </div>
       </div>
       {msg && (
         <p className="px-4 pt-2 text-sm text-amber-600">
