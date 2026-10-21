@@ -54,6 +54,9 @@ export default function TableAccessBoard() {
   const [db, setDb] = useState<'all' | 'congregation' | 'watson'>('all')
   const [query, setQuery] = useState('')
   const [hideLocked, setHideLocked] = useState(true)
+  // Rows a grant-based filter matched at the moment it was chosen. Without this, ticking a box on a row under "Granted to no one"
+  // made it stop matching and vanish mid-click, which read as the check mark disappearing.
+  const [snapshot, setSnapshot] = useState<Record<string, boolean>>({})
 
   const load = useCallback(async () => {
     setError(null)
@@ -86,12 +89,12 @@ export default function TableAccessBoard() {
       switch (filter) {
         case 'all': return true
         case 'sensitive': return t.sensitive.length > 0
-        case 'granted': return anyGrant(t)
-        case 'none': return !anyGrant(t)
+        case 'granted': return snapshot[`${t.db}.${t.name}`] ?? anyGrant(t)
+        case 'none': return !(snapshot[`${t.db}.${t.name}`] ?? anyGrant(t))
         default: return t.suggest === filter
       }
     })
-  }, [tables, query, db, filter, hideLocked])
+  }, [tables, query, db, filter, hideLocked, snapshot])
 
   const totals = useMemo(() => {
     const out: Record<Group, number> = { leaders: 0, deacons: 0, elders: 0 }
@@ -200,7 +203,10 @@ export default function TableAccessBoard() {
             <button
               key={f.key}
               type="button"
-              onClick={() => setFilter(f.key)}
+              onClick={() => {
+                setSnapshot(Object.fromEntries((tables ?? []).map((t) => [`${t.db}.${t.name}`, anyGrant(t)])))
+                setFilter(f.key)
+              }}
               className={`rounded-full px-3 py-1 text-xs border ${
                 filter === f.key
                   ? 'bg-black text-white dark:bg-white dark:text-black border-transparent'
