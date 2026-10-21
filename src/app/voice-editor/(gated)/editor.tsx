@@ -24,14 +24,17 @@ type Rec = {
   stop: () => void
 }
 
+const LAST_ENTRY = 'voice-editor-last-entry'
+
 type Saved = { savedAt: number; st: Record<string, State> }
 
-export default function Editor({ entry, n, total }: { entry: Entry; n: number; total: number }) {
+export default function Editor({ entry, n, total, explicit }: { entry: Entry; n: number; total: number; explicit: boolean }) {
   const STORE = `sentence-edit-entry${n}-v1`
   const ENTRY_ID = `entry${n}`
   const keyOf = (b: number, s: number) => `${b}.${s}`
   const [st, setSt] = useState<Record<string, State>>({})
   const [loaded, setLoaded] = useState(false)
+  const [ready, setReady] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
   const [listening, setListening] = useState<string | null>(null)
@@ -79,10 +82,36 @@ export default function Editor({ entry, n, total }: { entry: Entry; n: number; t
         setSt(merge(remote.st))
       })
       .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setReady(true)
+      })
     return () => {
       cancelled = true
     }
   }, [entry])
+
+  // Resume where Bill left off: opening /voice-editor with no ?e= jumps to the
+  // entry he was last on (this browser), and once Watson's copy has loaded the
+  // page scrolls to the first sentence he hasn't reviewed yet.
+  useEffect(() => {
+    try {
+      const last = parseInt(localStorage.getItem(LAST_ENTRY) || '', 10)
+      if (!explicit && last >= 1 && last <= total && last !== n) {
+        window.location.replace(`/voice-editor?e=${last}`)
+        return
+      }
+      localStorage.setItem(LAST_ENTRY, String(n))
+    } catch {}
+  }, [explicit, n, total])
+
+  const scrolled = useRef(false)
+  useEffect(() => {
+    if (!ready || scrolled.current) return
+    scrolled.current = true
+    const first = Object.entries(st).find(([, s]) => s.status === 'pending' && !s.deleted)
+    if (!first) return
+    document.getElementById(`s-${first[0]}`)?.scrollIntoView({ block: 'start' })
+  }, [ready, st])
 
   useEffect(() => {
     if (!loaded) return
@@ -335,7 +364,7 @@ export default function Editor({ entry, n, total }: { entry: Entry; n: number; t
                   )
                 }
                 return (
-                  <div key={k} className={`rounded-lg p-3 ${s.approved ? approvedStyle : badge[s.status]} ${s.status === 'pending' ? 'border-l-4 border-gray-200 dark:border-gray-800' : ''}`}>
+                  <div key={k} id={`s-${k}`} className={`scroll-mt-16 rounded-lg p-3 ${s.approved ? approvedStyle : badge[s.status]} ${s.status === 'pending' ? 'border-l-4 border-gray-200 dark:border-gray-800' : ''}`}>
                     {isEd ? (
                       <textarea
                         autoFocus
