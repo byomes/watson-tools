@@ -274,14 +274,6 @@ export default function Editor({ entry, n, total }: { entry: Entry; n: number; t
   const all = Object.values(st)
   const done = all.filter((s) => s.status !== 'pending' || s.deleted).length
 
-  function copyEntry() {
-    const out = assemble(st)
-    navigator.clipboard.writeText(out).then(
-      () => setMsg('Copied. Paste into the Google Doc.'),
-      () => setMsg('Copy failed.'),
-    )
-  }
-
   const approvedStyle = 'border-l-4 border-green-500 bg-green-50 dark:bg-green-950/30'
   const badge: Record<State['status'], string> = {
     pending: '',
@@ -291,40 +283,35 @@ export default function Editor({ entry, n, total }: { entry: Entry; n: number; t
   }
   const btn = 'rounded-lg px-4 py-2 text-sm font-medium active:scale-95'
   // Icon-over-label buttons so all five fit on one row on a phone.
+  const navBtn = 'flex-1 flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium active:bg-gray-100 dark:active:bg-gray-900 disabled:opacity-40'
   const tile = 'flex-1 min-w-0 flex flex-col items-center gap-0.5 rounded-lg px-1 py-1.5 text-[11px] leading-tight font-medium active:scale-95'
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 text-black dark:text-white">
-      <div className="sticky top-0 z-10 border-b border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-950/95 px-4 py-2 flex items-center justify-between gap-3">
-        <span className="text-sm text-gray-600 dark:text-gray-400">
-          Entry {n} of {total}: {done} of {all.length} reviewed
-          <span className="ml-3 text-xs">
-            {saveState === 'saving' ? 'Saving...' : saveState === 'saved' ? 'Saved to Watson' : saveState === 'error' ? 'Not saved to Watson yet' : ''}
-          </span>
-        </span>
-        <div className="flex gap-2">
-          <ThemeToggle className="rounded-lg px-3 py-2 text-sm bg-gray-200 dark:bg-gray-800 active:scale-95" />
-          <button onClick={refresh} className={`${btn} bg-gray-200 dark:bg-gray-800`}>
-            ↻ Refresh
-          </button>
-          <button onClick={copyEntry} className={`${btn} bg-gray-900 text-white dark:bg-white dark:text-black`}>
-            Copy entry
-          </button>
-        </div>
-      </div>
-      {msg && (
-        <p className="px-4 pt-2 text-sm text-amber-600">
-          {msg}
-          {docUrl && (
+      <header className="sticky top-0 z-10 border-b border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-950/95 backdrop-blur px-4 pt-[env(safe-area-inset-top)] h-[calc(2.75rem+env(safe-area-inset-top))] flex items-center gap-3">
+        <p className="flex-1 min-w-0 truncate text-xs text-gray-600 dark:text-gray-400">
+          {msg ? (
             <>
-              {' '}
-              <a href={docUrl} target="_blank" rel="noreferrer" className="underline">Open the Doc</a>
+              <span className="text-amber-600">{msg}</span>
+              {docUrl && (
+                <>
+                  {' '}
+                  <a href={docUrl} target="_blank" rel="noreferrer" className="underline">Open the Doc</a>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <span className="font-semibold text-black dark:text-white">Entry {n}/{total}</span>
+              {' · '}{done}/{all.length} reviewed
+              {saveState === 'saving' ? ' · Saving...' : saveState === 'saved' ? ' · Saved to Watson' : saveState === 'error' ? ' · Not saved to Watson yet' : ''}
             </>
           )}
         </p>
-      )}
+        <ThemeToggle className="shrink-0 rounded-full w-8 h-8 text-sm bg-gray-200 dark:bg-gray-800 active:scale-95" />
+      </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+      <main className="max-w-2xl mx-auto px-4 pt-6 pb-28 space-y-4">
         {entry.blocks.map((b, bi) => {
           if (b.type === 'title') return <h1 key={bi} className="text-2xl font-bold font-serif">{b.text}</h1>
           if (b.type === 'heading') return <h2 key={bi} className="pt-6 text-sm font-bold tracking-wide text-gray-500">{b.text}</h2>
@@ -426,18 +413,23 @@ export default function Editor({ entry, n, total }: { entry: Entry; n: number; t
           )
         })}
 
-        <nav className="flex gap-2 pt-8 pb-10">
-          <button onClick={() => goTo(n - 1)} disabled={n <= 1 || adding} className={`${btn} flex-1 bg-gray-200 dark:bg-gray-800 disabled:opacity-40`}>
-            ← Previous entry
-          </button>
-          <button onClick={addToDoc} disabled={adding} className={`${btn} flex-1 bg-blue-600 text-white disabled:opacity-60`}>
-            {adding ? 'Adding...' : 'Add to document'}
-          </button>
-          <button onClick={() => goTo(n + 1)} disabled={n >= total || adding} className={`${btn} flex-1 bg-gray-900 text-white dark:bg-white dark:text-black disabled:opacity-40`}>
-            Next entry →
-          </button>
-        </nav>
       </main>
+      <nav className="fixed bottom-0 inset-x-0 z-10 border-t border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-950/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
+        <div className="max-w-2xl mx-auto flex">
+          <button onClick={() => goTo(n - 1)} disabled={n <= 1 || adding} className={navBtn}>
+            <span className="text-xl leading-none">←</span>Previous
+          </button>
+          <button onClick={refresh} disabled={adding} className={navBtn}>
+            <span className="text-xl leading-none">↻</span>Refresh
+          </button>
+          <button onClick={addToDoc} disabled={adding} className={`${navBtn} text-blue-600 dark:text-blue-400`}>
+            <span className="text-xl leading-none">{adding ? '…' : '＋'}</span>{adding ? 'Adding' : 'Add to doc'}
+          </button>
+          <button onClick={() => goTo(n + 1)} disabled={n >= total || adding} className={navBtn}>
+            <span className="text-xl leading-none">→</span>Next
+          </button>
+        </div>
+      </nav>
     </div>
   )
 }
