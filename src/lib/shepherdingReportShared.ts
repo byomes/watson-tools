@@ -8,6 +8,9 @@
 // _member_engagement_tiers()).
 export type Bucket = 'disconnected' | 'critical' | 'at_risk' | 'current'
 export type Engagement = 'consistent' | 'active' | 'occasional' | 'lapsed'
+// Small-group x serving cells (2026-10-20), see _member_committed_buckets()
+// in elder_shepherding_report.py. Optional: only deaconapp-bill renders it.
+export type Committed = 'committed' | 'rooted' | 'serving_alone' | 'unconnected'
 
 export interface Member {
   id: number
@@ -18,6 +21,7 @@ export interface Member {
   email: string | null
   phone: string | null
   engagement: Engagement
+  committed?: Committed | null
 }
 
 export interface Group {
@@ -42,6 +46,19 @@ export interface EngagementTotals {
   active: number
   occasional: number
   lapsed: number
+}
+
+export interface CommittedTotals {
+  committed: number
+  rooted: number
+  serving_alone: number
+  unconnected: number
+}
+
+export function computeCommittedTotals(groups: Group[]): CommittedTotals {
+  const acc: CommittedTotals = { committed: 0, rooted: 0, serving_alone: 0, unconnected: 0 }
+  for (const g of groups) for (const m of g.members) if (m.committed) acc[m.committed] += 1
+  return acc
 }
 
 export function computeShepherdingTotals(groups: Group[]): Totals {

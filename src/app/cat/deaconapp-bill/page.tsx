@@ -39,6 +39,7 @@ export default async function DeaconAppBillPage() {
         shepherdingTotals={report ? computeShepherdingTotals(report.groups) : null}
         shepherdingDate={report?.generated_date ?? null}
         smsMode="webapp"
+        showCommitted
       />
     </>
   )

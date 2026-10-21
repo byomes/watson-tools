@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { computeEngagementTotals, type Group, type Member, type Totals } from '@/lib/shepherdingReportShared'
+import { computeCommittedTotals, computeEngagementTotals, type Committed, type Group, type Member, type Totals } from '@/lib/shepherdingReportShared'
 import { ContactIcons } from './GroupList'
 import AttendanceWeeksModal from './AttendanceWeeksModal'
 
-type LabelKey = 'current' | 'atRisk' | 'disconnected' | 'critical' | 'consistent' | 'active' | 'occasional' | 'lapsed'
+type LabelKey = 'current' | 'atRisk' | 'disconnected' | 'critical' | 'consistent' | 'active' | 'occasional' | 'lapsed' | Committed
 
 type MemberWithGroup = Member & { groupName: string }
 
@@ -20,6 +20,10 @@ function membersForLabel(key: LabelKey, allMembers: MemberWithGroup[]): MemberWi
       case 'active': return m.engagement === 'active'
       case 'occasional': return m.engagement === 'occasional'
       case 'lapsed': return m.engagement === 'lapsed'
+      case 'committed':
+      case 'rooted':
+      case 'serving_alone':
+      case 'unconnected': return m.committed === key
     }
   })
   return matches.sort((a, b) => a.name.localeCompare(b.name))
@@ -64,8 +68,9 @@ function LabelPeopleList({ members, onSelect, smsMode }: { members: MemberWithGr
 // passes through to the stat-box people list's ContactIcons the same way
 // GroupList's does, so deaconapp-bill's text icons point at the Watson SMS
 // PWA here too instead of silently falling back to the stock sms: link.
-export default function ShepherdingStats({ groups, totals, smsMode }: { groups: Group[]; totals: Totals; smsMode?: 'native' | 'webapp' }) {
+export default function ShepherdingStats({ groups, totals, smsMode, showCommitted }: { groups: Group[]; totals: Totals; smsMode?: 'native' | 'webapp'; showCommitted?: boolean }) {
   const engagementTotals = computeEngagementTotals(groups)
+  const committedTotals = computeCommittedTotals(groups)
   const [expandedLabel, setExpandedLabel] = useState<LabelKey | null>(null)
   const [selected, setSelected] = useState<MemberWithGroup | null>(null)
   const toggleLabel = (key: LabelKey) => setExpandedLabel((prev) => (prev === key ? null : key))
@@ -238,6 +243,58 @@ export default function ShepherdingStats({ groups, totals, smsMode }: { groups: 
           </div>
         )}
       </div>
+
+      {/* Committed row: small group x serving, rolling windows (serving in
+          last 8 wks, small group in last 6 wks; Worship Team counts as
+          both). Opt-in via showCommitted -- only deaconapp-bill passes it
+          while Bill evaluates it before the deacons see it. */}
+      {showCommitted && (
+        <div className="mb-6">
+          <p className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            Committed
+          </p>
+          <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-2">
+            Small group (last 6 wks) and serving (last 8 wks). Worship Team counts as both.
+          </p>
+          <div className="flex gap-2 text-xs font-semibold">
+            {([
+              ['committed', 'Committed', 'Group + serve', 'green'],
+              ['rooted', 'Rooted', 'Group only', 'amber'],
+              ['serving_alone', 'Serving Alone', 'Serve only', 'orange'],
+              ['unconnected', 'Unconnected', 'Neither', 'red'],
+            ] as const).map(([key, label, sub, c]) => {
+              const tone = {
+                green: ['text-green-700 dark:text-green-300', 'border-green-300 dark:border-green-800 bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300', 'ring-green-400 dark:ring-green-500'],
+                amber: ['text-amber-700 dark:text-amber-300', 'border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300', 'ring-amber-400 dark:ring-amber-500'],
+                orange: ['text-orange-700 dark:text-orange-300', 'border-orange-300 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300', 'ring-orange-400 dark:ring-orange-500'],
+                red: ['text-red-700 dark:text-red-300', 'border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300', 'ring-red-400 dark:ring-red-500'],
+              }[c]
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => toggleLabel(key)}
+                  aria-expanded={expandedLabel === key}
+                  className="flex-1 flex flex-col gap-1 text-left"
+                >
+                  <span className={`text-center text-[11px] font-semibold uppercase tracking-wide underline decoration-dotted underline-offset-2 ${tone[0]}`}>
+                    {label}
+                  </span>
+                  <span className={`flex flex-col items-center gap-0.5 rounded-md border py-2 ${tone[1]} ${expandedLabel === key ? `ring-2 ${tone[2]}` : ''}`}>
+                    <span>{sub}</span>
+                    <span className="text-sm font-bold">{committedTotals[key]}</span>
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+          {(expandedLabel === 'committed' || expandedLabel === 'rooted' || expandedLabel === 'serving_alone' || expandedLabel === 'unconnected') && (
+            <div className="w-full mt-2 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+              <LabelPeopleList members={membersForLabel(expandedLabel, allMembers)} onSelect={setSelected} smsMode={smsMode} />
+            </div>
+          )}
+        </div>
+      )}
 
       {selected && (
         <AttendanceWeeksModal

@@ -193,12 +193,14 @@ export default function DeaconAppTabs({
   shepherdingTotals,
   shepherdingDate,
   smsMode,
+  showCommitted,
 }: {
   deaconName: string
   shepherdingGroups: Group[] | null
   shepherdingTotals: Totals | null
   shepherdingDate: string | null
   smsMode?: 'native' | 'webapp'
+  showCommitted?: boolean
 }) {
   const [tab, setTab] = useState<Tab>('shepherding')
   const [theme, toggleTheme] = useDeaconTheme()
@@ -282,7 +284,7 @@ export default function DeaconAppTabs({
               )}
 
               {shepherdingTotals && shepherdingGroups && (
-                <ShepherdingStats groups={shepherdingGroups} totals={shepherdingTotals} smsMode={smsMode} />
+                <ShepherdingStats groups={shepherdingGroups} totals={shepherdingTotals} smsMode={smsMode} showCommitted={showCommitted} />
               )}
 
               {shepherdingGroups && <GroupList groups={shepherdingGroups} smsMode={smsMode} />}
