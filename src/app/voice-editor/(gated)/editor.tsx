@@ -317,7 +317,7 @@ export default function Editor({ entry, n, total, explicit }: { entry: Entry; n:
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 text-black dark:text-white">
-      <header className="sticky top-0 z-10 border-b border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-950/95 backdrop-blur px-4 pt-[env(safe-area-inset-top)] h-[calc(2.75rem+env(safe-area-inset-top))] flex items-center gap-3">
+      <header className="sticky top-0 z-10 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-4 pt-[env(safe-area-inset-top)] h-[calc(2.75rem+env(safe-area-inset-top))] flex items-center gap-3">
         <p className="flex-1 min-w-0 truncate text-xs text-gray-600 dark:text-gray-400">
           {msg ? (
             <>
@@ -443,7 +443,7 @@ export default function Editor({ entry, n, total, explicit }: { entry: Entry; n:
         })}
 
       </main>
-      <nav className="fixed bottom-0 inset-x-0 z-10 border-t border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-950/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
+      <nav className="fixed bottom-0 inset-x-0 z-10 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 pb-[env(safe-area-inset-bottom)]">
         <div className="max-w-2xl mx-auto flex">
           <button onClick={() => goTo(n - 1)} disabled={n <= 1 || adding} className={navBtn}>
             <span className="text-xl leading-none">←</span>Previous

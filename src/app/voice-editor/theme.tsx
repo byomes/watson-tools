@@ -18,6 +18,17 @@ function stored(): Theme | null {
   }
 }
 
+// Keep the browser-bar color in step with the page. The static per-scheme tags in
+// layout.tsx only follow the OS; when Bill's toggle disagrees with the OS they
+// are replaced by one tag in the chosen color so the bar still matches.
+function syncThemeColor(t: Theme) {
+  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.remove())
+  const meta = document.createElement('meta')
+  meta.name = 'theme-color'
+  meta.content = t === 'dark' ? '#030712' : '#ffffff'
+  document.head.appendChild(meta)
+}
+
 function systemTheme(): Theme {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
@@ -30,6 +41,7 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
     const apply = (t: Theme) => {
       setTheme(t)
       document.documentElement.classList.toggle('dark', t === 'dark')
+      syncThemeColor(t)
     }
     apply(stored() ?? systemTheme())
     const onChange = () => {
@@ -46,6 +58,7 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
     const next: Theme = theme === 'dark' ? 'light' : 'dark'
     setTheme(next)
     document.documentElement.classList.toggle('dark', next === 'dark')
+    syncThemeColor(next)
     try {
       window.localStorage.setItem(KEY, next)
     } catch {
