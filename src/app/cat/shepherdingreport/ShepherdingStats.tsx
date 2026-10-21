@@ -245,7 +245,7 @@ export default function ShepherdingStats({ groups, totals, smsMode, showCommitte
       </div>
 
       {/* Committed row: small group x serving, rolling windows (serving in
-          last 8 wks, small group in last 6 wks; Worship Team counts as
+          last 5 wks, small group in last 3 wks; Worship Team counts as
           both). Opt-in via showCommitted -- only deaconapp-bill passes it
           while Bill evaluates it before the deacons see it. */}
       {showCommitted && (
@@ -254,7 +254,7 @@ export default function ShepherdingStats({ groups, totals, smsMode, showCommitte
             Committed
           </p>
           <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-2">
-            Small group (last 6 wks) and serving (last 8 wks). Worship Team counts as both.
+            Small group (last 3 wks) and serving (last 5 wks). Worship Team counts as both.
           </p>
           <div className="flex gap-2 text-xs font-semibold">
             {([
