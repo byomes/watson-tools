@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { ThemeToggle } from '../theme'
 
 // Voice editor (2026-10-19, writing ministry, not Catalyst): one sentence at a time, approve / speak a
 // rewrite / tap to type. Edits save to this browser (localStorage) and to
@@ -302,6 +303,7 @@ export default function Editor({ entry, n, total }: { entry: Entry; n: number; t
           </span>
         </span>
         <div className="flex gap-2">
+          <ThemeToggle className="rounded-lg px-3 py-2 text-sm bg-gray-200 dark:bg-gray-800 active:scale-95" />
           <button onClick={refresh} className={`${btn} bg-gray-200 dark:bg-gray-800`}>
             ↻ Refresh
           </button>
