@@ -51,7 +51,7 @@ export default function FieldSheet() {
 
   useEffect(() => {
     const local = loadLocal()
-    fetch('/api/cat/scratch/field/state')
+    fetch('/api/chiunited/state')
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => {
         const remote: State | null = j?.state ?? null
@@ -68,7 +68,7 @@ export default function FieldSheet() {
 
   const push = useCallback(async () => {
     try {
-      const r = await fetch('/api/cat/scratch/field/state', {
+      const r = await fetch('/api/chiunited/state', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ state: stateRef.current }),
@@ -112,7 +112,7 @@ export default function FieldSheet() {
       setBusy((b) => b + 1)
       try {
         const content_base64 = await shrink(file)
-        const r = await fetch('/api/cat/scratch/field/photo', {
+        const r = await fetch('/api/chiunited/photo', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ tag: id, content_base64 }),
