@@ -54,6 +54,7 @@ export default function TableAccessBoard() {
   const [db, setDb] = useState<'all' | 'congregation' | 'watson'>('all')
   const [query, setQuery] = useState('')
   const [hideLocked, setHideLocked] = useState(true)
+  const [enforced, setEnforced] = useState<boolean | null>(null)
   // Rows a grant-based filter matched at the moment it was chosen. Without this, ticking a box on a row under "Granted to no one"
   // made it stop matching and vanish mid-click, which read as the check mark disappearing.
   const [snapshot, setSnapshot] = useState<Record<string, boolean>>({})
@@ -69,6 +70,7 @@ export default function TableAccessBoard() {
       if (!res.ok) throw new Error('Could not load tables')
       const data = await res.json()
       setTables(data.tables)
+      setEnforced(Boolean(data.enforced))
       setSavedAt(data.updated_at ?? null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not load tables')
@@ -123,6 +125,33 @@ export default function TableAccessBoard() {
     }
   }
 
+  async function switchEnforcement() {
+    if (enforced === null) return
+    const next = !enforced
+    const ok = window.confirm(
+      next
+        ? 'Turn enforcement ON? From now on team chat only lets each person query the tables their group (leaders, deacons, elders) is granted below. Dr. Bill is never restricted.'
+        : 'Turn enforcement OFF? Team chat goes back to the original shared set of tables for everyone.',
+    )
+    if (!ok) return
+    setSaving((n) => n + 1)
+    try {
+      const res = await fetch('/api/sms/table-access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enforced: next }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Could not change enforcement')
+      setEnforced(next)
+      setError(null)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not change enforcement')
+    } finally {
+      setSaving((n) => n - 1)
+    }
+  }
+
   function apply(changes: Change[]) {
     setTables((prev) =>
       prev
@@ -160,9 +189,32 @@ export default function TableAccessBoard() {
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
         Which Watson tables team-chat questions may read, set separately for leaders, deacons and elders. Each tick saves instantly.
       </p>
-      <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">
-        These choices are recorded now. Team chat starts following them once enforcement is switched on. The SMS message log and anything holding PINs, sessions or tokens is locked and can never be granted.
+      <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
+        The SMS message log and anything holding PINs, sessions or tokens is locked and can never be granted. Someone in two groups gets both groups&apos; access. Dr. Bill is never restricted.
       </p>
+
+      {enforced !== null && (
+        <div
+          className={`flex flex-wrap items-center gap-3 rounded-md border px-3 py-2 mb-4 text-sm ${
+            enforced
+              ? 'border-green-300 bg-green-50 text-green-900 dark:border-green-900 dark:bg-green-950/40 dark:text-green-200'
+              : 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200'
+          }`}
+        >
+          <span className="flex-1 min-w-[12rem]">
+            {enforced
+              ? 'Enforcement is ON. Team chat follows the grants below.'
+              : 'Enforcement is OFF. Your choices are saved, but team chat still uses the original shared tables.'}
+          </span>
+          <button
+            type="button"
+            onClick={switchEnforcement}
+            className="rounded-md border border-current px-3 py-1 text-xs font-semibold"
+          >
+            Turn {enforced ? 'off' : 'on'}
+          </button>
+        </div>
+      )}
 
       {error && (
         <p className="text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-md px-3 py-2 mb-3">
