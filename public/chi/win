@@ -1,0 +1,55 @@
+# ChiUnited read-only system report (Windows). Reads hardware, displays, audio and software versions.
+# Writes ONE text file to the Desktop. Changes nothing, installs nothing, sends nothing.
+# Skips: serial numbers, files, documents, passwords, browser data, WiFi keys.
+$out = Join-Path ([Environment]::GetFolderPath('Desktop')) ("ChiUnited-{0}-report.txt" -f $env:COMPUTERNAME)
+$sb = New-Object System.Text.StringBuilder
+function Sec($t) { [void]$sb.AppendLine(""); [void]$sb.AppendLine("== $t ==") }
+function Add($o) { [void]$sb.AppendLine(($o | Out-String -Width 200).TrimEnd()) }
+
+Sec "Report"
+Add ("Computer: {0}   Date: {1}" -f $env:COMPUTERNAME, (Get-Date -Format s))
+
+Sec "OS and hardware"
+$os = Get-CimInstance Win32_OperatingSystem
+$cs = Get-CimInstance Win32_ComputerSystem
+Add ("{0} {1} build {2}" -f $os.Caption, $os.OSArchitecture, $os.BuildNumber)
+Add ("Make/model: {0} {1}" -f $cs.Manufacturer, $cs.Model)
+Add ("CPU: {0}" -f (Get-CimInstance Win32_Processor | Select-Object -First 1 -ExpandProperty Name))
+Add ("RAM: {0} GB" -f [math]::Round($cs.TotalPhysicalMemory/1GB,1))
+Add ("Uptime since: {0}" -f $os.LastBootUpTime)
+Get-CimInstance Win32_LogicalDisk -Filter "DriveType=3" | ForEach-Object { Add ("Disk {0} {1} GB free of {2} GB" -f $_.DeviceID, [math]::Round($_.FreeSpace/1GB), [math]::Round($_.Size/1GB)) }
+
+Sec "Graphics"
+Get-CimInstance Win32_VideoController | ForEach-Object { Add ("{0}  driver {1}  mode {2}x{3} @ {4} Hz" -f $_.Name, $_.DriverVersion, $_.CurrentHorizontalResolution, $_.CurrentVerticalResolution, $_.CurrentRefreshRate) }
+
+Sec "Monitors (from EDID, no serials)"
+try {
+  Get-CimInstance -Namespace root\wmi -ClassName WmiMonitorID -ErrorAction Stop | ForEach-Object {
+    $mfr = -join ($_.ManufacturerName | Where-Object { $_ -ne 0 } | ForEach-Object { [char]$_ })
+    $name = -join ($_.UserFriendlyName | Where-Object { $_ -ne 0 } | ForEach-Object { [char]$_ })
+    $prod = -join ($_.ProductCodeID | Where-Object { $_ -ne 0 } | ForEach-Object { [char]$_ })
+    Add ("Monitor: maker {0}  name '{1}'  product {2}  made {3}" -f $mfr, $name, $prod, $_.YearOfManufacture)
+  }
+} catch { Add "Could not read monitor EDID." }
+Add "Desktop size per screen:"
+Add-Type -AssemblyName System.Windows.Forms
+[System.Windows.Forms.Screen]::AllScreens | ForEach-Object { Add ("{0}  {1}x{2}  primary={3}" -f $_.DeviceName, $_.Bounds.Width, $_.Bounds.Height, $_.Primary) }
+
+Sec "Audio and MIDI devices"
+Get-CimInstance Win32_SoundDevice | ForEach-Object { Add ("{0}  ({1})  status {2}" -f $_.Name, $_.Manufacturer, $_.Status) }
+
+Sec "Cameras and capture devices"
+Get-PnpDevice -Class Camera,Image -ErrorAction SilentlyContinue | ForEach-Object { Add ("{0}  [{1}]" -f $_.FriendlyName, $_.Status) }
+
+Sec "Network (no WiFi keys)"
+Get-NetIPConfiguration | Where-Object { $_.IPv4Address } | ForEach-Object { Add ("{0}: {1}  gateway {2}" -f $_.InterfaceAlias, $_.IPv4Address.IPAddress, ($_.IPv4DefaultGateway.NextHop)) }
+Get-NetAdapter | Where-Object Status -eq 'Up' | ForEach-Object { Add ("{0}  {1}  link {2}" -f $_.Name, $_.InterfaceDescription, $_.LinkSpeed) }
+
+Sec "Relevant software and versions"
+$keys = 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*','HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*','HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*'
+Get-ItemProperty $keys -ErrorAction SilentlyContinue |
+  Where-Object { $_.DisplayName -match 'ProPresenter|OBS|Companion|NDI|X.?AIR|Behringer|ATEM|Blackmagic|Stream ?Deck|Elgato|MultiTracks|Playback|Planning|Dante|ASIO|loopMIDI|rtpMIDI|RPT|MIDI|VB-|Voicemeeter|Resolume|vMix|Reaper|Ableton|Zoom|Chrome|Firefox' } |
+  Sort-Object DisplayName -Unique | ForEach-Object { Add ("{0}  {1}" -f $_.DisplayName, $_.DisplayVersion) }
+
+$sb.ToString() | Set-Content -Path $out -Encoding UTF8
+Write-Host "Done. Report saved to: $out"

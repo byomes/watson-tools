@@ -1,0 +1,34 @@
+#!/bin/bash
+# ChiUnited read-only system report (macOS). Reads hardware, displays, audio and software versions.
+# Writes ONE text file to the Desktop. Changes nothing, installs nothing, sends nothing.
+# Skips: serial numbers, hardware UUIDs, files, documents, passwords, browser data, WiFi keys.
+OUT="$HOME/Desktop/ChiUnited-$(scutil --get LocalHostName 2>/dev/null || hostname -s)-report.txt"
+{
+echo "== Report =="; echo "Computer: $(hostname -s)   Date: $(date '+%Y-%m-%dT%H:%M:%S')"
+echo; echo "== OS =="; sw_vers
+echo; echo "== Hardware (no serial/UUID) =="
+system_profiler SPHardwareDataType 2>/dev/null | grep -v -i -E "serial|uuid|provisioning|hardware overview"
+echo; echo "== Displays =="
+system_profiler SPDisplaysDataType 2>/dev/null | grep -v -i -E "serial"
+echo; echo "== Audio devices =="
+system_profiler SPAudioDataType 2>/dev/null
+echo; echo "== USB devices (no serials) =="
+system_profiler SPUSBDataType 2>/dev/null | grep -v -i -E "serial"
+echo; echo "== Cameras =="
+system_profiler SPCameraDataType 2>/dev/null
+echo; echo "== Disk =="; df -h / | tail -1
+echo; echo "== Network (no WiFi keys) =="
+for i in $(networksetup -listallhardwareports 2>/dev/null | awk '/Device:/{print $2}'); do
+  ip=$(ipconfig getifaddr "$i" 2>/dev/null); [ -n "$ip" ] && echo "$i  $ip  gateway $(route -n get default 2>/dev/null | awk '/gateway:/{print $2}')"
+done
+echo; echo "== Relevant software and versions =="
+for app in /Applications/*.app /Applications/*/*.app "$HOME"/Applications/*.app; do
+  [ -d "$app" ] || continue
+  n=$(basename "$app" .app)
+  if echo "$n" | grep -q -i -E "propresenter|obs|companion|ndi|x.?air|behringer|atem|blackmagic|stream ?deck|elgato|multitracks|playback|planning|midi|rtp|loopback|blackhole|soundflower|zoom|chrome|firefox|safari|resolume|vmix|reaper|ableton|logic|keynote|powerpoint"; then
+    v=$(defaults read "$app/Contents/Info" CFBundleShortVersionString 2>/dev/null)
+    echo "$n  $v"
+  fi
+done
+} > "$OUT" 2>&1
+echo "Done. Report saved to: $OUT"
