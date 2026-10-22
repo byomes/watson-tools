@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { logoutAction } from '../actions'
 import UploadForm from './UploadForm'
+import PasteBox from './PasteBox'
 
 export const metadata: Metadata = {
   title: 'Upload',
@@ -22,6 +23,7 @@ export default function UploadPage() {
           </form>
         </div>
         <UploadForm />
+        <PasteBox />
       </div>
     </div>
   )
