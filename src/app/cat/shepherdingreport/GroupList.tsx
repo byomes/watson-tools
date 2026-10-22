@@ -219,7 +219,7 @@ export default function GroupList({ groups, smsMode }: { groups: Group[]; smsMod
 
       {groups.map((group) => {
         const flagged = group.members.filter((m) => m.bucket === 'at_risk' || m.bucket === 'critical' || m.bucket === 'disconnected').length
-        const initialOpen = bulk ? bulk.open : flagged > 0
+        const initialOpen = bulk ? bulk.open : false
         return (
           <details
             key={bulk ? `${group.name}-${bulk.gen}` : group.name}
