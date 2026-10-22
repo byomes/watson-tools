@@ -4,8 +4,7 @@ import { watsonFetch } from '@/lib/watson'
 
 // Pasted text from the upload page. Same session check as ../route.ts; the body is never logged here.
 export async function POST(req: NextRequest) {
-  // Pasted text (logins etc.) is accepted on the tailnet-only instance, never on the public deployment.
-  if (process.env.VERCEL) return NextResponse.json({ error: 'not available here' }, { status: 403 })
+  // Write-only: text is appended to a locked file on the Beelink and never read back by this route.
   if (!(await requireUploadSession())) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }

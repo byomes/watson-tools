@@ -37,6 +37,7 @@ export default function PasteBox() {
   return (
     <form onSubmit={save} className="space-y-3 mt-10 pt-6 border-t border-gray-200 dark:border-gray-800">
       <p className="text-sm font-medium text-black dark:text-white">Paste text</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400">Saved to a private file on Watson. It is not shown again here.</p>
       <input
         type="text"
         value={label}
@@ -50,13 +51,13 @@ export default function PasteBox() {
         value={text}
         onChange={(e) => setText(e.target.value)}
         disabled={pending}
-        rows={6}
+        rows={9}
         placeholder="Paste anything here"
         autoComplete="off"
         autoCorrect="off"
         autoCapitalize="off"
         spellCheck={false}
-        className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-black dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+        className="block w-full min-h-48 resize-y rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-black dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
       />
       {status && <p className="text-sm text-gray-600 dark:text-gray-300">{status}</p>}
       <button

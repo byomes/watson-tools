@@ -23,7 +23,7 @@ export default function UploadPage() {
           </form>
         </div>
         <UploadForm />
-        {!process.env.VERCEL && <PasteBox />}
+        <PasteBox />
       </div>
     </div>
   )
