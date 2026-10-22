@@ -10,8 +10,14 @@ export const metadata: Metadata = {
 
 export const dynamic = 'force-dynamic'
 
-export default async function ChiUnitedLoginPage() {
-  if (await isLoggedIn()) redirect('/chiunited')
+export default async function ChiUnitedLoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>
+}) {
+  const { next } = await searchParams
+  const dest = next === '/chi/notes' ? next : '/chiunited'
+  if (await isLoggedIn()) redirect(dest)
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 flex items-center justify-center px-8">
@@ -20,7 +26,7 @@ export default async function ChiUnitedLoginPage() {
           ChiUnited Field Sheet
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-8">Enter the PIN</p>
-        <PinPad />
+        <PinPad next={dest} />
       </div>
     </div>
   )

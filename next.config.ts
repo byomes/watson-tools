@@ -7,7 +7,7 @@ import type { NextConfig } from "next";
 // explains how to reach them; the same repo built on the Beelink serves
 // the real pages (VERCEL is unset there, so no redirects).
 // /books and /ged join this list once their PINs are set on the private instance.
-const PRIVATE_PATHS = ["/upload", "/voice-editor", "/kitfy"];
+const PRIVATE_PATHS = ["/upload", "/voice-editor", "/kitfy", "/chi"];
 
 const nextConfig: NextConfig = {
   async redirects() {

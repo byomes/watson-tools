@@ -5,7 +5,7 @@ import { loginAction } from '../actions'
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'back']
 
-export default function PinPad() {
+export default function PinPad({ next }: { next?: string }) {
   const [pin, setPin] = useState('')
   const [state, formAction, pending] = useActionState(loginAction, undefined)
   const formRef = useRef<HTMLFormElement>(null)
@@ -45,6 +45,7 @@ export default function PinPad() {
   return (
     <form ref={formRef} action={formAction}>
       <input type="hidden" name="pin" value={pin} />
+      <input type="hidden" name="next" value={next ?? ''} />
       <div className="flex justify-center gap-3 mb-6">
         {[0, 1, 2, 3].map((i) => (
           <div

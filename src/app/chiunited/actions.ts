@@ -9,7 +9,8 @@ export async function loginAction(_prevState: LoginState, formData: FormData): P
   const pin = String(formData.get('pin') ?? '')
   if (!checkPin(pin)) return { error: 'Wrong PIN' }
   await createSession()
-  redirect('/chiunited')
+  const next = String(formData.get('next') ?? '')
+  redirect(next === '/chi/notes' ? next : '/chiunited')
 }
 
 export async function logoutAction() {
