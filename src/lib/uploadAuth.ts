@@ -13,7 +13,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 // though its *value* happens to match SMS_APP_PIN by Bill's own choice.
 
 const COOKIE_NAME = 'upload_session'
-const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000 // 30 days -- personal page, not a bank
+const SESSION_TTL_MS = 60 * 60 * 1000 // 1 hour, then the PIN is asked again (Bill, 2026-10-22; page is public)
 
 function authSecret(): string {
   const secret = process.env.AUTH_SECRET
