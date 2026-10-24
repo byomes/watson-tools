@@ -3,14 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#faf7f2" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#161412" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#faf7f2">
+<meta name="color-scheme" content="light">
 <meta name="robots" content="noindex">
 <title>ChiUnited Tech Training</title>
 <style>
-:root{--bg:#faf7f2;--fg:#1f1b16;--mut:#6b6359;--ac:#1f5f8b;--ac2:#2f6f5e;--card:#ffffff;--line:#ddd5c8;--warn:#fff4d6;--warnl:#d9b44a}
-html.dark{--bg:#161412;--fg:#f1ece4;--mut:#a39a8e;--ac:#7fb8e0;--ac2:#6fc2a9;--card:#201d1a;--line:#3a352f;--warn:#2d2610;--warnl:#8a6d1c}
-@media(prefers-color-scheme:dark){html:not(.light){--bg:#161412;--fg:#f1ece4;--mut:#a39a8e;--ac:#7fb8e0;--ac2:#6fc2a9;--card:#201d1a;--line:#3a352f;--warn:#2d2610;--warnl:#8a6d1c}}
+:root{color-scheme:light;--bg:#faf7f2;--fg:#1f1b16;--mut:#6b6359;--ac:#1f5f8b;--ac2:#2f6f5e;--card:#ffffff;--line:#ddd5c8;--warn:#fff4d6;--warnl:#d9b44a}
 *{box-sizing:border-box}
 html,body{background:var(--bg);color:var(--fg)}
 body{margin:0;font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -58,15 +56,17 @@ dl dt{font-weight:700;margin-top:.6rem}
 dl dd{margin:0 0 0 0;color:var(--fg)}
 footer{margin-top:3rem;color:var(--mut);font-size:.9rem;border-top:1px solid var(--line);padding-top:12px}
 .flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:.5rem 0}
-.node{border:2px solid var(--ac);border-radius:10px;padding:6px 10px;background:var(--card);font-weight:600}
+.node{white-space:nowrap;border:2px solid var(--ac);border-radius:10px;padding:6px 10px;background:var(--card);font-weight:600}
+.flowgrid{display:grid;grid-template-columns:repeat(11,auto);justify-content:start;align-items:center;gap:4px 4px;overflow-x:auto;padding-bottom:4px}
+.flowgrid .arr{text-align:center;font-size:1rem}
+.flowgrid .node{padding:5px 8px;font-size:.88rem}
+.pic{display:block;max-width:360px;width:100%;height:auto;margin:.6rem auto;border-radius:8px;background:#fff}
 .arr{color:var(--ac2);font-weight:700;font-size:1.2rem}
-table.ws td{height:2rem}
 .printonly{display:none}
 @page{size:8.5in 11in;margin:.6in .6in .7in}
 @media print{
  html,body{background:#fff!important;color:#000!important}
- :root,html.dark{--bg:#fff;--fg:#000;--mut:#444;--ac:#1f4e75;--ac2:#1f4e3d;--card:#fff;--line:#999;--warn:#f3f3f3;--warnl:#777}
- body{font-size:10pt;line-height:1.35}
+ :root, body{font-size:10pt;line-height:1.35}
  .wrap{max-width:none;padding:0}
  .noprint,nav.toc,.bar{display:none!important}
  .printonly{display:block}
@@ -75,8 +75,10 @@ table.ws td{height:2rem}
  h2{font-size:15pt;break-after:avoid;margin-top:1.1rem}
  h3{break-after:avoid}
  h2.pb{break-before:page;border-top:none}
- #exercise{break-before:page}
+ 
  svg.matrix{max-width:470px!important}
+ .pic{max-width:300px}
+ .flowgrid{overflow:visible}
  .card,.note,table,svg,li{break-inside:avoid}
  .grid{grid-template-columns:1fr 1fr;gap:8px}
  .card{padding:8px 10px;margin:8px 0}
@@ -85,9 +87,6 @@ table.ws td{height:2rem}
  dl dt{break-after:avoid}
 }
 </style>
-<script>
-(function(){try{var t=localStorage.getItem('chitrain-theme');if(t==='dark')document.documentElement.classList.add('dark');else if(t==='light')document.documentElement.classList.add('light');}catch(e){}})();
-</script>
 </head>
 <body>
 <div class="wrap">
@@ -95,10 +94,10 @@ table.ws td{height:2rem}
 <header class="top">
   <p class="sub">ChiUnited Church &middot; Tech Ministry &middot; Saturday, October 24, 2026, 2 to 5 PM</p>
   <h1>Church Tech 101</h1>
+  <p style="margin:0 0 6px;font-weight:600">Prepared by Dr. Bill Yomes</p>
   <p class="sub">Session one: why church tech exists, a right strategy for it, and how to read a signal chain.</p>
   <div class="bar noprint">
     <a class="btn" href="/chi-train/ChiUnited-Tech-Training.pdf" download>Download PDF (print on 8.5 x 11)</a>
-    <button class="btn alt" id="themeBtn" type="button">Dark / light</button>
   </div>
   <nav class="toc noprint">
     <a href="#t101">Church Tech 101</a>
@@ -107,7 +106,7 @@ table.ws td{height:2rem}
   </nav>
 </header>
 
-<p class="sub" id="t101">Dr. Bill Yomes</p>
+<span id="t101"></span>
 
 <h3>I. What is the purpose of church tech?</h3>
 <ol type="A">
@@ -179,13 +178,13 @@ table.ws td{height:2rem}
 </ol>
 <div class="card"><h3>Example: a solo guitar player</h3>
 <div class="flow"><span class="node">Source: guitar</span><span class="arr">&rarr;</span><span class="node">Cable</span><span class="arr">&rarr;</span><span class="node">Amplifier</span><span class="arr">&rarr;</span><span class="node">Endpoint: speaker in the amp</span></div>
+<img class="pic" src="/chi-train/signal-chain-guitar.png" alt="A guitar player (source) connected by a cable (signal chain) to an amplifier (endpoint)">
 <p>Even this small setup has a source, a chain and an endpoint. A church system is the same idea with more links.</p></div>
 
 <h3>Signal chains at ChiUnited</h3>
 <div class="card"><h3>1. The audio chain (basic)</h3>
-<div class="flow"><span class="node">Source</span><span class="arr">&rarr;</span><span class="node">Cables</span><span class="arr">&rarr;</span><span class="node">Sound board</span><span class="arr">&rarr;</span><span class="node">Amplifier</span><span class="arr">&rarr;</span><span class="node">Speakers</span></div>
-<p>The sound board also sends a second feed, to the livestream:</p>
-<div class="flow"><span class="node">Sound board</span><span class="arr">&rarr;</span><span class="node">Video input box</span><span class="arr">&rarr;</span><span class="node">Computer</span><span class="arr">&rarr;</span><span class="node">Livestream</span></div>
+<div class="flowgrid"><span class="node" style="grid-row:1;grid-column:1">Source</span><span class="arr" style="grid-row:1;grid-column:2">&rarr;</span><span class="node" style="grid-row:1;grid-column:3">Cables</span><span class="arr" style="grid-row:1;grid-column:4">&rarr;</span><span class="node" style="grid-row:1;grid-column:5">Sound board</span><span class="arr" style="grid-row:1;grid-column:6">&rarr;</span><span class="node" style="grid-row:1;grid-column:7">Amplifier</span><span class="arr" style="grid-row:1;grid-column:8">&rarr;</span><span class="node" style="grid-row:1;grid-column:9">Speakers</span><span class="arr" style="grid-row:2;grid-column:5">&darr;</span><span class="node" style="grid-row:3;grid-column:5">Sound board</span><span class="arr" style="grid-row:3;grid-column:6">&rarr;</span><span class="node" style="grid-row:3;grid-column:7">Video input box</span><span class="arr" style="grid-row:3;grid-column:8">&rarr;</span><span class="node" style="grid-row:3;grid-column:9">Computer</span><span class="arr" style="grid-row:3;grid-column:10">&rarr;</span><span class="node" style="grid-row:3;grid-column:11">Livestream</span></div>
+<p class="sub">The sound board splits: one path to the room, one to the livestream.</p>
 </div>
 <div class="card"><h3>2. The video chain (basic)</h3>
 <div class="flow"><span class="node">Cameras</span><span class="arr">&rarr;</span><span class="node">Video input box</span><span class="arr">&rarr;</span><span class="node">Computer</span><span class="arr">&rarr;</span><span class="node">Livestream</span></div>
@@ -194,7 +193,13 @@ table.ws td{height:2rem}
 <p>The lyrics computer sends to three places:</p>
 <div class="flow"><span class="node">Computer</span><span class="arr">&rarr;</span><span class="node">Two congregation screens</span></div><div class="flow"><span class="node">Computer</span><span class="arr">&rarr;</span><span class="node">Confidence monitor</span></div><div class="flow"><span class="node">Computer</span><span class="arr">&rarr;</span><span class="node">Video input box</span><span class="arr">&rarr;</span><span class="node">Computer</span><span class="arr">&rarr;</span><span class="node">Livestream</span></div>
 </div>
-<p class="sub">At ChiUnited the "sound board" is the Behringer XR18, the "video input box" is the Blackmagic ATEM Mini Pro, and the livestream computer is the Mac mini running OBS.</p>
+<div class="card"><h3>The devices at ChiUnited</h3>
+<ul>
+<li><strong>Sound board:</strong> the Behringer XR18.</li>
+<li><strong>Video input box:</strong> the Blackmagic ATEM Mini Pro.</li>
+<li><strong>Livestream computer:</strong> the Mac mini, running OBS.</li>
+<li><strong>Lyrics computer:</strong> the gaming PC, running ProPresenter.</li>
+</ul></div>
 
 <h3 id="exercise">IV. The exercise: signal chain discovery</h3>
 <p>Each team member goes to their usual spot. Then we call out numbers from source to endpoint, tracing the signal chains through the sanctuary. This gives every team member a better understanding of where they are in the chain and how the tech as a whole serves the church.</p>
@@ -204,41 +209,11 @@ table.ws td{height:2rem}
 <li>Call the numbers in order, link by link, until the endpoint.</li>
 <li>Repeat for the audio, video and lyrics chains. Note where a chain splits.</li>
 </ol>
-<p class="wsintro"><strong>Worksheet.</strong> Fill it in as the numbers are called.</p>
-<div class="tablewrap"><table class="ws">
-<tr><th>Chain</th><th>#</th><th>Station</th><th>Who is here</th><th>What comes in</th><th>What goes out</th></tr>
-<tr><td rowspan="5">Audio</td><td>1</td><td>Source (mic, instrument)</td><td></td><td></td><td></td></tr>
-<tr><td>2</td><td>Cables, stage box, snake</td><td></td><td></td><td></td></tr>
-<tr><td>3</td><td>Sound board</td><td></td><td></td><td></td></tr>
-<tr><td>4</td><td>Amplifier</td><td></td><td></td><td></td></tr>
-<tr><td>5</td><td>Speakers</td><td></td><td></td><td></td></tr>
-<tr><td rowspan="3">Audio to stream</td><td>3b</td><td>Sound board to video input box</td><td></td><td></td><td></td></tr>
-<tr><td>4b</td><td>Video input box to computer</td><td></td><td></td><td></td></tr>
-<tr><td>5b</td><td>Livestream</td><td></td><td></td><td></td></tr>
-<tr><td rowspan="4">Video</td><td>1</td><td>Cameras</td><td></td><td></td><td></td></tr>
-<tr><td>2</td><td>Video input box</td><td></td><td></td><td></td></tr>
-<tr><td>3</td><td>Computer</td><td></td><td></td><td></td></tr>
-<tr><td>4</td><td>Livestream</td><td></td><td></td><td></td></tr>
-<tr><td rowspan="6">Lyrics</td><td>1</td><td>Lyrics computer</td><td></td><td></td><td></td></tr>
-<tr><td>2a</td><td>Congregation screens</td><td></td><td></td><td></td></tr>
-<tr><td>2b</td><td>Confidence monitor</td><td></td><td></td><td></td></tr>
-<tr><td>2c</td><td>Video input box</td><td></td><td></td><td></td></tr>
-<tr><td>3c</td><td>Computer</td><td></td><td></td><td></td></tr>
-<tr><td>4c</td><td>Livestream</td><td></td><td></td><td></td></tr>
-</table></div>
 
 <footer>
   <p>Prepared for the ChiUnited tech team by Dr. Bill Yomes. Version of Friday, October 23, 2026.</p>
   <p class="printonly">Live version: wtsn.me/chi/train</p>
 </footer>
 </div>
-<script>
-document.getElementById('themeBtn').addEventListener('click',function(){
-  var h=document.documentElement;
-  var dark=h.classList.contains('dark')||(!h.classList.contains('light')&&matchMedia('(prefers-color-scheme: dark)').matches);
-  h.classList.toggle('dark',!dark);h.classList.toggle('light',dark);
-  try{localStorage.setItem('chitrain-theme',dark?'light':'dark');}catch(e){}
-});
-</script>
 </body>
 </html>
