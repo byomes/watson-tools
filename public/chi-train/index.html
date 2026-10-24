@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#faf7f2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#161412" media="(prefers-color-scheme: dark)">
+<meta name="robots" content="noindex">
+<title>ChiUnited Tech Training</title>
+<style>
+:root{--bg:#faf7f2;--fg:#1f1b16;--mut:#6b6359;--ac:#1f5f8b;--ac2:#2f6f5e;--card:#ffffff;--line:#ddd5c8;--warn:#fff4d6;--warnl:#d9b44a}
+html.dark{--bg:#161412;--fg:#f1ece4;--mut:#a39a8e;--ac:#7fb8e0;--ac2:#6fc2a9;--card:#201d1a;--line:#3a352f;--warn:#2d2610;--warnl:#8a6d1c}
+@media(prefers-color-scheme:dark){html:not(.light){--bg:#161412;--fg:#f1ece4;--mut:#a39a8e;--ac:#7fb8e0;--ac2:#6fc2a9;--card:#201d1a;--line:#3a352f;--warn:#2d2610;--warnl:#8a6d1c}}
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--fg)}
+body{margin:0;font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:860px;margin:0 auto;padding:20px 16px 60px}
+header.top{padding:28px 0 8px}
+h1{font-size:2rem;line-height:1.15;margin:0 0 6px}
+h2{font-size:1.45rem;margin:2.2rem 0 .6rem;padding-top:.4rem;border-top:3px solid var(--ac)}
+h3{font-size:1.1rem;margin:1.4rem 0 .4rem;color:var(--ac)}
+p{margin:.5rem 0}
+.sub{color:var(--mut);margin:0}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:16px 0 4px}
+.btn{display:inline-block;background:var(--ac);color:var(--bg);padding:12px 20px;border-radius:12px;font-weight:700;text-decoration:none;border:0;font-size:1rem;cursor:pointer}
+.btn.alt{background:transparent;color:var(--ac);border:2px solid var(--ac)}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+nav.toc a{font-size:.9rem;padding:6px 12px;border:1px solid var(--line);border-radius:999px;color:var(--fg);text-decoration:none;background:var(--card)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:12px 0;break-inside:avoid}
+.card h3{margin:0 0 .3rem}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:640px){.grid{grid-template-columns:1fr}}
+.tag{display:inline-block;font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:var(--ac);color:var(--bg);vertical-align:middle}
+.tag.core{background:var(--ac2)}
+.note{background:var(--warn);border-left:5px solid var(--warnl);padding:10px 14px;border-radius:8px;margin:12px 0;break-inside:avoid}
+ul,ol{padding-left:1.3rem;margin:.4rem 0}
+li{margin:.25rem 0}
+ul.check,ol.check{list-style:none;padding-left:0}
+ul.check li,ol.check li{padding-left:1.8rem;position:relative}
+ul.check li::before,ol.check li::before{content:"\2610";position:absolute;left:0;top:0;font-size:1.15rem}
+ol.check{counter-reset:s}
+table{border-collapse:collapse;width:100%;margin:.6rem 0;font-size:.95rem}
+th,td{border:1px solid var(--line);padding:6px 9px;text-align:left;vertical-align:top}
+th{background:var(--card)}
+.tablewrap{overflow-x:auto}
+svg{width:100%;height:auto;display:block}
+svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;fill:var(--fg)}
+svg .box{fill:var(--card);stroke:var(--ac);stroke-width:2.5}
+svg .hub{fill:var(--ac);stroke:var(--ac)}
+svg .hub text{fill:var(--bg)}
+svg .dash{fill:none;stroke:var(--mut);stroke-width:2;stroke-dasharray:7 5}
+svg .ln{stroke:var(--fg);stroke-width:2.5;fill:none}
+svg .ln2{stroke:var(--ac2);stroke-width:2.5;fill:none}
+svg .sm{font-size:13px;fill:var(--mut)}
+svg .md{font-size:16px;font-weight:700}
+svg .lab{font-size:13px;font-weight:700;fill:var(--ac2)}
+dl dt{font-weight:700;margin-top:.6rem}
+dl dd{margin:0 0 0 0;color:var(--fg)}
+footer{margin-top:3rem;color:var(--mut);font-size:.9rem;border-top:1px solid var(--line);padding-top:12px}
+.printonly{display:none}
+@page{size:8.5in 11in;margin:.6in .6in .7in}
+@media print{
+ html,body{background:#fff!important;color:#000!important}
+ :root,html.dark{--bg:#fff;--fg:#000;--mut:#444;--ac:#1f4e75;--ac2:#1f4e3d;--card:#fff;--line:#999;--warn:#f3f3f3;--warnl:#777}
+ body{font-size:10pt;line-height:1.35}
+ .wrap{max-width:none;padding:0}
+ .noprint,nav.toc,.bar{display:none!important}
+ .printonly{display:block}
+ header.top{padding:0 0 6px}
+ h1{font-size:22pt}
+ h2{font-size:15pt;break-after:avoid;margin-top:1.1rem}
+ h3{break-after:avoid}
+ h2.pb{break-before:page;border-top:none}
+ .card,.note,table,svg,li{break-inside:avoid}
+ .grid{grid-template-columns:1fr 1fr;gap:8px}
+ .card{padding:8px 10px;margin:8px 0}
+ a{color:#000;text-decoration:none}
+ footer{font-size:8.5pt;break-inside:avoid;margin-top:1.2rem}
+ dl dt{break-after:avoid}
+}
+</style>
+<script>
+(function(){try{var t=localStorage.getItem('chitrain-theme');if(t==='dark')document.documentElement.classList.add('dark');else if(t==='light')document.documentElement.classList.add('light');}catch(e){}})();
+</script>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <p class="sub">ChiUnited Church &middot; Tech Ministry &middot; Saturday, October 24, 2026, 2 to 5 PM</p>
+  <h1>Tech Team Training Guide</h1>
+  <p class="sub">How the sound, lyrics and live stream fit together, how to run them on Sunday, and what to check when something goes wrong.</p>
+  <div class="bar noprint">
+    <a class="btn" href="/chi-train/ChiUnited-Tech-Training.pdf" download>Download PDF (print on 8.5 x 11)</a>
+    <button class="btn alt" id="themeBtn" type="button">Dark / light</button>
+  </div>
+  <nav class="toc noprint">
+    <a href="#agenda">Today</a>
+    <a href="#chain">Big picture</a>
+    <a href="#gear">The gear</a>
+    <a href="#sunday">Sunday checklists</a>
+    <a href="#sound">Sound basics</a>
+    <a href="#stream">Streaming</a>
+    <a href="#fix">When it breaks</a>
+    <a href="#core">Core team</a>
+    <a href="#backup">Backups</a>
+    <a href="#words">Glossary</a>
+  </nav>
+</header>
+
+<h2 id="agenda">Today at a glance</h2>
+<p>Two groups are in the room, so this guide has two layers. Everyone starts with the same big picture. Then the paths split.</p>
+<div class="grid">
+  <div class="card"><span class="tag">New volunteers</span>
+    <h3>Understand it and run Sunday with confidence</h3>
+    <p>The goal is simple: no part of the system should feel mysterious or scary. You learn what each piece does, in what order it is turned on, and what to check first if something is off.</p>
+    <p>Read: Big picture, The gear, Sunday checklists, Sound basics, Streaming, When it breaks.</p>
+  </div>
+  <div class="card"><span class="tag core">Core team</span>
+    <h3>Fix the hard, one-off problems</h3>
+    <p>Lyric cues that do not fire, the Planning Center to Playback link, version drift between computers, and keeping good backups.</p>
+    <p>Read: Core team and Backups, after the basics.</p>
+  </div>
+</div>
+<h3>Suggested schedule</h3>
+<div class="tablewrap"><table>
+<tr><th>Time</th><th>Block</th></tr>
+<tr><td>2:00</td><td>Welcome. Walk the signal chain on the whiteboard, then in the room.</td></tr>
+<tr><td>2:20</td><td>Tour the rack, stage and booth. Everyone touches every piece once.</td></tr>
+<tr><td>2:50</td><td>Hands-on: power up, load the Sunday snapshot, check mics, bring up lyrics.</td></tr>
+<tr><td>3:30</td><td>Break</td></tr>
+<tr><td>3:40</td><td>Streaming walk-through: ATEM, OBS, Restream, chat, start and stop.</td></tr>
+<tr><td>4:10</td><td>Split. New volunteers practice the full Sunday run. Core team works the lyric cue and Planning Center problems.</td></tr>
+<tr><td>4:45</td><td>Back-ups, who to call, questions.</td></tr>
+</table></div>
+
+<h2 id="chain">The big picture: follow the signal</h2>
+<p>Sound is a path. It starts at a source, passes through the mixer, and leaves in two directions: to the people in the room, and to the people watching online. When anything goes wrong, walk this path from the left, one step at a time, until you find where the sound stops.</p>
+
+<svg viewBox="0 0 900 430" role="img" aria-label="Signal chain diagram: stage sources into the Behringer XR18 mixer, then to amplifiers and speakers for the room, and to the ATEM, Mac mini and OBS for the live stream.">
+  <defs>
+    <marker id="ar" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker>
+  </defs>
+  <g style="color:var(--fg)">
+  <rect class="box" x="10" y="40" width="190" height="290" rx="12"/>
+  <text class="md" x="105" y="68" text-anchor="middle">1. SOURCES</text>
+  <text class="sm" x="105" y="92" text-anchor="middle">What makes sound</text>
+  <text x="105" y="128" text-anchor="middle">Wireless mics 1 to 4</text>
+  <text x="105" y="152" text-anchor="middle">Choir mics (left, right)</text>
+  <text x="105" y="176" text-anchor="middle">Roland piano</text>
+  <text x="105" y="200" text-anchor="middle">Other instruments</text>
+  <text x="105" y="224" text-anchor="middle">Playback iPad tracks</text>
+  <text class="sm" x="105" y="262" text-anchor="middle">Cables run along the stage</text>
+  <text class="sm" x="105" y="280" text-anchor="middle">to the stage box and snake</text>
+  <text class="sm" x="105" y="298" text-anchor="middle">to the rack at the back</text>
+
+  <line class="ln" x1="200" y1="185" x2="262" y2="185" marker-end="url(#ar)"/>
+
+  <rect class="hub" x="265" y="115" width="190" height="140" rx="12"/>
+  <text class="md" x="360" y="152" text-anchor="middle">2. THE MIXER</text>
+  <text x="360" y="178" text-anchor="middle">Behringer XR18</text>
+  <text x="360" y="200" text-anchor="middle" style="font-size:13px">Each source gets a channel.</text>
+  <text x="360" y="218" text-anchor="middle" style="font-size:13px">Run from the House iPad</text>
+  <text x="360" y="236" text-anchor="middle" style="font-size:13px">(X AIR app)</text>
+
+  <path class="ln" d="M455 150 L500 150 L500 90 L525 90" marker-end="url(#ar)"/>
+  <text class="sm" x="462" y="140">Main L/R</text>
+
+  <rect class="box" x="528" y="45" width="150" height="90" rx="12"/>
+  <text class="md" x="603" y="75" text-anchor="middle">3. AMPLIFIERS</text>
+  <text x="603" y="98" text-anchor="middle" style="font-size:13px">Behringer NX1000</text>
+  <text x="603" y="116" text-anchor="middle" style="font-size:13px">Crown CDi 600</text>
+
+  <line class="ln" x1="678" y1="90" x2="712" y2="90" marker-end="url(#ar)"/>
+
+  <rect class="box" x="715" y="45" width="175" height="90" rx="12"/>
+  <text class="md" x="802" y="75" text-anchor="middle">4. THE ROOM</text>
+  <text x="802" y="98" text-anchor="middle" style="font-size:13px">Speakers and subwoofer</text>
+  <text x="802" y="116" text-anchor="middle" style="font-size:13px">What the church hears</text>
+
+  <path class="ln2" d="M455 225 L500 225 L500 290 L525 290" marker-end="url(#ar)"/>
+  <text class="lab" x="462" y="248">Stream bus</text>
+  <text class="sm" x="462" y="264">(confirm Sat.)</text>
+
+  <rect class="box" x="528" y="245" width="112" height="90" rx="12" style="stroke:var(--ac2)"/>
+  <text class="md" x="584" y="275" text-anchor="middle">ATEM</text>
+  <text x="584" y="296" text-anchor="middle" style="font-size:13px">Mini Pro</text>
+  <text x="584" y="314" text-anchor="middle" style="font-size:13px">video + audio</text>
+
+  <line class="ln2" x1="640" y1="290" x2="662" y2="290" marker-end="url(#ar)"/>
+
+  <rect class="box" x="665" y="245" width="100" height="90" rx="12" style="stroke:var(--ac2)"/>
+  <text class="md" x="715" y="275" text-anchor="middle">Mac mini</text>
+  <text x="715" y="296" text-anchor="middle" style="font-size:13px">runs OBS</text>
+  <text x="715" y="314" text-anchor="middle" style="font-size:13px">via USB</text>
+
+  <line class="ln2" x1="765" y1="290" x2="787" y2="290" marker-end="url(#ar)"/>
+
+  <rect class="box" x="790" y="245" width="100" height="90" rx="12" style="stroke:var(--ac2)"/>
+  <text class="md" x="840" y="275" text-anchor="middle">ONLINE</text>
+  <text x="840" y="296" text-anchor="middle" style="font-size:13px">YouTube</text>
+  <text x="840" y="314" text-anchor="middle" style="font-size:13px">Facebook</text>
+
+  <text class="sm" x="528" y="356">Cameras (PTZ + follow) also feed the ATEM</text>
+
+  <rect class="dash" x="265" y="372" width="625" height="48" rx="10"/>
+  <text x="577" y="393" text-anchor="middle" style="font-size:13px">Stage monitors (floor wedges, personal mixers) and a proposed</text>
+  <text x="577" y="411" text-anchor="middle" style="font-size:13px">headphone feed of the stream mix for the stream tech: to confirm</text>
+  </g>
+</svg>
+
+<div class="note"><strong>Two exits from the mixer.</strong> The top path (amps, speakers) is what the room hears. The bottom path (ATEM, Mac mini, OBS) is what the online audience hears. They can sound different on purpose. Which XR18 output feeds the ATEM is still being confirmed, so the stream bus label above is our best understanding until we trace it together on Saturday.</div>
+
+<h2 id="gear">The gear, one piece at a time</h2>
+<p>Nothing here is complicated by itself. Each box does one job.</p>
+
+<div class="grid">
+<div class="card"><h3>Microphones (stage)</h3>
+<p>Four wireless mics, each with a Sennheiser receiver in the rack labeled Mic 1 to Mic 4 (exact mic models to confirm). Two thin choir mics hang left and right. Wireless mics need fresh batteries every service and must be switched on before they are unmuted.</p></div>
+<div class="card"><h3>Stage box and snake</h3>
+<p>Mics and instruments plug in on stage. A multi-cable "snake" carries all of those signals to the rack at the back of the sanctuary and into the mixer.</p></div>
+<div class="card"><h3>Behringer XR18 mixer</h3>
+<p>The heart of the sound system. There is no physical board in the room. The XR18 is controlled from the House iPad using the X AIR app (a laptop with X AIR Edit also works). Every source has a channel strip with a name, a gain, a fader and a mute.</p></div>
+<div class="card"><h3>Amplifiers</h3>
+<p>A Behringer NX1000 and a Crown CDi 600 sit in the rack with a power conditioner. They take the mixer's quiet signal and make it strong enough to drive the speakers. They are switched on after the mixer and off before it.</p></div>
+<div class="card"><h3>Speakers and subwoofer</h3>
+<p>The speakers serve the congregation. A large powered subwoofer sits upstage center for low frequencies. Two Eurolive floor monitors and four P16-M personal monitor mixers let the band hear themselves.</p></div>
+<div class="card"><h3>ATEM Mini Pro</h3>
+<p>A Blackmagic video switcher. Both cameras plug into it, and it hands one picture and one sound to the Mac mini over USB. Check that its Stream Audio button is lit.</p></div>
+<div class="card"><h3>Mac mini and OBS</h3>
+<p>The streaming computer. OBS puts the camera picture, overlays and sound together and sends them out through Restream to YouTube and Facebook. A Stream Deck sits by the ATEM monitor: the red "switch cam" key changes cameras.</p></div>
+<div class="card"><h3>Lyrics computer and ProPresenter</h3>
+<p>The Windows PC in the booth runs ProPresenter. It drives three places: the booth monitor, the two sanctuary TVs (same picture on both) and the confidence monitor at the back for the worship team. MultiTracks Playback on the iPad can advance the lyrics automatically with MIDI cues. Manual clicking is always the fallback.</p></div>
+<div class="card"><h3>Planning Center</h3>
+<p>Where the weekly plan and song order live. Playback can pull the song list from the plan so nobody types it twice.</p></div>
+</div>
+
+<h2 id="sunday" class="pb">Sunday checklists</h2>
+<p>These follow the team's own start-up sheets. Fix the order once and keep to it. Where something reads "confirm," we settle it together on Saturday and update the sheet.</p>
+
+<div class="grid">
+<div class="card"><h3>A. Sound start-up</h3>
+<ol class="check">
+<li>Unlock the iPad drawer and take the House iPad.</li>
+<li>Run the Kasa app: "First On," then "Second On" to power the system.</li>
+<li>Open the X AIR app and connect to the mixer.</li>
+<li>Load the snapshot called <strong>Sunday 10 am</strong>. Never save over it.</li>
+<li>Put fresh batteries in the wireless mics; turn them on.</li>
+<li>Unmute the mics and instruments you need.</li>
+<li>Set up the pastor's headset mic.</li>
+<li>Do a quick check of each mic and instrument at low volume, then raise to taste.</li>
+</ol></div>
+<div class="card"><h3>B. Lyrics start-up</h3>
+<ol class="check">
+<li>Turn on the Lyrics monitor and wake the PC.</li>
+<li>Open ProPresenter.</li>
+<li>Choose the playlist for today's date.</li>
+<li>Turn on the front TV and the back (confidence) TV.</li>
+<li>Click through the first slides of each song to see them on every screen.</li>
+<li>If MIDI cues are working, they advance the slides. If not, click manually and tell the core team afterward.</li>
+</ol></div>
+<div class="card"><h3>C. Stream start-up</h3>
+<ol class="check">
+<li>Turn on the Mac mini and its monitors.</li>
+<li>Confirm OBS, the Stream Deck software and Companion are running.</li>
+<li>Confirm the ATEM is on and Stream Audio is lit.</li>
+<li>Check the YouTube and Facebook titles are right.</li>
+<li>Two minutes before service, start the stream and the recording.</li>
+<li>Post chat messages and links during the service.</li>
+<li>Show the end bumper, then stop the stream and the recording.</li>
+</ol></div>
+<div class="card"><h3>D. Wednesday night</h3>
+<ol class="check">
+<li>Restore the ATEM "Wednesday Night Setup" file for the picture-in-picture layout.</li>
+<li>Follow the same sound, lyrics and stream steps as Sunday.</li>
+<li>Remember: Planning Center has no upcoming Wednesday plans right now, so the song list may need to be built by hand until that is fixed.</li>
+</ol></div>
+</div>
+
+<div class="card"><h3>Shut-down (all teams) <span class="sub">suggested, confirm Saturday</span></h3>
+<ol class="check">
+<li>Stop the stream and recording; confirm the recording saved.</li>
+<li>Mute everything on the mixer, then power down the amps before the mixer.</li>
+<li>Take the batteries out of the wireless mics and put the mics in their place.</li>
+<li>Return the House iPad to the drawer and plug it in; lock the drawer.</li>
+<li>Close ProPresenter and turn off the TVs and monitors.</li>
+</ol></div>
+
+<h2 id="sound">Sound basics for volunteers</h2>
+<dl>
+<dt>Gain versus fader</dt>
+<dd>Gain sets how loud a source is coming <em>into</em> the mixer. Set it once so the level meter peaks near the top but never turns red. The fader is the everyday volume control for the mix. Do not "fix" a quiet mic by pushing gain during the service. Use the fader.</dd>
+<dt>Mute is your friend</dt>
+<dd>Mute any mic that is not in use. An open mic that nobody is using adds noise and invites feedback.</dd>
+<dt>Feedback (the squeal)</dt>
+<dd>It happens when a mic hears its own speaker. Pull the fader down first, then find which mic it is. Fix it with placement (mic away from the speakers) before reaching for any other control.</dd>
+<dt>Snapshots</dt>
+<dd>A snapshot is a saved picture of the whole mixer: names, levels, settings. <strong>Sunday 10 am</strong> is the working snapshot. Before you change anything big, save a new snapshot with today's date. Do not overwrite the one that works.</dd>
+<dt>Hear what the room hears</dt>
+<dd>Walk to the middle of the room at some point during sound check. What you hear at the mixer, or on headphones, is not what a visitor in row ten hears.</dd>
+</dl>
+<div class="note"><strong>Lesson from this month:</strong> when the mixer was reconnected to a computer for the first time, its channel names and levels were wiped and had to be restored from the Sunday 10 am snapshot. That is why a saved scene file and a dated snapshot matter. Save both before you connect a new device or change any routing.</div>
+
+<h2 id="stream">Streaming basics</h2>
+<p>The stream has three parts: <strong>picture</strong> (cameras, ATEM), <strong>sound</strong> (mixer, ATEM) and <strong>delivery</strong> (OBS, Restream, YouTube, Facebook). If the online audience reports a problem, ask which of the three it is.</p>
+<div class="grid">
+<div class="card"><h3>Picture problems</h3>
+<ul><li>Wrong camera showing: use the Stream Deck "switch cam" key.</li>
+<li>Black screen: check the ATEM shows the right input on program.</li>
+<li>Frozen picture: check OBS is not paused, then the USB cable between ATEM and Mac.</li></ul></div>
+<div class="card"><h3>Sound problems</h3>
+<ul><li>No sound online: Stream Audio lit on the ATEM? OBS audio meter moving?</li>
+<li>Muddy or too quiet: ask what the stream is hearing, not just the room.</li>
+<li>Echo: someone is watching the stream in the room with the speakers on.</li></ul></div>
+<div class="card"><h3>Delivery problems</h3>
+<ul><li>OBS shows "live" but viewers see nothing: check Restream and the platform's own page.</li>
+<li>Choppy video: close other apps on the Mac mini; it has limited memory.</li>
+<li>Always record locally too, so the service is not lost.</li></ul></div>
+<div class="card"><h3>Chat and links</h3>
+<ul><li>Someone watches chat during service and posts the welcome and links.</li>
+<li>Use the end bumper, then stop. Do not just close the laptop lid.</li></ul></div>
+</div>
+
+<h2 id="fix">When something breaks: start here</h2>
+<p><strong>Rule one:</strong> do not change several things at once. <strong>Rule two:</strong> go from the source to the speaker, one step at a time. <strong>Rule three:</strong> if it is mid-service and you are not sure, use the manual fallback and fix it afterward.</p>
+<div class="tablewrap"><table>
+<tr><th>Symptom</th><th>Check first, in this order</th></tr>
+<tr><td>One mic has no sound</td><td>Is the mic on and charged? Is its channel muted or the fader down? Is the receiver showing a signal? Is gain up?</td></tr>
+<tr><td>No sound anywhere</td><td>Did "First On" and "Second On" both run? Are the amps on? Is Main L/R muted? Is the mixer on the right snapshot?</td></tr>
+<tr><td>Squeal or ring</td><td>Pull the fader down. Find the mic. Move it away from a speaker.</td></tr>
+<tr><td>Lyrics do not advance</td><td>Is the right playlist open? Are the MIDI cues arriving (core team)? Click manually and keep going.</td></tr>
+<tr><td>Sanctuary TV is blank</td><td>Is the TV on and on the right input? Is the ProPresenter screen output enabled?</td></tr>
+<tr><td>Stream has no sound</td><td>ATEM Stream Audio lit? OBS meter moving? Is the mixer feeding the ATEM?</td></tr>
+<tr><td>Stream Deck keys dead</td><td>Is Companion (or the Stream Deck software) running, and only one of them in charge of that deck?</td></tr>
+</table></div>
+
+<h2 id="core" class="pb"><span class="tag core">Core team</span> Deeper problems</h2>
+
+<h3>1. Lyric cues that do not fire</h3>
+<p>A MultiTracks song carries MIDI messages at exact times. Playback sends them across the network, a MIDI driver on the PC receives them, and ProPresenter jumps to a slide.</p>
+<p><strong>The chain:</strong> Playback on the iPad &rarr; network MIDI session &rarr; Windows PC &rarr; virtual MIDI port &rarr; ProPresenter MIDI device &rarr; slide.</p>
+<p>Test one hop at a time:</p>
+<ol class="check">
+<li>Screenshot Playback's MIDI settings (bus, port, channel) and ProPresenter's Devices &gt; MIDI mapping.</li>
+<li>On the PC, open MIDI-OX and listen to the incoming port while a cue song plays. Messages arriving means the problem is inside ProPresenter. No messages means look at the network, the driver or Playback.</li>
+<li>Read the latency in the network MIDI window. Steady high latency means fix the network, not the software.</li>
+<li>Several MIDI drivers are installed on the PC at once. Note what each does, then keep one network MIDI driver and one virtual-port driver.</li>
+<li>Rename each iPad so no two share a name in the MIDI session, and clear old peers.</li>
+<li>Set ProPresenter transitions to Cut, then test one song end to end.</li>
+</ol>
+<div class="note"><strong>Check also:</strong> rented songs only play on the device they were rented on, and a song with no Production Cues will never fire lyric cues. Confirm which songs are owned and which are rented.</div>
+
+<h3>2. Planning Center to Playback: "no plans"</h3>
+<p>What we found: the import picker in MultiTracks still lists the old service type name, <strong>Sunday 10am</strong>, while Planning Center now calls it <strong>Sunday Morning</strong>. Renaming a service type breaks the link until it is re-linked. Wednesday Nights has no future plans to import.</p>
+<ul>
+<li><strong>Fix:</strong> a full Planning Center administrator opens Songs &gt; Actions &gt; Song File Integrations and presses <strong>Relink</strong> for Sunday Morning, then imports again in Playback.</li>
+<li>Or give the shared tech login Songs-level permission so it can press Relink itself.</li>
+<li>Do <em>not</em> fully disconnect the integration; that removes previously attached MultiTracks files from Planning Center.</li>
+<li>Fallback while it is fixed: build the setlist by hand in Playback so Sunday is safe.</li>
+</ul>
+
+<h3>3. Versions and drift between computers</h3>
+<p>The booth PC, the Mac mini and the laptop run different versions of the same tools (Companion, OBS, NDI). Different versions are a common reason settings go missing or behave differently from one computer to the next. Pick one version of each tool, write it down, and update every machine together, never the week of a big service.</p>
+<p>ProPresenter's library lives on the shared drive. Before any ProPresenter update or rollback, copy the whole library, because newer versions can change the library so older ones read it badly.</p>
+
+<h3>4. Stream Decks: Companion or Elgato software?</h3>
+<p>One Stream Deck is controlled by one program at a time. Companion is the better choice when one deck must control OBS, the ATEM, cameras and ProPresenter together. The Elgato plugin is simpler if the deck only drives ProPresenter. Choose one per deck and label it.</p>
+
+<h3>5. Better stream audio (proposal)</h3>
+<p>Create a dedicated auxiliary bus on the XR18 just for the stream, separate from the main output. The main output feeds the amps and speakers. The stream bus feeds the ATEM or OBS. Assign that same bus to the XR18's headphone jack, with a cable to where the stream tech sits, so the person watching the stream hears what viewers hear. First, learn how sound reaches OBS today. Do not change routing until the backup steps below are done.</p>
+
+<h2 id="backup">Backups and change rules</h2>
+<p>The single best habit: <strong>back up, then change, then test.</strong></p>
+<ol class="check">
+<li><strong>Mixer:</strong> save a scene file from X AIR Edit and a new dated snapshot. Never overwrite "Sunday 10 am."</li>
+<li><strong>OBS:</strong> export the scene collection and the profile.</li>
+<li><strong>Companion:</strong> export the full configuration.</li>
+<li><strong>ProPresenter:</strong> copy the library and the playlists from the shared drive.</li>
+<li><strong>ATEM:</strong> save the setup file, including the Wednesday Night Setup.</li>
+<li><strong>Playback:</strong> note which songs are owned or rented, and screenshot the MIDI settings.</li>
+<li>Keep the exports in one shared folder with the date in the file name.</li>
+</ol>
+<div class="note"><strong>Passwords:</strong> keep logins in a password manager, not printed on sheets under keyboards. If a login has been on paper where visitors could see it, change it. This guide intentionally contains no passwords.</div>
+<div class="note"><strong>About AI tools:</strong> they can help, but check their work before it touches a live machine. Try any suggested change on a spare computer first, write down exactly what was changed, and apply it to the booth machines together as a team.</div>
+
+<h2 id="words">Glossary</h2>
+<dl>
+<dt>Channel</dt><dd>One input strip on the mixer: one mic or one instrument.</dd>
+<dt>Gain</dt><dd>Input level into the mixer. Set once, then use the fader.</dd>
+<dt>Fader</dt><dd>The slider that sets a channel's volume in the mix.</dd>
+<dt>Bus / aux</dt><dd>A separate mix sent somewhere else, such as monitors or the stream.</dd>
+<dt>Main L/R</dt><dd>The main output of the mixer, which goes to the amps and speakers.</dd>
+<dt>Snapshot / scene</dt><dd>A saved picture of the whole mixer's settings.</dd>
+<dt>Feedback</dt><dd>The squeal from a mic hearing its own speaker.</dd>
+<dt>Snake</dt><dd>A multi-channel cable from the stage to the rack.</dd>
+<dt>ATEM</dt><dd>The video switcher that takes the cameras and sends one picture to the Mac mini.</dd>
+<dt>OBS</dt><dd>The software that builds the live stream picture and sound.</dd>
+<dt>Restream</dt><dd>A service that sends one stream to several places at once, such as YouTube and Facebook.</dd>
+<dt>ProPresenter</dt><dd>The lyrics and slides software on the booth PC.</dd>
+<dt>Playback</dt><dd>MultiTracks' app for playing song tracks, which can send MIDI cues.</dd>
+<dt>MIDI cue</dt><dd>A tiny timed message inside a song that tells ProPresenter to change slides.</dd>
+<dt>NDI</dt><dd>A way to send video over the network instead of a cable.</dd>
+<dt>Companion</dt><dd>Software that turns a Stream Deck into a control panel for many devices.</dd>
+<dt>Confidence monitor</dt><dd>The screen facing the worship team so they can read lyrics.</dd>
+</dl>
+
+<h2>Still to confirm together</h2>
+<p>These are the open items we plan to settle in the room, then update this guide.</p>
+<ul class="check">
+<li>Which XR18 output feeds the ATEM, and what the mixer's USB and routing settings are.</li>
+<li>What the second network cable on the Mac mini is for.</li>
+<li>Names of the first two mixer channels after the snapshot restore.</li>
+<li>Owned versus rented MultiTracks songs, and which songs fail their cues.</li>
+<li>Who holds full Planning Center administrator rights, and whether Relink has been done.</li>
+<li>ProPresenter version after the recent rollback.</li>
+<li>Who is the first call when the lead technician is away.</li>
+</ul>
+
+<footer>
+  <p>Prepared for the ChiUnited tech team by Dr. Bill Yomes. Version of Friday, October 23, 2026. This is a working guide and will be updated after the session.</p>
+  <p class="printonly">Live version: wtsn.me/chi/train</p>
+</footer>
+</div>
+<script>
+document.getElementById('themeBtn').addEventListener('click',function(){
+  var h=document.documentElement;
+  var dark=h.classList.contains('dark')||(!h.classList.contains('light')&&matchMedia('(prefers-color-scheme: dark)').matches);
+  h.classList.toggle('dark',!dark);h.classList.toggle('light',dark);
+  try{localStorage.setItem('chitrain-theme',dark?'light':'dark');}catch(e){}
+});
+</script>
+</body>
+</html>

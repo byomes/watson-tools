@@ -16,7 +16,8 @@ const nextConfig: NextConfig = {
       const app = p.slice(1);
       return [
         { source: p, destination: `/private-forward.html?app=${app}`, permanent: false },
-        { source: `${p}/:path*`, destination: `/private-forward.html?app=${app}`, permanent: false },
+        // /chi/train is the one public page under /chi (church training guide, 2026-10-23).
+        { source: p === "/chi" ? "/chi/:path((?!train$|train/).*)" : `${p}/:path*`, destination: `/private-forward.html?app=${app}`, permanent: false },
         { source: `/api${p}/:path*`, destination: `/private-forward.html?app=${app}`, permanent: false },
       ];
     });
@@ -33,6 +34,13 @@ const nextConfig: NextConfig = {
       {
         source: "/ged",
         destination: "/ged/index.html",
+      },
+      // ChiUnited tech training guide: public static page + printable PDF
+      // under public/chi-train/. Lives at /chi/train, which is carved out of
+      // the /chi private forward above.
+      {
+        source: "/chi/train",
+        destination: "/chi-train/index.html",
       },
       // Thrift (Emily's resale business app) runs on the Beelink and is
       // reachable ONLY over Tailscale, so Vercel cannot proxy it. /thrift
