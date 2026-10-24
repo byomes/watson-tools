@@ -16,7 +16,7 @@ body{margin:0;font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
 header.top{padding:28px 0 8px}
 h1{font-size:2rem;line-height:1.15;margin:0 0 6px}
 h2{font-size:1.45rem;margin:2.2rem 0 .6rem;padding-top:.4rem;border-top:3px solid var(--ac)}
-h3{font-size:1.1rem;margin:1.4rem 0 .4rem;color:var(--ac)}
+h3{font-size:1.1rem;margin:2.4rem 0 .5rem;color:var(--ac)}
 p{margin:.5rem 0}
 .sub{color:var(--mut);margin:0}
 .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:16px 0 4px}
@@ -33,6 +33,8 @@ nav.toc a{font-size:.9rem;padding:6px 12px;border:1px solid var(--line);border-r
 .note{background:var(--warn);border-left:5px solid var(--warnl);padding:10px 14px;border-radius:8px;margin:12px 0;break-inside:avoid}
 ul,ol{padding-left:1.3rem;margin:.4rem 0}
 li{margin:.25rem 0}
+.wrap>ol,.wrap>ul,.wrap>ol>li>ol{padding-left:2.8rem}
+.wrap>ol>li,.wrap>ul>li{margin:.55rem 0}
 ul.check,ol.check{list-style:none;padding-left:0}
 ul.check li,ol.check li{padding-left:1.8rem;position:relative}
 ul.check li::before,ol.check li::before{content:"\2610";position:absolute;left:0;top:0;font-size:1.15rem}
@@ -73,7 +75,9 @@ footer{margin-top:3rem;color:var(--mut);font-size:.9rem;border-top:1px solid var
  header.top{padding:0 0 6px}
  h1{font-size:22pt}
  h2{font-size:15pt;break-after:avoid;margin-top:1.1rem}
- h3{break-after:avoid}
+ h3{break-after:avoid;margin-top:1.6rem}
+ .card h3{margin-top:0}
+ #chains{break-before:page;margin-top:0}
  h2.pb{break-before:page;border-top:none}
  
  svg.matrix{max-width:470px!important}
