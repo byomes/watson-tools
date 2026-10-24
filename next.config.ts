@@ -11,8 +11,15 @@ const PRIVATE_PATHS = ["/voice-editor", "/kitfy", "/chi", "/money", "/xmas", "/f
 
 const nextConfig: NextConfig = {
   async redirects() {
-    if (!process.env.VERCEL) return [];
-    return PRIVATE_PATHS.flatMap((p) => {
+    // /tmux is the one deliberately PUBLIC Beelink app (PIN + Telegram approval,
+    // jobs/tmuxweb on the Beelink). Vercel can't proxy its websocket, so forward
+    // to the Tailscale Funnel address on every build, not just Vercel's.
+    const tmux = [
+      { source: "/tmux", destination: "https://watson.tail0243ff.ts.net/tmux/", permanent: false },
+      { source: "/tmux/:path*", destination: "https://watson.tail0243ff.ts.net/tmux/", permanent: false },
+    ];
+    if (!process.env.VERCEL) return tmux;
+    return [...tmux, ...PRIVATE_PATHS.flatMap((p) => {
       const app = p.slice(1);
       return [
         { source: p, destination: `/private-forward.html?app=${app}`, permanent: false },
@@ -20,7 +27,7 @@ const nextConfig: NextConfig = {
         { source: p === "/chi" ? "/chi/:path((?!train$|train/).*)" : `${p}/:path*`, destination: `/private-forward.html?app=${app}`, permanent: false },
         { source: `/api${p}/:path*`, destination: `/private-forward.html?app=${app}`, permanent: false },
       ];
-    });
+    })];
   },
   // hamprep (Technician exam prep) lives as its own separate Vercel
   // project/Neon DB, not folded into this app's public_tools registry.
