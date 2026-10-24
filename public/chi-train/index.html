@@ -369,6 +369,31 @@ footer{margin-top:3rem;color:var(--mut);font-size:.9rem;border-top:1px solid var
 <h3>5. Better stream audio (proposal)</h3>
 <p>Create a dedicated auxiliary bus on the XR18 just for the stream, separate from the main output. The main output feeds the amps and speakers. The stream bus feeds the ATEM or OBS. Assign that same bus to the XR18's headphone jack, with a cable to where the stream tech sits, so the person watching the stream hears what viewers hear. First, learn how sound reaches OBS today. Do not change routing until the backup steps below are done.</p>
 
+<h3>6. Bus 6 (the stream mix) will not sound different from Main</h3>
+<p>A bus exists to carry a separate mix. On the XR18, each channel has its own send level to each aux bus, so Bus 6 can be a different mix from Main. If it sounds the same, work down this list. Change one thing at a time and write down what you saw.</p>
+<ol class="check">
+<li><strong>Save first.</strong> Save a scene file and a new dated snapshot. Do not overwrite "Sunday 10 am."</li>
+<li><strong>Is Bus 6 really what is feeding the stream?</strong> Open Routing, then the Outputs page. See which mixer output goes to the ATEM. If it is patched from Main L/R, the stream hears Main no matter what Bus 6 is doing. Aux outputs are normally patched to their own bus, so confirm that Aux 6 is the one in use.</li>
+<li><strong>Are you actually editing Bus 6?</strong> The normal faders control Main. Switch the fader bank to Bus 6 (Sends on Faders) and check the faders now look different from the Main mix. Moving them then changes only the stream.</li>
+<li><strong>Check each channel's send.</strong> Select a channel, open the Sends tab and read its Bus 6 level. A send at zero or off means that source is missing from the stream. Sends at the same level on every channel make Bus 6 a copy of the room.</li>
+<li><strong>Check the tap point.</strong> The tap says where the send is taken from. A post-fader send follows the channel fader, so every move for the room also moves the stream. Pre-fader keeps the stream steady while the room changes. The globe icon applies a tap change to every channel at once.</li>
+<li><strong>Check for a stereo link.</strong> Linked buses, such as 5 and 6, move together and share one mix.</li>
+<li><strong>Check the Main assignment.</strong> A channel's LR button decides whether it also goes to the room. Sources only the stream needs (a talkback or a click track you do not want in the room) can have LR turned off.</li>
+<li><strong>Compare after a restore.</strong> Loading a snapshot, or reconnecting a computer, can change send levels. Re-check Bus 6 after either.</li>
+<li><strong>Listen where the stream is heard.</strong> Send Bus 6 to the headphone jack, or solo the bus, to hear it without the room's sound.</li>
+</ol>
+<div class="note"><strong>Not a hardware limit.</strong> We have not yet confirmed which setting is causing this on your mixer. Steps 2 and 5 are the likeliest. We will confirm on Saturday and update this page.</div>
+
+<div class="card"><h3>How many different mixes can the XR18 make?</h3>
+<ul>
+<li><strong>Main L/R:</strong> one stereo mix for the room (normally also the base for the amps).</li>
+<li><strong>6 aux buses:</strong> six independent mixes. They can be mono, or linked in pairs for stereo, which gives up to three stereo mixes.</li>
+<li><strong>4 effects sends:</strong> built for reverb and delay, not for monitor mixes.</li>
+<li><strong>P16-M personal mixers:</strong> the XR18 also feeds the personal monitor mixers over its Ultranet outputs. Each one lets a musician set their own blend of up to 16 sources.</li>
+</ul>
+<p><strong>A different mix, not just a different volume?</strong> Yes. Each aux bus has its own send level for every channel, so the guitar can be loud in one mix, quiet in another and absent from a third. It also has its own EQ and dynamics, and a stereo bus has its own panning. What is shared is each channel's gain, mute and channel EQ. Those happen before the sends, so a change there affects every mix unless the send is tapped before that point.</p>
+</div>
+
 <h2 id="backup">Backups and change rules</h2>
 <p>The single best habit: <strong>back up, then change, then test.</strong></p>
 <ol class="check">
@@ -407,7 +432,7 @@ footer{margin-top:3rem;color:var(--mut);font-size:.9rem;border-top:1px solid var
 <h2>Still to confirm together</h2>
 <p>These are the open items we plan to settle in the room, then update this guide.</p>
 <ul class="check">
-<li>Which XR18 output feeds the ATEM, and what the mixer's USB and routing settings are.</li>
+<li>Which XR18 output feeds the ATEM, and what the mixer's USB and routing settings are (this decides the Bus 6 question).</li>
 <li>What the second network cable on the Mac mini is for.</li>
 <li>Names of the first two mixer channels after the snapshot restore.</li>
 <li>Owned versus rented MultiTracks songs, and which songs fail their cues.</li>
