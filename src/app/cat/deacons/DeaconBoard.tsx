@@ -101,6 +101,16 @@ function mapsHref(address: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
 }
 
+// Turn-by-turn navigation: Apple Maps on iPhone, Google Maps navigate link
+// elsewhere (same logic as the shepherding report's ContactIcons).
+function navHref(address: string): string {
+  const q = encodeURIComponent(address)
+  const ios = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/.test(navigator.userAgent)
+  return ios
+    ? `https://maps.apple.com/?daddr=${q}&dirflg=d`
+    : `https://www.google.com/maps/dir/?api=1&destination=${q}&travelmode=driving&dir_action=navigate`
+}
+
 function Field({
   label,
   value,
@@ -735,6 +745,18 @@ function PersonCard({
                   className="text-blue-700 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 font-medium"
                 >
                   {p.address}
+                </a>
+              )}
+              {p.address && (
+                <a
+                  href={navHref(p.address)}
+                  suppressHydrationWarning
+                  onClick={(e) => { e.currentTarget.href = navHref(p.address as string) }}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="self-start mt-1 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg px-3 py-1.5"
+                >
+                  Navigate
                 </a>
               )}
             </div>
