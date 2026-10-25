@@ -12,6 +12,7 @@ interface Member {
   last_seen: string
   email: string | null
   phone: string | null
+  address?: string | null
   engagement: Engagement
   committed?: Committed | null
 }
@@ -89,8 +90,30 @@ function webAppSmsHref(member: Member): string {
   return `/sms?${params.toString()}`
 }
 
+function NavIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={iconClass} aria-hidden="true">
+      <path d="m3 11 19-9-9 19-2-8-8-2Z" />
+    </svg>
+  )
+}
+
+// Turn-by-turn navigation to a member's address. iPhones get Apple Maps
+// (opens directly in the Maps app, driving directions); everything else
+// gets the Google Maps universal link with dir_action=navigate, which
+// starts navigation straight away in the Google Maps app (or the browser
+// if it is not installed). Decided at tap time so server render needs no
+// user-agent sniffing.
+function navHref(address: string): string {
+  const q = encodeURIComponent(address)
+  const ios = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/.test(navigator.userAgent)
+  return ios
+    ? `https://maps.apple.com/?daddr=${q}&dirflg=d`
+    : `https://www.google.com/maps/dir/?api=1&destination=${q}&travelmode=driving&dir_action=navigate`
+}
+
 export function ContactIcons({ member, smsMode = 'native' }: { member: Member; smsMode?: 'native' | 'webapp' }) {
-  if (!member.phone && !member.email) return null
+  if (!member.phone && !member.email && !member.address) return null
   return (
     <span className="flex items-center gap-4 shrink-0 text-gray-400 dark:text-gray-500">
       {member.phone && (
@@ -111,6 +134,19 @@ export function ContactIcons({ member, smsMode = 'native' }: { member: Member; s
             <TextIcon />
           </a>
         </>
+      )}
+      {member.address && (
+        <a
+          href={navHref(member.address)}
+          suppressHydrationWarning
+          onClick={(e) => { e.currentTarget.href = navHref(member.address as string) }}
+          aria-label={`Navigate to ${member.name}`}
+          className="p-1.5 -m-1.5 active:text-blue-600 dark:active:text-blue-400"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <NavIcon />
+        </a>
       )}
       {member.email && (
         <a

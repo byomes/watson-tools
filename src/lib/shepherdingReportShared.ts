@@ -20,6 +20,7 @@ export interface Member {
   last_seen: string
   email: string | null
   phone: string | null
+  address?: string | null
   engagement: Engagement
   committed?: Committed | null
 }
