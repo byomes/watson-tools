@@ -1,0 +1,14 @@
+{
+  "name": "Nails With Allie",
+  "short_name": "Nails",
+  "description": "Add new nail sets to Nails With Allie",
+  "start_url": "/nails",
+  "scope": "/nails",
+  "display": "standalone",
+  "background_color": "#FFF8F3",
+  "theme_color": "#D98A9C",
+  "icons": [
+    { "src": "/nails/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/nails/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

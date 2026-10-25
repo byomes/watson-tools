@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F9E3E7"/><stop offset="1" stop-color="#E7A3B3"/>
+    </linearGradient>
+    <linearGradient id="pol" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#EE96AB"/><stop offset="1" stop-color="#B85A78"/>
+    </linearGradient>
+    <clipPath id="nail"><path d="M160 430L160 206C160 134 200 90 256 90C312 90 352 134 352 206L352 430Z"/></clipPath>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <path d="M138 452L138 206C138 118 188 64 256 64C324 64 374 118 374 206L374 452Z" fill="#FFF8F3"/>
+  <g clip-path="url(#nail)">
+    <rect x="140" y="60" width="240" height="390" fill="url(#pol)"/>
+    <ellipse cx="256" cy="440" rx="110" ry="40" fill="#FFF8F3" opacity="0.92"/>
+    <path d="M196 190C198 150 218 124 246 114C226 150 218 220 220 316C220 342 210 348 202 336C192 300 190 240 196 190Z" fill="#FFFFFF" opacity="0.6"/>
+  </g>
+  <path d="M398 118L408 150L440 160L408 170L398 202L388 170L356 160L388 150Z" fill="#C9A66B"/>
+  <path d="M112 300L118 318L136 324L118 330L112 348L106 330L88 324L106 318Z" fill="#FFF8F3"/>
+</svg>

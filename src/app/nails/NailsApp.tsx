@@ -43,6 +43,9 @@ async function shrink(file: File): Promise<{ name: string; b64: string }> {
   }
 }
 
+// eslint-disable-next-line @next/next/no-img-element
+const Logo = () => <img src="/nails/icon-192.png" alt="" width={72} height={72} className="mx-auto mb-3 rounded-2xl" style={{ boxShadow: `0 2px 10px ${C.line}` }} />
+
 function LockScreen({ onOpen }: { onOpen: () => void }) {
   const [pin, setPin] = useState('')
   const [code, setCode] = useState('')
@@ -92,6 +95,7 @@ function LockScreen({ onOpen }: { onOpen: () => void }) {
 
   return (
     <div className="w-full max-w-xs text-center">
+      <Logo />
       <h1 className={`${serif.className} text-4xl`} style={{ color: C.ink }}>Nails With Allie</h1>
       {mode === 'pin' ? (
         <>
@@ -182,6 +186,7 @@ function Intake() {
   const field = { background: '#fff', border: `1.5px solid ${C.line}`, color: C.ink } as const
   return (
     <form onSubmit={submit} className="w-full max-w-md space-y-4">
+      <Logo />
       <h1 className={`${serif.className} text-4xl text-center`} style={{ color: C.ink }}>Add a new set</h1>
       <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} placeholder="Set name (optional)" className="w-full rounded-xl px-4 py-3" style={field} />
       <input ref={fileRef} type="file" accept="image/*" multiple className="hidden"
