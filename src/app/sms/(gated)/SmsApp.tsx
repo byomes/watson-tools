@@ -529,6 +529,7 @@ export default function SmsApp() {
   const [editingScheduledId, setEditingScheduledId] = useState<number | null>(null)
   const [gatewayOk, setGatewayOk] = useState<boolean | null>(null)
   const [batteryPct, setBatteryPct] = useState<number | null>(null)
+  const [batteryCharging, setBatteryCharging] = useState(false)
   const [spellchecking, setSpellchecking] = useState(false)
   const messagesScrollRef = useRef<HTMLDivElement | null>(null)
   const rootRef = useRef<HTMLDivElement | null>(null)
@@ -716,9 +717,10 @@ export default function SmsApp() {
   }
 
   async function loadHeartbeat() {
-    const data = await api<{ heartbeat: { ok: boolean; battery_pct: number | null } | null }>('/api/sms/heartbeat')
+    const data = await api<{ heartbeat: { ok: boolean; battery_pct: number | null; charging?: boolean | null } | null }>('/api/sms/heartbeat')
     setGatewayOk(data.heartbeat?.ok ?? null)
     setBatteryPct(data.heartbeat?.battery_pct ?? null)
+    setBatteryCharging(data.heartbeat?.charging === true)
   }
 
   function applyAppSettings(data: {
@@ -1792,7 +1794,7 @@ export default function SmsApp() {
               )}
               {batteryPct !== null && (
                 <div
-                  aria-label={`Gateway phone battery ${batteryPct}%${gatewayOk === false ? ', unreachable' : ''}`}
+                  aria-label={`Gateway phone battery ${batteryPct}%${batteryCharging ? ', charging' : ''}${gatewayOk === false ? ', unreachable' : ''}`}
                   className="h-[45px] px-2 rounded-lg border flex items-center gap-1 text-xs font-medium"
                   style={{
                     borderColor: batteryPct < 20 || gatewayOk === false ? COLORS.clay : COLORS.line,
@@ -1810,6 +1812,9 @@ export default function SmsApp() {
                       fill="currentColor"
                       stroke="none"
                     />
+                    {batteryCharging && (
+                      <path d="M12.5 8 8.5 12.8h3L10.5 16.5l4.2-5h-3z" fill="currentColor" stroke={COLORS.surface} strokeWidth="1.2" strokeLinejoin="round" paintOrder="stroke" />
+                    )}
                   </svg>
                   {batteryPct}%
                 </div>
