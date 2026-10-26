@@ -207,6 +207,63 @@ export function CareView() {
 
 // ----------------------------------------------------------------- Health
 
+
+function MatchReview() {
+  const { data, reload } = useChm<{ matches: Row[] }>('matches')
+  const { refresh } = usePeople()
+  const [busy, setBusy] = useState<number | null>(null)
+  const [err, setErr] = useState('')
+  const rows = data?.matches ?? []
+
+  async function resolve(m: Row, same: boolean) {
+    if (!same && !confirm(`Make ${m.submitted_name} a new person and move that card off ${m.member_name}?`)) return
+    setBusy(m.id)
+    setErr('')
+    try {
+      await chm(`matches/${m.id}/${same ? 'confirm' : 'different'}`, 'POST')
+      reload()
+      refresh()
+    } catch (e) {
+      setErr(String((e as Error).message ?? e))
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const who = (name: string, email?: string, phone?: string) => (
+    <div className="min-w-0">
+      <div className="text-sm font-medium text-slate-900 dark:text-white">{name}</div>
+      <div className="text-xs text-slate-500 truncate">{[email, phone].filter(Boolean).join(' · ') || 'no contact info'}</div>
+    </div>
+  )
+
+  return (
+    <Card title="Confirm these matches" action={<Pill tone={rows.length ? 'amber' : 'green'}>{rows.length}</Pill>}>
+      <p className="text-xs text-slate-500 mb-2">A connect card came in with a name close to someone we already have, so Watson filed it under them. Is it the same person?</p>
+      {err && <p className="text-sm text-red-600 mb-2">{err}</p>}
+      {rows.length === 0 ? <Empty>Nothing to confirm.</Empty> : (
+        <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+          {rows.map((m) => (
+            <li key={m.id} className="py-3 flex flex-col gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div><div className="text-xs text-slate-400 mb-0.5">Card said · {fmtDate(m.service_date)}</div>{who(m.submitted_name, m.submitted_email, m.submitted_phone)}</div>
+                <div>
+                  <div className="text-xs text-slate-400 mb-0.5">Filed under · {m.member_visits} visits</div>
+                  <div className="flex items-center gap-2">{who(m.member_name, m.member_email, m.member_phone)}<PersonLink id={m.member_id} name="Open" className="text-xs !font-normal text-slate-500" /></div>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button type="button" className={btnCls} disabled={busy === m.id} onClick={() => resolve(m, true)}>Same person</button>
+                <button type="button" className={btnGhost} disabled={busy === m.id} onClick={() => resolve(m, false)}>Different person</button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  )
+}
+
 export function HealthView() {
   const { go } = useNav()
   const { data, error } = useChm<Row>('health')
@@ -214,6 +271,7 @@ export function HealthView() {
   if (!data) return <Loading error={error} />
   return (
     <div className="p-4 sm:p-6 max-w-4xl mx-auto flex flex-col gap-3">
+      <MatchReview />
       <p className="text-sm text-slate-500">Gaps in the records, for active people only. Click a name to fix it on their profile.</p>
       {Object.entries<Row[]>(data.missing).map(([label, rows]) => (
         <Card key={label} title={label} action={<Pill tone={rows.length ? 'amber' : 'green'}>{rows.length}</Pill>}>

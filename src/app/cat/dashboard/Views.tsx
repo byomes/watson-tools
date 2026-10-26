@@ -108,6 +108,7 @@ export function HomeView() {
         </Card>
         <Card title="Data health" action={<button type="button" className="text-xs text-slate-500 hover:underline" onClick={() => go('health')}>Open</button>}>
           <ul className="text-sm text-slate-700 dark:text-slate-300 space-y-1">
+            <li>{s.issues.matches} card names to confirm</li>
             <li>{s.issues.duplicates} possible duplicate people</li>
             <li>{s.issues.conflicts} contact conflicts to resolve</li>
             <li>{s.issues.kids_unlinked} kids waiting to be linked to a household</li>
