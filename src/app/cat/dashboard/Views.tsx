@@ -27,23 +27,87 @@ const BUCKET_BAR: Record<string, string> = {
   guest: 'bg-violet-500', '2nd time': 'bg-sky-400', '1st time': 'bg-sky-500', neighbor: 'bg-slate-300',
 }
 
+const CAMPUS_STROKE = ['stroke-emerald-500', 'stroke-sky-500', 'stroke-violet-500', 'stroke-amber-500']
+const CAMPUS_FILL = ['bg-emerald-500', 'bg-sky-500', 'bg-violet-500', 'bg-amber-500']
+
+// Line chart with an axis fitted to the data (not zero-based), so week-to-week ups and downs are visible.
 function TrendChart({ trend }: { trend: Row[] }) {
-  const byDate = useMemo(() => {
-    const m: Record<string, number> = {}
-    trend.forEach((t) => { m[t.service_date] = (m[t.service_date] ?? 0) + t.n })
-    return Object.entries(m).sort(([a], [b]) => a.localeCompare(b)).slice(-12)
+  const [hover, setHover] = useState<number | null>(null)
+  const { dates, campuses, totals, byCampus } = useMemo(() => {
+    const per: Record<string, Record<string, number>> = {}
+    const campusTotals: Record<string, number> = {}
+    trend.forEach((t) => {
+      const c = (t.campus as string) || 'Other'
+      per[t.service_date] = per[t.service_date] ?? {}
+      per[t.service_date][c] = (per[t.service_date][c] ?? 0) + t.n
+      campusTotals[c] = (campusTotals[c] ?? 0) + t.n
+    })
+    const dates = Object.keys(per).sort().slice(-26)
+    const campuses = Object.keys(campusTotals).sort((a, b) => campusTotals[b] - campusTotals[a]).slice(0, 4)
+    const totals = dates.map((d) => Object.values(per[d]).reduce((x, y) => x + y, 0))
+    const byCampus = campuses.map((c) => dates.map((d) => per[d][c] ?? 0))
+    return { dates, campuses, totals, byCampus }
   }, [trend])
-  const max = Math.max(1, ...byDate.map(([, n]) => n))
-  if (!byDate.length) return <Empty>No attendance yet.</Empty>
+  if (!dates.length) return <Empty>No attendance yet.</Empty>
+
+  const W = 640, H = 220, L = 34, R = 12, T = 16, B = 26
+  const all = [...totals, ...byCampus.flat()]
+  const lo0 = Math.min(...all), hi0 = Math.max(...all)
+  const step = hi0 - lo0 > 60 ? 20 : hi0 - lo0 > 25 ? 10 : 5
+  const lo = Math.max(0, Math.floor((lo0 - step / 2) / step) * step)
+  const hi = Math.ceil((hi0 + step / 2) / step) * step
+  const x = (i: number) => L + (dates.length === 1 ? (W - L - R) / 2 : (i / (dates.length - 1)) * (W - L - R))
+  const y = (v: number) => T + (1 - (v - lo) / (hi - lo || 1)) * (H - T - B)
+  const path = (vals: number[]) => vals.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ')
+  const ticks: number[] = []
+  for (let v = lo; v <= hi; v += step) ticks.push(v)
+  const avg = totals.reduce((a, b) => a + b, 0) / totals.length
+  const maxI = totals.indexOf(Math.max(...totals)), minI = totals.indexOf(Math.min(...totals))
+  const last = totals.length - 1
+  const delta = last > 0 ? totals[last] - totals[last - 1] : 0
+  const labelEvery = Math.ceil(dates.length / 8)
+  const hi_i = hover ?? last
+
   return (
-    <div className="flex items-end gap-1.5 h-32">
-      {byDate.map(([d, n]) => (
-        <div key={d} className="flex-1 h-full flex flex-col items-center justify-end gap-1" title={`${fmtDate(d)}: ${n}`}>
-          <span className="text-[10px] text-slate-500">{n}</span>
-          <div className="w-full rounded-t bg-slate-800 dark:bg-slate-200" style={{ height: `${(n / max) * 100}%`, minHeight: 2 }} />
-          <span className="text-[10px] text-slate-400">{d.slice(5)}</span>
-        </div>
-      ))}
+    <div>
+      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 mb-2 text-sm text-slate-600 dark:text-slate-300">
+        <span><b className="text-slate-900 dark:text-white text-lg">{totals[hi_i]}</b> on {fmtDate(dates[hi_i])}</span>
+        {hover === null && last > 0 && <span className={delta >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}>{delta >= 0 ? '+' : ''}{delta} vs previous week</span>}
+        <span className="text-slate-400">avg {Math.round(avg)} · high {totals[maxI]} · low {totals[minI]}</span>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" role="img" aria-label="Attendance by week" onMouseLeave={() => setHover(null)}>
+        {ticks.map((v) => (
+          <g key={v}>
+            <line x1={L} x2={W - R} y1={y(v)} y2={y(v)} className="stroke-slate-200 dark:stroke-slate-800" strokeWidth={1} />
+            <text x={L - 6} y={y(v) + 3} textAnchor="end" className="fill-slate-400" fontSize={10}>{v}</text>
+          </g>
+        ))}
+        <line x1={L} x2={W - R} y1={y(avg)} y2={y(avg)} className="stroke-slate-400" strokeWidth={1} strokeDasharray="4 4" />
+        {byCampus.map((vals, ci) => campuses.length > 1 && (
+          <path key={campuses[ci]} d={path(vals)} fill="none" className={CAMPUS_STROKE[ci % CAMPUS_STROKE.length]} strokeWidth={1.75} strokeLinejoin="round" strokeLinecap="round" opacity={0.85} />
+        ))}
+        <path d={path(totals)} fill="none" className="stroke-slate-800 dark:stroke-slate-100" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+        {totals.map((v, i) => (
+          <circle key={dates[i]} cx={x(i)} cy={y(v)} r={i === hi_i ? 5 : 3} className="fill-white dark:fill-slate-900 stroke-slate-800 dark:stroke-slate-100" strokeWidth={2} />
+        ))}
+        {[maxI, minI].filter((v, i, a) => a.indexOf(v) === i).map((i) => (
+          <text key={`l${i}`} x={x(i)} y={y(totals[i]) + (i === maxI ? -9 : 17)} textAnchor="middle" className="fill-slate-600 dark:fill-slate-300" fontSize={11} fontWeight={600}>{totals[i]}</text>
+        ))}
+        {dates.map((d, i) => (i % labelEvery === 0 || i === last) && (
+          <text key={`x${d}`} x={x(i)} y={H - 8} textAnchor="middle" className="fill-slate-400" fontSize={10}>{d.slice(5)}</text>
+        ))}
+        {dates.map((d, i) => (
+          <rect key={`h${d}`} x={x(i) - (W - L - R) / Math.max(1, dates.length - 1) / 2} y={T} width={(W - L - R) / Math.max(1, dates.length - 1)} height={H - T - B}
+            fill="transparent" onMouseEnter={() => setHover(i)} onClick={() => setHover(i)} />
+        ))}
+      </svg>
+      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-slate-600 dark:text-slate-300">
+        <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 bg-slate-800 dark:bg-slate-100" />Total</span>
+        {campuses.length > 1 && campuses.map((c, ci) => (
+          <span key={c} className="flex items-center gap-1.5"><span className={`h-0.5 w-4 ${CAMPUS_FILL[ci % CAMPUS_FILL.length]}`} />{c}{hover !== null ? ` ${byCampus[ci][hover]}` : ''}</span>
+        ))}
+        <span className="flex items-center gap-1.5 text-slate-400"><span className="w-4 border-t border-dashed border-slate-400" />Average</span>
+      </div>
     </div>
   )
 }
@@ -74,7 +138,7 @@ export function HomeView() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <Card title="Attendance, last 12 weeks"><TrendChart trend={s.trend} /></Card>
+        <Card title="Attendance, last 26 weeks"><TrendChart trend={s.trend} /></Card>
         <Card title="Needs attention (at risk and critical)">
           {s.at_risk.length === 0 ? <Empty>Nobody is slipping right now.</Empty> : (
             <ul className="divide-y divide-slate-100 dark:divide-slate-800">
