@@ -303,7 +303,9 @@ export default function MemberDetail({
   onSave,
   onDeactivate,
   onDelete,
+  embedded = false,
 }: {
+  embedded?: boolean
   member: Member
   teamNames: string[]
   onClose: () => void
@@ -339,12 +341,18 @@ export default function MemberDetail({
   }
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950">
+    <div className={embedded ? 'flex flex-col' : 'flex flex-col h-full bg-slate-50 dark:bg-slate-950'}>
       <div className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-3 flex items-center gap-3">
-        <button onClick={onClose} className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
-          ← Back to list
-        </button>
-        <h1 className="text-base font-semibold text-slate-900 dark:text-white flex-1 truncate">{String(member.name ?? '')}</h1>
+        {embedded ? (
+          <span className="flex-1" />
+        ) : (
+          <>
+            <button onClick={onClose} className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+              ← Back to list
+            </button>
+            <h1 className="text-base font-semibold text-slate-900 dark:text-white flex-1 truncate">{String(member.name ?? '')}</h1>
+          </>
+        )}
         {isDeactivated && (
           <button
             onClick={onDelete}
@@ -368,7 +376,7 @@ export default function MemberDetail({
         </button>
       </div>
 
-      <div className="flex-1 overflow-auto px-5 py-6">
+      <div className={embedded ? 'px-5 py-6' : 'flex-1 overflow-auto px-5 py-6'}>
         <div className="max-w-3xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4">
           {COLUMNS.map((c) => {
             const value = draft[c.key]

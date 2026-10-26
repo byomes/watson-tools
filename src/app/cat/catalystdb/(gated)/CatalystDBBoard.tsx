@@ -63,19 +63,39 @@ function CellValue({ col, value }: { col: Col; value: string | number | null }) 
   return <span>{value}</span>
 }
 
-export default function CatalystDBBoard() {
+// Snapshot of the list's filter state. The dashboard saves these as named views and
+// hands one back as `spec` (remounting the board) to apply it.
+export interface BoardSpec {
+  search: string
+  filters: Record<string, string>
+  teamFilter: string[]
+  firstVisitRange: { from: string; to: string }
+  sort: { key: string; dir: 1 | -1 }
+  view: 'members' | 'households'
+  visible: string[]
+}
+
+export default function CatalystDBBoard({
+  onOpenProfile,
+  spec,
+  onSpec,
+}: {
+  onOpenProfile?: (id: number) => void
+  spec?: BoardSpec
+  onSpec?: (s: BoardSpec) => void
+} = {}) {
   const [members, setMembers] = useState<Member[] | null>(null)
   const [error, setError] = useState('')
-  const [search, setSearch] = useState('')
-  const [filters, setFilters] = useState<Record<string, string>>({})
+  const [search, setSearch] = useState(spec?.search ?? '')
+  const [filters, setFilters] = useState<Record<string, string>>(spec?.filters ?? {})
   const [serving, setServing] = useState<Record<string, string[]>>({})
   const [teamNames, setTeamNames] = useState<string[]>([])
-  const [teamFilter, setTeamFilter] = useState<string[]>([])
-  const [firstVisitRange, setFirstVisitRange] = useState<{ from: string; to: string }>({ from: '', to: '' })
-  const [sort, setSort] = useState<{ key: string; dir: 1 | -1 }>({ key: 'name', dir: 1 })
-  const [view, setView] = useState<'members' | 'households'>('members')
+  const [teamFilter, setTeamFilter] = useState<string[]>(spec?.teamFilter ?? [])
+  const [firstVisitRange, setFirstVisitRange] = useState<{ from: string; to: string }>(spec?.firstVisitRange ?? { from: '', to: '' })
+  const [sort, setSort] = useState<{ key: string; dir: 1 | -1 }>(spec?.sort ?? { key: 'name', dir: 1 })
+  const [view, setView] = useState<'members' | 'households'>(spec?.view ?? 'members')
   const [collapsedHouseholds, setCollapsedHouseholds] = useState<Set<string>>(new Set())
-  const [visible, setVisible] = useState(DEFAULT_VISIBLE)
+  const [visible, setVisible] = useState(spec?.visible ? new Set(spec.visible) : DEFAULT_VISIBLE)
   const [showColPicker, setShowColPicker] = useState(false)
   const colPickerRef = useRef<HTMLDivElement>(null)
   const [selected, setSelected] = useState<Set<number>>(new Set())
@@ -92,6 +112,14 @@ export default function CatalystDBBoard() {
   const [merging, setMerging] = useState(false)
   const [mergeBusy, setMergeBusy] = useState(false)
   const [mergeError, setMergeError] = useState<string | null>(null)
+
+  useEffect(() => {
+    onSpec?.({ search, filters, teamFilter, firstVisitRange, sort, view, visible: Array.from(visible) })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, filters, teamFilter, firstVisitRange, sort, view, visible])
+
+  // In the dashboard, "open record" goes to the full profile; standalone it keeps the old detail card.
+  const openPerson = (id: number) => (onOpenProfile ? onOpenProfile(id) : setOpenId(id))
 
   useEffect(() => {
     api('state')
@@ -682,7 +710,7 @@ export default function CatalystDBBoard() {
           search={search}
           setMembers={setMembers}
           setError={setError}
-          onOpenMember={setOpenId}
+          onOpenMember={openPerson}
           collapsed={collapsedHouseholds}
           setCollapsed={setCollapsedHouseholds}
         />
@@ -719,7 +747,7 @@ export default function CatalystDBBoard() {
                     <div className="flex items-center gap-2">
                       <input type="checkbox" checked={isSelected} onChange={() => toggleSelectRow(id)} />
                       <button
-                        onClick={() => setOpenId(id)}
+                        onClick={() => openPerson(id)}
                         title="Open full record"
                         className="text-slate-400 hover:text-slate-900 dark:hover:text-white"
                       >
@@ -815,7 +843,7 @@ export default function CatalystDBBoard() {
           return (
             <div
               key={id}
-              onClick={() => (mobileSelecting ? toggleSelectRow(id) : setOpenId(id))}
+              onClick={() => (mobileSelecting ? toggleSelectRow(id) : openPerson(id))}
               className={`rounded-xl border p-3 flex items-center gap-3 active:opacity-80 ${
                 isSelected
                   ? 'border-blue-400 bg-blue-50 dark:bg-blue-950/40'

@@ -28,7 +28,7 @@ export async function loginAction(_prevState: LoginState, formData: FormData): P
   try {
     const ref = (await headers()).get('referer')
     const wanted = ref ? new URL(ref).searchParams.get('next') : null
-    if (wanted === '/cat/attsched') next = wanted
+    if (wanted === '/cat/attsched' || wanted === '/cat/dashboard') next = wanted
   } catch {}
   redirect(next)
 }
