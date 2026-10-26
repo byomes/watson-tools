@@ -27,7 +27,7 @@ const NAV: { key: string; label: string; icon: string; roles?: string[] }[] = [
 
 function Icon({ d }: { d: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 shrink-0">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 md:h-5 md:w-5 shrink-0">
       <path d={d} />
     </svg>
   )
@@ -81,7 +81,7 @@ function Shell({ user, themeToggle, logout, deacon }: { user: string; role: stri
     <nav className="flex flex-col gap-0.5 p-3">
       {NAV.map((n) => (
         <button key={n.key} type="button" onClick={() => go(n.key)}
-          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium ${head === n.key ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+          className={`flex items-center gap-3.5 md:gap-3 rounded-lg px-3.5 py-2.5 md:px-3 md:py-2 text-[17px] md:text-sm font-medium ${head === n.key ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
           <Icon d={n.icon} />{n.label}
         </button>
       ))}
@@ -97,7 +97,7 @@ function Shell({ user, themeToggle, logout, deacon }: { user: string; role: stri
         </aside>
         {menu && (
           <div className="md:hidden fixed inset-0 z-40 flex">
-            <div className="w-60 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 overflow-auto">{nav}</div>
+            <div className="w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 overflow-auto">{nav}</div>
             <button type="button" aria-label="Close menu" className="flex-1 bg-black/40" onClick={() => setMenu(false)} />
           </div>
         )}
