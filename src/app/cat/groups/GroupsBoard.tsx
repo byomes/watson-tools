@@ -316,7 +316,7 @@ function GroupPanel({ series: fixedSeries, groupToken }: { series?: string; grou
               <button type="button" onClick={saveCounts} disabled={men === '' || women === ''}
                 className="px-4 py-2 rounded-lg bg-green-600 text-white disabled:opacity-50">{saved ? 'Saved' : 'Save'}</button>
               <button type="button" onClick={() => setDidNotMeet(!state.did_not_meet)}
-                className="ml-2 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-black dark:text-white text-xs whitespace-nowrap">{state.did_not_meet ? 'Undo did not meet' : 'Did not meet'}</button>
+                className="ml-2 px-3 py-2 rounded-lg border border-amber-500 bg-amber-50 dark:bg-amber-950 text-amber-900 dark:text-amber-100 text-sm font-medium whitespace-nowrap">{state.did_not_meet ? 'Undo did not meet' : 'Did not meet'}</button>
             </div>
           ) : (
             <>
@@ -389,7 +389,7 @@ function GroupPanel({ series: fixedSeries, groupToken }: { series?: string; grou
                   className="w-16 border border-gray-300 dark:border-gray-700 rounded-lg px-2 py-1 text-black dark:text-white bg-white dark:bg-gray-900" />
                 <button type="button" onClick={saveCounts} className="px-3 py-1 rounded-lg bg-green-600 text-white">{saved ? 'Saved' : 'Save'}</button>
                 <button type="button" onClick={() => setDidNotMeet(!state.did_not_meet)}
-                className="px-2 py-1 rounded-lg border border-gray-300 dark:border-gray-700 text-black dark:text-white text-xs whitespace-nowrap shrink-0">{state.did_not_meet ? 'Undo did not meet' : 'Did not meet'}</button>
+                className="px-2 py-1 rounded-lg border border-amber-500 bg-amber-50 dark:bg-amber-950 text-amber-900 dark:text-amber-100 text-sm font-medium whitespace-nowrap shrink-0">{state.did_not_meet ? 'Undo did not meet' : 'Did not meet'}</button>
               </div>
             </>
           )}

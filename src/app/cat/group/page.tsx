@@ -31,7 +31,7 @@ export default async function GroupLinkPage({ searchParams }: { searchParams: Pr
           <>
             <h1 className="text-2xl font-bold text-black mb-1">{title}</h1>
             <p className="text-sm text-gray-500 mb-6">
-              Turn on everyone who came, and tap + Add a name for anyone new. Changes save immediately.
+              Turn on everyone who came, and tap + Add a name for anyone new. Changes save immediately. If the group did not meet this week, tap the Did not meet button.
             </p>
             <GroupsBoard groupToken={t} />
           </>
