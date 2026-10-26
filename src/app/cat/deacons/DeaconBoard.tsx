@@ -2,6 +2,7 @@
 import { useEffect, useImperativeHandle, useMemo, useState, forwardRef } from 'react'
 import { createPortal } from 'react-dom'
 import { EditableSelect } from './EditableSelect'
+import { PersonName } from '@/lib/personLink'
 import { formatDeaconNoteDate } from '@/lib/deaconNotes'
 import { BUCKET_META, COMMITTED_META, ENGAGEMENT_META, weeksLabel, type Bucket, type Committed, type Engagement } from '@/lib/shepherdingReportShared'
 
@@ -702,7 +703,7 @@ function PersonCard({
     <div className="border-2 border-gray-200 dark:border-gray-700 rounded-xl p-4 bg-white dark:bg-gray-900">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <div className="font-bold text-gray-900 dark:text-gray-100 text-base leading-tight">{p.name}</div>
+          <div className="font-bold text-gray-900 dark:text-gray-100 text-base leading-tight"><PersonName id={p.id}>{p.name}</PersonName></div>
           {(bucketMeta || engagementMeta || committedMeta) && (
             <div className="flex items-center gap-1.5 flex-wrap mt-1">
               {bucketMeta && p.days_since !== null && (

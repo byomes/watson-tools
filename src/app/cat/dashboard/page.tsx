@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { logoutAction } from '../catalystdb/actions'
 import ThemeToggleButton from '../catalystdb/(gated)/ThemeToggleButton'
 import { chmIdentity } from '@/lib/chmAuth'
+import { getShepherdingReport, computeShepherdingTotals } from '@/lib/shepherdingReport'
 import DashboardApp from './DashboardApp'
 
 export const metadata: Metadata = {
@@ -23,10 +24,12 @@ function LogoutIcon() {
 
 export default async function DashboardPage() {
   const who = await chmIdentity()
+  const report = await getShepherdingReport()
   return (
     <DashboardApp
       user={who?.user ?? ''}
       role={who?.role ?? 'admin'}
+      deacon={{ groups: report?.groups ?? null, totals: report ? computeShepherdingTotals(report.groups) : null, date: report?.generated_date ?? null }}
       themeToggle={<ThemeToggleButton />}
       logout={
         <form action={logoutAction}>

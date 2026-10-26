@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { computeCommittedTotals, computeEngagementTotals, type Committed, type Group, type Member, type Totals } from '@/lib/shepherdingReportShared'
 import { ContactIcons } from './GroupList'
 import AttendanceWeeksModal from './AttendanceWeeksModal'
+import { PersonName } from '@/lib/personLink'
 
 type LabelKey = 'current' | 'atRisk' | 'disconnected' | 'critical' | 'consistent' | 'active' | 'occasional' | 'lapsed' | Committed
 
@@ -47,13 +48,21 @@ function LabelPeopleList({ members, onSelect, smsMode }: { members: MemberWithGr
     <ul className="divide-y divide-gray-100 dark:divide-gray-800">
       {members.map((m) => (
         <li key={m.id} className="px-3 py-2 flex items-center gap-3 text-sm">
-          <button
-            type="button"
-            onClick={() => onSelect(m)}
-            className="flex-1 min-w-0 truncate text-left text-gray-900 dark:text-gray-100 underline decoration-dotted decoration-gray-300 dark:decoration-gray-600 underline-offset-2 active:opacity-60"
+          <PersonName
+            id={m.id}
+            className="flex-1 min-w-0 truncate text-left"
+            fallback={
+              <button
+                type="button"
+                onClick={() => onSelect(m)}
+                className="flex-1 min-w-0 truncate text-left text-gray-900 dark:text-gray-100 underline decoration-dotted decoration-gray-300 dark:decoration-gray-600 underline-offset-2 active:opacity-60"
+              >
+                {m.name}
+              </button>
+            }
           >
             {m.name}
-          </button>
+          </PersonName>
           <ContactIcons member={m} smsMode={smsMode} />
           <span className="shrink-0 text-xs text-gray-400 dark:text-gray-500">{m.groupName}</span>
         </li>

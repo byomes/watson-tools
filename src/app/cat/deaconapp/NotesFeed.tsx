@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { formatDeaconNoteDate } from '@/lib/deaconNotes'
+import { PersonName } from '@/lib/personLink'
 
 interface DeaconNote {
   id: number
@@ -195,7 +196,7 @@ function NoteCard({
   return (
     <div className="border-2 border-gray-200 dark:border-gray-700 rounded-xl p-4 bg-white dark:bg-gray-900">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="font-bold text-gray-900 dark:text-gray-100">{entry.personName}</span>
+        <span className="font-bold text-gray-900 dark:text-gray-100"><PersonName id={entry.personId}>{entry.personName}</PersonName></span>
         <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
           {formatDeaconNoteDate(entry.created_at)}
         </span>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { PersonName } from '@/lib/personLink'
 
 type CampusPreference = 'Wilmington' | 'Online' | 'Hybrid' | 'Inactive'
 
@@ -96,7 +97,7 @@ function MemberRow({
 }) {
   return (
     <li className="flex items-center justify-between py-2.5 gap-3">
-      <span className="text-black dark:text-white text-[15px]">{member.name}</span>
+      <span className="text-black dark:text-white text-[15px]"><PersonName id={member.id}>{member.name}</PersonName></span>
       {editMode ? (
         <CampusRadios member={member} disabled={pending} onChange={onCampusChange} />
       ) : (

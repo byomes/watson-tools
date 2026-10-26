@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { BUCKET_META, COMMITTED_META, ENGAGEMENT_META, weeksLabel, type Bucket, type Committed, type Engagement } from '@/lib/shepherdingReportShared'
 import AttendanceWeeksModal from './AttendanceWeeksModal'
+import { PersonName } from '@/lib/personLink'
 
 interface Member {
   id: number
@@ -277,13 +278,21 @@ export default function GroupList({ groups, smsMode }: { groups: Group[]; smsMod
                     key={m.id}
                     className="px-4 py-4 flex items-center gap-3 text-sm"
                   >
-                    <button
-                      type="button"
-                      onClick={() => setSelected(m)}
-                      className="flex-1 min-w-0 truncate text-left text-gray-900 dark:text-gray-100 underline decoration-dotted decoration-gray-300 dark:decoration-gray-600 underline-offset-2 active:opacity-60"
+                    <PersonName
+                      id={m.id}
+                      className="flex-1 min-w-0 truncate text-left"
+                      fallback={
+                        <button
+                          type="button"
+                          onClick={() => setSelected(m)}
+                          className="flex-1 min-w-0 truncate text-left text-gray-900 dark:text-gray-100 underline decoration-dotted decoration-gray-300 dark:decoration-gray-600 underline-offset-2 active:opacity-60"
+                        >
+                          {m.name}
+                        </button>
+                      }
                     >
                       {m.name}
-                    </button>
+                    </PersonName>
                     <ContactIcons member={m} smsMode={smsMode} />
                     <span className="flex flex-col items-end gap-1 shrink-0">
                       <LastSeenBadge member={m} className={meta.className} />

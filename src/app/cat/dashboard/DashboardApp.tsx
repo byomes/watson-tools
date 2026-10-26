@@ -2,6 +2,8 @@
 
 import { useMemo, useState, type ReactNode } from 'react'
 import PersonProfile from './PersonProfile'
+import DeaconAppView from './DeaconAppView'
+import type { Group, Totals } from '@/lib/shepherdingReportShared'
 import { CareView, DeaconsView, HealthView, ToolsView } from './Views2'
 import { GroupsView, HomeView, KidDetail, KidsView, PeopleView, ServingView } from './Views'
 import { NavContext, PeopleProvider, useHashRoute, usePeople, inputCls } from './chm'
@@ -14,6 +16,7 @@ const NAV: { key: string; label: string; icon: string; roles?: string[] }[] = [
   { key: 'home', label: 'Home', icon: 'M3 12l9-9 9 9M5 10v10h5v-6h4v6h5V10' },
   { key: 'people', label: 'People', icon: 'M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0zM4 21a8 8 0 0 1 16 0' },
   { key: 'deacons', label: 'Deacons', icon: 'M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z' },
+  { key: 'deaconapp', label: 'Deacon App', icon: 'M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7zM9 12l2 2 4-4' },
   { key: 'care', label: 'Care', icon: 'M12 21s-8-5-8-11a5 5 0 0 1 8-3 5 5 0 0 1 8 3c0 6-8 11-8 11z' },
   { key: 'kids', label: 'Kids', icon: 'M12 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 22v-6a6 6 0 0 1 12 0v6' },
   { key: 'groups', label: 'Groups', icon: 'M3 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM17 10a3 3 0 1 0 0-5M21 20v-2a4 4 0 0 0-3-3.9' },
@@ -55,7 +58,9 @@ function GlobalSearch({ go }: { go: (r: string) => void }) {
   )
 }
 
-function Shell({ user, themeToggle, logout }: { user: string; role: string; themeToggle: ReactNode; logout: ReactNode }) {
+type DeaconData = { groups: Group[] | null; totals: Totals | null; date: string | null }
+
+function Shell({ user, themeToggle, logout, deacon }: { user: string; role: string; themeToggle: ReactNode; logout: ReactNode; deacon: DeaconData }) {
   const [route, goRoute] = useHashRoute()
   const [menu, setMenu] = useState(false)
   const [peopleSeen, setPeopleSeen] = useState(false)
@@ -118,6 +123,7 @@ function Shell({ user, themeToggle, logout }: { user: string; role: string; them
             {section === 'groups' && <GroupsView />}
             {section === 'serving' && <ServingView />}
             {section === 'deacons' && <DeaconsView />}
+            {section === 'deaconapp' && <DeaconAppView user={user} groups={deacon.groups} totals={deacon.totals} date={deacon.date} />}
             {section === 'care' && <CareView />}
             {section === 'health' && <HealthView />}
             {head === 'tools' && <ToolsView href={toolHref} />}
@@ -128,7 +134,7 @@ function Shell({ user, themeToggle, logout }: { user: string; role: string; them
   )
 }
 
-export default function DashboardApp(props: { user: string; role: string; themeToggle: ReactNode; logout: ReactNode }) {
+export default function DashboardApp(props: { user: string; role: string; themeToggle: ReactNode; logout: ReactNode; deacon: DeaconData }) {
   return (
     <PeopleProvider>
       <Shell {...props} />
