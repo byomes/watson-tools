@@ -134,7 +134,7 @@ export function DeaconsView() {
       <button key={k} type="button" onClick={() => { setSel(k); setPicked(new Set()) }}
         className={`w-full text-left rounded-lg px-3 py-2 border ${sel === k ? 'border-slate-900 dark:border-white bg-white dark:bg-slate-900' : 'border-transparent hover:bg-white dark:hover:bg-slate-900'}`}>
         <div className="flex items-center gap-2 text-sm font-medium text-slate-900 dark:text-white">{label}<span className="flex-1" /><Pill tone={warn && rows.length ? 'amber' : 'slate'}>{rows.length}</Pill></div>
-        <div className="text-xs text-slate-400 mt-0.5">{['regular', 'at risk', 'critical'].map((b) => m[b] ? `${m[b]} ${b}` : '').filter(Boolean).join(' · ') || 'no one yet'}</div>
+        <div className="text-xs text-slate-400 mt-0.5">{Object.entries(m).map(([b, n]) => `${n} ${b}`).join(' · ') || 'no one yet'}</div>
       </button>
     )
   }
@@ -179,6 +179,7 @@ export function DeaconsView() {
                     {p.partner && <Pill tone="blue">partner</Pill>}
                     {p.age != null ? <Pill>age {p.age}</Pill> : p.role === 'child' && <Pill>age unknown</Pill>}
                     <ConnBadge value={p.connected} />
+                    {p.status && p.status !== 'active' && <Pill tone="amber">{p.status}</Pill>}
                     <span className="flex-1" />
                     <span className="text-xs text-slate-400">{p.household_id}</span>
                   </li>
