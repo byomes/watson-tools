@@ -98,7 +98,7 @@ export const COLUMNS: Col[] = [
     key: 'household_role',
     label: 'Household Role',
     type: 'select',
-    options: ['head', 'wife', 'husband', 'widow', 'widower', 'child', '--'],
+    options: ['head', 'wife', 'husband', 'widow', 'widower', 'child', 'young adult', '--'],
   },
   { key: 'household_id', label: 'Household ID', type: 'text' },
   { key: 'address', label: 'Address', type: 'text' },

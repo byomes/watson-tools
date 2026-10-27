@@ -9,7 +9,7 @@ const ROLE_OPTIONS = COLUMNS.find((c) => c.key === 'household_role')?.options ??
 
 // head/husband lead a household card, then wife/widow(er), then kids, then
 // anything unset -- mirrors how a family is naturally introduced.
-const ROLE_RANK: Record<string, number> = { head: 0, husband: 0, wife: 1, widow: 1, widower: 1, child: 2 }
+const ROLE_RANK: Record<string, number> = { head: 0, husband: 0, wife: 1, widow: 1, widower: 1, child: 2, 'young adult': 2 }
 function roleRank(role: string | number | null): number {
   const r = String(role ?? '').toLowerCase()
   return r in ROLE_RANK ? ROLE_RANK[r] : 3
