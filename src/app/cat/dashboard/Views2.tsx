@@ -90,6 +90,20 @@ export function DeaconsView() {
     }
   }
 
+  async function renameList() {
+    const next = (window.prompt(`New name for the list "${sel}"?`, sel) ?? '').trim()
+    if (!next || next === sel) return
+    setErr('')
+    try {
+      await chm('deacon-list-rename', 'POST', { name: sel, new_name: next })
+      reload()
+      setSel(next)
+      setPicked(new Set())
+    } catch (e) {
+      setErr(String((e as Error).message ?? e))
+    }
+  }
+
   async function deleteList() {
     if (!window.confirm(`Delete the list "${sel}"? Its ${list.length} ${list.length === 1 ? 'person goes' : 'people go'} back to Unassigned. No one is removed from the database.`)) return
     setErr('')
@@ -131,6 +145,7 @@ export function DeaconsView() {
         <h1 className="text-lg font-bold text-slate-900 dark:text-white">Deacon assignments</h1>
         <span className="flex-1" />
         <button type="button" className={btnGhost} onClick={newList}>New list</button>
+        {sel !== NONE && !(sel in data.buckets) && <button type="button" className={btnGhost} onClick={renameList}>Rename list</button>}
         {sel !== NONE && !(sel in data.buckets) && <button type="button" className={btnGhost} onClick={deleteList}>Delete list</button>}
         <button type="button" className={btnGhost} onClick={exportAll}>Download CSV</button>
       </div>
