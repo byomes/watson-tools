@@ -335,6 +335,22 @@ function ConflictReview() {
     }
   }
 
+  const stale = data.conflicts.filter((c: Row) => c.existing.gone || c.new.gone).length
+
+  async function clearStale() {
+    if (!window.confirm(`Dismiss the ${stale} conflicts where one of the two records has already been merged or deleted? Nothing else changes.`)) return
+    setBusy(-1)
+    setErr('')
+    try {
+      await chm('conflict', 'POST', { action: 'dismiss_stale' })
+      reload()
+    } catch (e) {
+      setErr(String((e as Error).message ?? e))
+    } finally {
+      setBusy(null)
+    }
+  }
+
   const side = (title: string, m: Row) => (
     <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-2.5 text-sm">
       <div className="text-[11px] uppercase tracking-wide text-slate-400 mb-0.5">{title}</div>
@@ -362,6 +378,12 @@ function ConflictReview() {
       {err && <p className="px-4 text-sm text-red-600 mb-2">{err}</p>}
       {data.conflicts.length === 0 ? <div className="px-4 pb-3"><Empty>None pending.</Empty></div> : (
         <>
+          {stale > 0 && (
+            <div className="px-4 mb-2 flex flex-wrap items-center gap-2 rounded-lg">
+              <span className="text-sm text-slate-700 dark:text-slate-300">{stale} of these point at a record that was already merged or deleted.</span>
+              <button type="button" className={btnGhost} disabled={busy === -1} onClick={clearStale}>Dismiss those {stale}</button>
+            </div>
+          )}
           <p className="px-4 text-xs text-slate-500 mb-2">Two records that might be the same person. If they are, pick the one to keep: the other is folded into it, its history moves over, and its name is remembered so it will not come back. Click a name to fix details on the profile first.</p>
           <ul className="divide-y divide-slate-100 dark:divide-slate-800">
             {data.conflicts.map((c: Row) => {
