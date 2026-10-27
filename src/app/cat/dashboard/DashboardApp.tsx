@@ -117,7 +117,7 @@ function Shell({ user, themeToggle, logout, deacon }: { user: string; role: stri
             {peopleSeen && <div className={showPeopleList ? 'h-full' : 'hidden'}><PeopleView onOpenProfile={(id) => go(`person/${id}`)} /></div>}
             {head === 'home' && <HomeView />}
             {section === 'person' && Number.isFinite(personId) && (
-              <PersonProfile key={personId} id={personId} tab={b || 'timeline'} setTab={(t) => go(`person/${personId}/${t}`)} onBack={() => (window.history.length > 1 ? window.history.back() : go('people'))} />
+              <PersonProfile key={personId} id={personId} tab={b || 'details'} setTab={(t) => go(`person/${personId}/${t}`)} onBack={() => (window.history.length > 1 ? window.history.back() : go('people'))} />
             )}
             {section === 'kids' && <KidsView />}
             {section === 'kid' && <KidDetail id={Number(a)} onBack={() => go('kids')} />}

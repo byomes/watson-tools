@@ -503,8 +503,8 @@ export default function PersonProfile({ id, tab, setTab, onBack }: { id: number;
   }
 
   const tabs = [
-    { key: 'timeline', label: 'Timeline' },
     { key: 'details', label: 'Details' },
+    { key: 'timeline', label: 'Timeline' },
     { key: 'attendance', label: 'Attendance', count: p.stats.total },
     { key: 'care', label: 'Cards & Care', count: p.cards.length + p.prayer.length + p.followups.length + p.care_notes.length + p.deacon_notes.length },
     { key: 'family', label: 'Family', count: p.household.length + p.kids.length },
