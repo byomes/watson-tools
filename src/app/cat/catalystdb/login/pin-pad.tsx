@@ -3,11 +3,12 @@
 import { useActionState, useEffect, useRef, useState } from 'react'
 import { loginAction } from '../actions'
 
-const PIN_LENGTH = 6
-const MIN_PIN_LENGTH = 4 // elders use their 4-digit deacon-app PIN for the DSS dashboard
-const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'go', '0', 'back']
+const MIN_PIN_LENGTH = 4
 
-export default function PinPad() {
+// length 4 = the DSS elder pad (deacon-app PIN, auto-submits at 4); length 6 = Bill/Donna's full login (Go button allows 4-6).
+export default function PinPad({ length = 6 }: { length?: 4 | 6 }) {
+  const PIN_LENGTH = length
+  const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', length === 4 ? '' : 'go', '0', 'back']
   const [pin, setPin] = useState('')
   const [state, formAction, pending] = useActionState(loginAction, undefined)
   const formRef = useRef<HTMLFormElement>(null)
