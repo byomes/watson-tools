@@ -160,6 +160,7 @@ export function DeaconsView() {
                   <li key={p.id} className="py-1.5 flex items-center gap-3 text-sm">
                     <input type="checkbox" checked={picked.has(p.id)} onChange={() => toggle(p.id)} />
                     <PersonLink id={p.id} name={p.name} />
+                    {p.partner && <Pill tone="blue">partner</Pill>}
                     {p.age != null ? <Pill>age {p.age}</Pill> : p.role === 'child' && <Pill>age unknown</Pill>}
                     <ConnBadge value={p.connected} />
                     <span className="flex-1" />
