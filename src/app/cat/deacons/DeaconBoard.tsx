@@ -958,9 +958,9 @@ const DeaconBoard = forwardRef<DeaconBoardHandle>(function DeaconBoard(_props, r
     })
   }
 
-  async function load() {
-    setLoading(true)
-    setLoadError(null)
+  async function load(silent = false) {
+    if (!silent) setLoading(true)
+    if (!silent) setLoadError(null)
     try {
       const [peopleRes, deaconsRes] = await Promise.all([
         fetch('/api/cat/deacons/roster'),
@@ -978,14 +978,19 @@ const DeaconBoard = forwardRef<DeaconBoardHandle>(function DeaconBoard(_props, r
       setDeacons(deaconsData)
     } catch (err) {
       const detail = err instanceof Error ? err.message : 'Unknown error'
-      setLoadError(detail)
+      if (!silent) setLoadError(detail)
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
 
   useEffect(() => {
     load()
+    // Assignments are also changed on the DSS dashboard, so pick those up without a manual reload.
+    const refresh = () => { if (document.visibilityState === 'visible') load(true) }
+    document.addEventListener('visibilitychange', refresh)
+    const timer = setInterval(refresh, 60000)
+    return () => { document.removeEventListener('visibilitychange', refresh); clearInterval(timer) }
   }, [])
 
   // "Inactive" is a deliberate bucket, not a real deacon — the backend
@@ -1131,7 +1136,7 @@ const DeaconBoard = forwardRef<DeaconBoardHandle>(function DeaconBoard(_props, r
         <p className="text-gray-500 dark:text-gray-400 text-xs mb-4">{loadError}</p>
         <button
           type="button"
-          onClick={load}
+          onClick={() => load()}
           className="text-sm font-semibold text-blue-700 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 border border-blue-700 dark:border-blue-500 rounded-lg px-4 py-2"
         >
           Retry
