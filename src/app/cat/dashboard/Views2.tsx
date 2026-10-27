@@ -7,6 +7,12 @@ import {
   Card, ConnBadge, Empty, Loading, Pill, PersonLink, Tabs, btnCls, btnGhost, chm, fmtDate, inputCls, useChm, useNav, usePeople, type Row,
 } from './chm'
 
+// Default order: last name, then household (keeps a family together), then first name.
+function lastName(n: string) { const p = (n || '').trim().split(/\s+/); return p.length > 1 ? p[p.length - 1] : p[0] ?? '' }
+function byLastName(a: Row, b: Row) {
+  return lastName(a.name).localeCompare(lastName(b.name)) || String(a.household_id ?? '').localeCompare(String(b.household_id ?? '')) || String(a.name).localeCompare(String(b.name))
+}
+
 // ---------------------------------------------------------------- Deacons
 
 const NONE = '__none__'
@@ -47,7 +53,7 @@ export function DeaconsView() {
 
   if (!data) return <Loading error={error} />
   const flocks: Record<string, Row[]> = data.flocks
-  const list: Row[] = sel === NONE ? data.unassigned : flocks[sel] ?? data.buckets[sel] ?? []
+  const list: Row[] = [...(sel === NONE ? data.unassigned : flocks[sel] ?? data.buckets[sel] ?? [])].sort(byLastName)
   const options = [...data.deacons, ...Object.keys(data.buckets)]
 
   function toggle(id: number) {
