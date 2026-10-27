@@ -2,6 +2,7 @@
 import { sortByLastName, sortKidsByLastName } from '@/lib/people'
 
 import { useMemo, useState } from 'react'
+import SundayGlance from './SundayGlance'
 import CatalystDBBoard, { type BoardSpec } from '../catalystdb/(gated)/CatalystDBBoard'
 import {
   Card, ConnBadge, Empty, Loading, Pill, PersonLink, PersonPicker, btnCls, btnGhost, chm, fmtDate, ago, inputCls,
@@ -120,6 +121,7 @@ export function HomeView() {
   const total = Object.values(s.connected as Record<string, number>).reduce((a, b) => a + b, 0) || 1
   return (
     <div className="p-4 sm:p-6 max-w-6xl mx-auto flex flex-col gap-5">
+      <SundayGlance />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Stat label="Active people" value={s.totals.active} sub={`${s.totals.partners} partners`} onClick={() => go('people')} />
         <Stat label="Kids" value={s.totals.kids} onClick={() => go('kids')} />
