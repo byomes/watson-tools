@@ -360,6 +360,10 @@ export function GroupsView() {
     await chm('roster', 'DELETE', { series: g.key, member_id: id })
     reload()
   }
+  async function setAdultClass(g: Row, on: boolean) {
+    await chm('group-setting', 'POST', { series: g.key, adult_sunday_class: on })
+    reload()
+  }
   return (
     <div className="p-4 sm:p-6 max-w-5xl mx-auto flex flex-col gap-6">
       {cats.map((cat) => (
@@ -379,6 +383,10 @@ export function GroupsView() {
                   {last && <span className="text-xs text-slate-400 hidden sm:inline">Last met {fmtDate(last.event_date)} ({last.present})</span>}
                   <span className="text-slate-400">{isOpen ? '▾' : '▸'}</span>
                 </button>
+                <label className="px-4 pb-3 -mt-1 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                  <input type="checkbox" checked={!!g.adult_sunday_class} onChange={(e) => setAdultClass(g, e.target.checked)} />
+                  Count this group in the Adult Sunday Class number (Sunday at a glance)
+                </label>
                 {isOpen && (
                   <div className="px-4 pb-4 grid grid-cols-1 md:grid-cols-2 gap-5 border-t border-slate-100 dark:border-slate-800 pt-3">
                     <div>
