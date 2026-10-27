@@ -385,7 +385,7 @@ export function GroupsView() {
                 </button>
                 <label className="px-4 pb-3 -mt-1 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
                   <input type="checkbox" checked={!!g.adult_sunday_class} onChange={(e) => setAdultClass(g, e.target.checked)} />
-                  Count this group in the Adult Sunday Class number (Sunday at a glance)
+                  This is a Sunday morning small group: count its teens and adults in Sunday at a glance
                 </label>
                 {isOpen && (
                   <div className="px-4 pb-4 grid grid-cols-1 md:grid-cols-2 gap-5 border-t border-slate-100 dark:border-slate-800 pt-3">
