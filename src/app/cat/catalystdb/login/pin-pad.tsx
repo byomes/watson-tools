@@ -4,7 +4,8 @@ import { useActionState, useEffect, useRef, useState } from 'react'
 import { loginAction } from '../actions'
 
 const PIN_LENGTH = 6
-const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'back']
+const MIN_PIN_LENGTH = 4 // elders use their 4-digit deacon-app PIN for the DSS dashboard
+const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'go', '0', 'back']
 
 export default function PinPad() {
   const [pin, setPin] = useState('')
@@ -29,6 +30,8 @@ export default function PinPad() {
     if (pending) return
     if (key === 'back') {
       setPin((p) => p.slice(0, -1))
+    } else if (key === 'go') {
+      if (pin.length >= MIN_PIN_LENGTH) formRef.current?.requestSubmit()
     } else if (key && pin.length < PIN_LENGTH) {
       setPin((p) => p + key)
     }
@@ -38,6 +41,7 @@ export default function PinPad() {
     function onKeyDown(e: KeyboardEvent) {
       if (/^[0-9]$/.test(e.key)) press(e.key)
       else if (e.key === 'Backspace') press('back')
+      else if (e.key === 'Enter') press('go')
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
@@ -68,10 +72,10 @@ export default function PinPad() {
               key={i}
               type="button"
               onClick={() => press(key)}
-              disabled={pending}
+              disabled={pending || (key === 'go' && pin.length < MIN_PIN_LENGTH)}
               className="h-14 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white text-lg font-medium active:scale-95 transition disabled:opacity-50 flex items-center justify-center"
             >
-              {key === 'back' ? '⌫' : key}
+              {key === 'back' ? '⌫' : key === 'go' ? 'Go' : key}
             </button>
           ),
         )}
