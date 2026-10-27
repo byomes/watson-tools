@@ -6,7 +6,7 @@ import { getShepherdingReport, computeShepherdingTotals } from '@/lib/shepherdin
 import DashboardApp from './DashboardApp'
 
 export const metadata: Metadata = {
-  title: 'Catalyst Dashboard',
+  title: 'Catalyst DSS',
   robots: { index: false, follow: false },
 }
 

@@ -92,7 +92,7 @@ function Shell({ user, themeToggle, logout, deacon }: { user: string; role: stri
     <NavContext.Provider value={{ go }}>
       <div className="flex h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
         <aside className="hidden md:flex w-52 shrink-0 flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-          <div className="px-5 py-4 text-sm font-bold">Catalyst</div>
+          <button type="button" onClick={() => window.location.reload()} title="Refresh" className="px-5 py-4 text-left text-sm font-bold hover:text-slate-600 dark:hover:text-slate-300">Catalyst DSS</button>
           {nav}
         </aside>
         {menu && (
@@ -106,6 +106,7 @@ function Shell({ user, themeToggle, logout, deacon }: { user: string; role: stri
             <button type="button" className="md:hidden text-slate-600 dark:text-slate-300" aria-label="Menu" onClick={() => setMenu(true)}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="h-6 w-6"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
+            <button type="button" onClick={() => window.location.reload()} title="Refresh" className="md:hidden shrink-0 text-sm font-bold">Catalyst DSS</button>
             <GlobalSearch go={go} />
             <span className="flex-1" />
             <span className="hidden sm:inline text-xs text-slate-400">{user}</span>
