@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
-import { requireCatalystDBSession } from '@/lib/catalystdbAuth'
+import { hasDashboardSession } from '@/lib/chmElderAuth'
 import { watsonFetch } from '@/lib/watson'
 
 export async function GET() {
-  if (!(await requireCatalystDBSession())) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  // Read-only, so signed-in elders can load the People list; every write route stays admin-only.
+  if (!(await hasDashboardSession())) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
   const res = await watsonFetch('/api/cat/catalystdb/state', {
     headers: { 'X-Watson-Key': process.env.CATALYSTDB_API_KEY ?? '' },

@@ -3,6 +3,7 @@
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createSession, destroySession, verifyPin } from '@/lib/catalystdbAuth'
+import { createElderSession, destroyElderSession, verifyElderPin } from '@/lib/chmElderAuth'
 import { serverClientIp } from '@/lib/clientIp'
 
 type LoginState = { error: string } | undefined
@@ -16,6 +17,20 @@ export async function loginAction(_prevState: LoginState, formData: FormData): P
     return { error: 'Too many attempts. Ask Watson to "unlock login" via Telegram, then try again.' }
   }
   if (matches.length === 0) {
+    // Not Bill or Donna. An elder's deacon-app PIN opens the DSS dashboard only, never the Catalyst Database.
+    let fromDashboard = false
+    try {
+      const ref = (await headers()).get('referer')
+      fromDashboard = (ref ? new URL(ref).searchParams.get('next') : null) === '/cat/dashboard'
+    } catch {}
+    if (fromDashboard) {
+      const { elder, locked: elderLocked } = await verifyElderPin(pin, ip)
+      if (elderLocked) return { error: 'Too many attempts. Ask Watson to "unlock login" via Telegram, then try again.' }
+      if (elder) {
+        await createElderSession(elder)
+        redirect('/cat/dashboard')
+      }
+    }
     return { error: 'Wrong PIN' }
   }
   // Two known users with unique PINs by design -- a collision would mean
@@ -35,5 +50,6 @@ export async function loginAction(_prevState: LoginState, formData: FormData): P
 
 export async function logoutAction() {
   await destroySession()
+  await destroyElderSession()
   redirect('/cat/catalystdb/login')
 }
