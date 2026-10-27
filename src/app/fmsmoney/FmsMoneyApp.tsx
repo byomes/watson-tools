@@ -96,6 +96,9 @@ function Overview({ go }: { go: (t: string) => void }) {
               <span className={`h-2 w-2 rounded-full ${o.exceptions ? 'bg-amber-500' : 'bg-emerald-500'}`} />
               {o.exceptions ? <>{o.exceptions} bank {o.exceptions === 1 ? 'item needs' : 'items need'} a category. <button type="button" className="underline" onClick={() => go('transactions')}>Sort them</button></> : 'Every bank item is categorized.'}
             </li>
+            {(o.annual_warnings ?? []).map((w: string, i: number) => (
+              <li key={`aw${i}`} className="flex items-start gap-2"><span className="h-2 w-2 mt-1.5 shrink-0 rounded-full bg-amber-500" /><span>{w} <button type="button" className="underline" onClick={() => go('bills')}>Bills</button></span></li>
+            ))}
             {(o.recurring_missing ?? []).map((r: Json, i: number) => (
               <li key={i} className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-amber-500" />{r.name}: {r.problem}.</li>
             ))}
@@ -326,6 +329,120 @@ function Forecast() {
   )
 }
 
+// ---------------------------------------------------------------- Bills (monthly and annual)
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+
+function Bills() {
+  const { data: b, error, reload } = useData('bills')
+  const { data: accts } = useData<Json[]>('accounts')
+  const blank = { name: '', amount: '', period: 'annual', code: '', due_month: '', due_day: '1', warn_months: '3', match: '' }
+  const [f, setF] = useState(blank)
+  const [sug, setSug] = useState<Record<string, string>>({})
+  const [err, setErr] = useState('')
+  const exp = (accts ?? []).filter((a) => a.type === 'expense')
+
+  async function save(body: Json) {
+    setErr('')
+    try { await api('bills', 'POST', body); reload(); return true } catch (e) { setErr(String((e as Error).message ?? e)); return false }
+  }
+  async function add() {
+    if (await save({ ...f, due_month: f.period === 'annual' ? f.due_month : undefined })) setF(blank)
+  }
+  async function remove(id: number, name: string) {
+    if (!window.confirm(`Remove "${name}" from the bills list?`)) return
+    await api(`bills/${id}`, 'DELETE'); reload()
+  }
+  if (!b) return <Loading error={error} />
+  const chip = (s: string) => s === 'short' ? 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300' : s === 'tight' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+  const label = (s: string) => s === 'short' ? 'Will be short' : s === 'tight' ? 'Tight' : s === 'covered' ? 'Covered' : 'Unknown'
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Stat label="Monthly bills" value={usd(b.monthly_total)} sub={`${b.monthly.length} items`} />
+        <Stat label="Annual bills" value={usd(b.annual_total)} sub={`${usd(b.annual_per_month)} a month to save`} />
+        <Stat label="Surplus before annual bills" value={usd(b.surplus_before_annual, { sign: true })} sub="income minus regular spending" tone={b.surplus_before_annual < 0 ? 'bad' : undefined} />
+        <Stat label="Gap to close" value={b.gap_per_month ? `${usd(b.gap_per_month)} a month` : 'None'} tone={b.gap_per_month ? 'bad' : 'good'} sub={b.gap_per_month ? 'annual bills cost more than the surplus' : 'the surplus covers the annual bills'} />
+      </div>
+
+      {b.warnings.length > 0 && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-800 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
+          <div className="font-semibold mb-1">Needs attention</div>
+          <ul className="list-disc pl-5 flex flex-col gap-1">{b.warnings.map((w: string, i: number) => <li key={i}>{w}</li>)}</ul>
+        </div>
+      )}
+
+      <div className={card}>
+        <h2 className="font-semibold mb-1">Annual bills</h2>
+        <p className="text-xs text-slate-500 mb-2">Each one is checked against the cash forecast. Watson warns you by Telegram on the 1st of the month when one will not be covered.</p>
+        {b.annual.length === 0 ? <p className="text-sm text-slate-400">None yet. Add things like insurance, domain and software renewals, filing fees, conference registration.</p> : (
+          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+            {b.annual.map((a: Json) => (
+              <li key={a.id} className="py-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                <span className="font-medium min-w-40 flex-1">{a.name}</span>
+                <span className="text-slate-500 w-28">{new Date(a.due + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}{a.overdue ? ' (overdue)' : ''}</span>
+                <span className="tabular-nums w-24 text-right">{usd(a.cents)}</span>
+                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${chip(a.status)}`}>{label(a.status)}</span>
+                <span className="text-xs text-slate-500 w-56">{a.status === 'short' ? `Set aside ${usd(a.set_aside_per_month)} more a month (${a.months_left} months left)` : `About ${usd(a.evenly_per_month)} a month if saved evenly`}</span>
+                <button type="button" className="text-xs text-slate-400 hover:text-red-600" onClick={() => remove(a.id, a.name)}>Remove</button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className={card}>
+        <h2 className="font-semibold mb-1">Monthly bills</h2>
+        <p className="text-xs text-slate-500 mb-2">Things that recur every month. They set the floor for expected spending, and a charge that does not show up is flagged on the Overview.</p>
+        {b.monthly.length === 0 ? <p className="text-sm text-slate-400">None yet.</p> : (
+          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+            {b.monthly.map((m: Json) => (
+              <li key={m.id} className="py-1.5 flex items-center gap-3 text-sm">
+                <span className="flex-1">{m.name}</span><span className="text-xs text-slate-400">{m.category ?? ''}</span><span className="tabular-nums w-24 text-right">{usd(m.cents)}</span>
+                <button type="button" className="text-xs text-slate-400 hover:text-red-600" onClick={() => remove(m.id, m.name)}>Remove</button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {b.suggestions.length > 0 && (
+          <div className="mt-3 border-t border-slate-100 dark:border-slate-800 pt-3">
+            <div className="text-sm font-medium mb-1">These look monthly in the bank. Add them?</div>
+            <ul className="flex flex-col gap-1.5">
+              {b.suggestions.map((s: Json) => (
+                <li key={s.match} className="flex flex-wrap items-center gap-2 text-sm">
+                  <span className="flex-1 min-w-32">{s.name}</span><span className="tabular-nums">{usd(s.cents)}</span>
+                  <select value={sug[s.match] ?? ''} onChange={(e) => setSug({ ...sug, [s.match]: e.target.value })} className={field}><option value="">Category…</option>{exp.map((a) => <option key={a.code} value={a.code}>{a.name}</option>)}</select>
+                  <button type="button" className={btn} disabled={!sug[s.match]} onClick={() => save({ name: s.name, amount: s.cents / 100, period: 'monthly', code: sug[s.match], match: s.match })}>Add</button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      <div className={card}>
+        <h2 className="font-semibold mb-2">Add a bill</h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <select value={f.period} onChange={(e) => setF({ ...f, period: e.target.value })} className={field}><option value="annual">Annual</option><option value="monthly">Monthly</option></select>
+          <input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="What is it?" className={`${field} flex-1 min-w-40`} />
+          <input value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} placeholder="Amount" inputMode="decimal" className={`${field} w-28`} />
+          <select value={f.code} onChange={(e) => setF({ ...f, code: e.target.value })} className={field}><option value="">Category…</option>{exp.map((a) => <option key={a.code} value={a.code}>{a.name}</option>)}</select>
+          {f.period === 'annual' && (
+            <>
+              <select value={f.due_month} onChange={(e) => setF({ ...f, due_month: e.target.value })} className={field}><option value="">Due month…</option>{MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}</select>
+              <input value={f.due_day} onChange={(e) => setF({ ...f, due_day: e.target.value })} placeholder="Day" inputMode="numeric" className={`${field} w-16`} />
+              <label className="text-xs text-slate-500 flex items-center gap-1">Warn <input value={f.warn_months} onChange={(e) => setF({ ...f, warn_months: e.target.value })} inputMode="numeric" className={`${field} w-12`} /> months ahead</label>
+            </>
+          )}
+          <input value={f.match} onChange={(e) => setF({ ...f, match: e.target.value })} placeholder="Bank wording (optional)" className={`${field} w-44`} />
+          <button type="button" className={btn} disabled={!f.name || !f.amount || !f.code || (f.period === 'annual' && !f.due_month)} onClick={add}>Add</button>
+        </div>
+        <p className="text-xs text-slate-400 mt-2">"Bank wording" is how the charge appears on the statement (for example ADOBE), so the bill is recognized and categorized when it is paid.</p>
+        {err && <p className="mt-2 text-sm text-red-600">{err}</p>}
+      </div>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- Board
 function Board() {
   const { data: preview, error } = useData<BoardData>('board-preview')
@@ -401,7 +518,7 @@ function Board() {
 }
 
 // ---------------------------------------------------------------- shell
-const TABS: [string, string][] = [['overview', 'Overview'], ['spending', 'Spending'], ['transactions', 'Transactions'], ['forecast', 'Forecast'], ['board', 'Board']]
+const TABS: [string, string][] = [['overview', 'Overview'], ['spending', 'Spending'], ['transactions', 'Transactions'], ['bills', 'Bills'], ['forecast', 'Forecast'], ['board', 'Board']]
 
 export default function FmsMoneyApp({ user, logout }: { user: string; logout: ReactNode }) {
   const [tab, setTab] = useState('overview')
@@ -424,6 +541,7 @@ export default function FmsMoneyApp({ user, logout }: { user: string; logout: Re
       {tab === 'overview' && <Overview go={go} />}
       {tab === 'spending' && <Spending />}
       {tab === 'transactions' && <Transactions />}
+      {tab === 'bills' && <Bills />}
       {tab === 'forecast' && <Forecast />}
       {tab === 'board' && <Board />}
     </div>

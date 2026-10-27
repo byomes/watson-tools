@@ -19,6 +19,7 @@ export type BoardData = {
     cash: number; monthly_income: number; monthly_expense: number; monthly_net: number; reserve: number; safe_to_spend: number
     runway_months: number | null; partners: number; largest_partner_share_pct: number; points: Point[]
   }
+  annual_bills?: { name: string; due: string; cents: number; status: string }[]; annual_gap_per_month?: number
   books_balanced: boolean; reconciled?: boolean; bank_feed: boolean; last_sync: string | null
 }
 
@@ -176,6 +177,24 @@ export default function BoardReport({ d }: { d: BoardData }) {
           <div><div className="text-xs text-slate-500">Monthly givers</div><div className="font-semibold">{f.partners} <span className="text-xs font-normal text-slate-400">largest is {f.largest_partner_share_pct}% of that</span></div></div>
         </div>
       </section>
+
+      {d.annual_bills && d.annual_bills.length > 0 && (
+        <section className={card}>
+          <h2 className="font-semibold mb-1">Annual bills coming up</h2>
+          <p className="text-xs text-slate-500 mb-2">{d.annual_gap_per_month ? `Setting these aside takes about ${usd(d.annual_gap_per_month)} a month more than the account now earns over its regular spending.` : 'The regular surplus is enough to set these aside.'}</p>
+          <table className="w-full text-sm">
+            <tbody>
+              {d.annual_bills.map((a) => (
+                <tr key={a.name} className="border-t border-slate-100 dark:border-slate-800">
+                  <td className="py-1">{a.name}</td><td className="text-slate-500">{new Date(a.due + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                  <td className="text-right tabular-nums">{usd(a.cents)}</td>
+                  <td className={`text-right text-xs ${a.status === 'short' ? 'text-red-600 dark:text-red-400' : a.status === 'tight' ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>{a.status === 'short' ? 'Will be short' : a.status === 'tight' ? 'Tight' : 'Covered'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
 
       <footer className="text-xs text-slate-400 pb-6">
         Totals only. This page shows no donor names or account numbers.{d.books_balanced ? ' The books balance.' : ' Note: the books do not balance right now; treasurer is reviewing.'}
