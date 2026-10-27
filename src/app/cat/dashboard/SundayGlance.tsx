@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Card, Loading, btnGhost, useChm, type Row } from './chm'
+import { useEffect, useState, type ReactNode } from 'react'
+import { Card, Loading, PersonLink, btnGhost, useChm, useNav } from './chm'
 
 type SmallGroup = { name: string; teens: number; adults: number; other: number; guests: number; headcount?: number | null }
 type Sunday = {
@@ -13,6 +13,9 @@ type Sunday = {
   small_teens: number; small_adults: number; small_guests: number; small_other: number
   small_total: number
 }
+
+type Peek = { date: string; kind: string; title: string; group?: string; klass?: string }
+type Who = { note: string; people: { id: number; name: string; detail: string }[]; kids: { id: number; name: string; detail: string }[] }
 
 const ROOM_LABELS: [string, string][] = [['nursery', 'Nursery'], ['toddlers', 'Toddlers'], ['prek', 'Pre-K'], ['elementary', 'Elementary']]
 
@@ -57,10 +60,55 @@ function Delta({ now, avg, weeks }: { now: number | null; avg: number | null; we
   )
 }
 
+function PeekBox({ peek, onClose }: { peek: Peek; onClose: () => void }) {
+  const { go } = useNav()
+  const q = `sunday-people?date=${peek.date}&kind=${peek.kind}${peek.group ? `&group=${encodeURIComponent(peek.group)}` : ''}${peek.klass ? `&class=${encodeURIComponent(peek.klass)}` : ''}`
+  const { data, error } = useChm<Who>(q)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+  const rows = data ? (data.kids.length ? data.kids : data.people) : []
+  const isKids = !!data && data.kids.length > 0
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4" onClick={onClose}>
+      <div className="w-full sm:max-w-md max-h-[85vh] flex flex-col rounded-t-2xl sm:rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start gap-3 px-4 pt-3 pb-2 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex-1">
+            <div className="text-sm font-semibold text-slate-900 dark:text-white">{peek.title}</div>
+            <div className="text-xs text-slate-400">{longDate(peek.date)}{data && !data.note ? ` · ${rows.length} ${rows.length === 1 ? 'person' : 'people'}` : ''}</div>
+          </div>
+          <button type="button" className={btnGhost} onClick={onClose}>Close</button>
+        </div>
+        <div className="overflow-auto px-4 py-2">
+          {!data ? <p className="text-sm text-slate-500 py-3">{error || 'Loading…'}</p> : data.note && rows.length === 0 ? (
+            <p className="text-sm text-slate-600 dark:text-slate-300 py-3">{data.note}</p>
+          ) : rows.length === 0 ? <p className="text-sm text-slate-500 py-3">No one.</p> : (
+            <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+              {rows.map((r) => (
+                <li key={r.id} className="py-1.5 flex items-baseline gap-2 text-sm">
+                  {isKids
+                    ? <button type="button" className="text-left font-medium text-slate-900 dark:text-white hover:underline" onClick={() => { onClose(); go(`kid/${r.id}`) }}>{r.name}</button>
+                    : <span onClick={onClose}><PersonLink id={r.id} name={r.name} /></span>}
+                  <span className="flex-1" />
+                  <span className="text-xs text-slate-400 text-right">{r.detail}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {data && data.note && rows.length > 0 && <p className="text-xs text-slate-400 py-2">{data.note}</p>}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function SundayGlance() {
   const { data, error } = useChm<{ sundays: Sunday[] }>('sundays')
   const [idx, setIdx] = useState(0)
   const [history, setHistory] = useState(false)
+  const [peek, setPeek] = useState<Peek | null>(null)
   if (!data) return <Loading error={error} />
   const list = data.sundays.map((s) => ({ ...s, small_total: s.small_teens + s.small_adults }))
   if (!list.length) return null
@@ -74,6 +122,11 @@ export default function SundayGlance() {
   const arrow = 'h-9 w-9 shrink-0 rounded-lg border border-slate-300 dark:border-slate-700 text-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent'
   const box = 'rounded-lg border border-slate-200 dark:border-slate-800 p-3'
   const noGroups = cur.small_groups.length === 0
+  // Every number is a link: tap it to see the names counted in it.
+  const N = (v: ReactNode, kind: string, title: string, extra: { group?: string; klass?: string; date?: string } = {}) => (
+    <button type="button" className="underline decoration-dotted underline-offset-4 hover:decoration-solid"
+      onClick={(e) => { e.stopPropagation(); setPeek({ date: extra.date ?? cur.date, kind, title, group: extra.group, klass: extra.klass }) }}>{v}</button>
+  )
 
   return (
     <Card
@@ -97,7 +150,7 @@ export default function SundayGlance() {
               return (
                 <div key={m.key} className={box}>
                   <div className="text-xs text-slate-500 dark:text-slate-400">{m.label}</div>
-                  <div className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">{v ?? <span className="text-base font-medium text-slate-400">not in yet</span>}</div>
+                  <div className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">{v == null ? <span className="text-base font-medium text-slate-400">not in yet</span> : N(v, m.key as string, m.label)}</div>
                   <div><Delta now={v} avg={avg(m.key, m.weeks)} weeks={m.weeks} /></div>
                   <div className="text-[11px] text-slate-400">{m.sub}{last(m) != null ? ` · Sunday before: ${last(m)}` : ''}</div>
                 </div>
@@ -109,11 +162,11 @@ export default function SundayGlance() {
               <div className="text-xs text-slate-500 dark:text-slate-400">Kids and the adults with them</div>
               <div className="flex items-end gap-4">
                 <div>
-                  <div className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">{cur.kids}</div>
+                  <div className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">{N(cur.kids, 'kids', 'Kids checked in')}</div>
                   <div className="text-[11px] text-slate-400">kids</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">{cur.class_adults ?? <span className="text-base font-medium text-slate-400">not in yet</span>}</div>
+                  <div className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">{cur.class_adults == null ? <span className="text-base font-medium text-slate-400">not in yet</span> : N(cur.class_adults, 'class_adults', 'Adults with the kids')}</div>
                   <div className="text-[11px] text-slate-400">adults with them</div>
                 </div>
               </div>
@@ -130,17 +183,17 @@ export default function SundayGlance() {
                 <>
                   <div className="flex items-end gap-4">
                     <div>
-                      <div className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">{cur.small_teens}</div>
+                      <div className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">{N(cur.small_teens, 'small_teens', 'Small group teens')}</div>
                       <div className="text-[11px] text-slate-400">teens</div>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">{cur.small_adults}</div>
+                      <div className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">{N(cur.small_adults, 'small_adults', 'Small group adults')}</div>
                       <div className="text-[11px] text-slate-400">adults</div>
                     </div>
                   </div>
                   <div><Delta now={cur.small_total} avg={avg(SMALL.key, SMALL.weeks)} weeks={SMALL.weeks} /></div>
                   <div className="text-[11px] text-slate-400">
-                    {cur.small_guests ? `+ ${cur.small_guests} guests` : 'no guests counted'}{cur.small_other ? ` · ${cur.small_other} under 13 or no birthday` : ''}{last(SMALL) != null ? ` · Sunday before: ${last(SMALL)}` : ''}
+                    {cur.small_guests ? <>+ {N(cur.small_guests, 'small_guests', 'Small group guests')} guests</> : 'no guests counted'}{cur.small_other ? <> · {N(cur.small_other, 'small_other', 'Small groups: under 13 or no birthday')} under 13 or no birthday</> : ''}{last(SMALL) != null ? ` · Sunday before: ${last(SMALL)}` : ''}
                   </div>
                 </>
               )}
@@ -151,7 +204,7 @@ export default function SundayGlance() {
               return (
                 <div key={m.key} className={box}>
                   <div className="text-xs text-slate-500 dark:text-slate-400">{m.label}</div>
-                  <div className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">{v ?? <span className="text-base font-medium text-slate-400">not in yet</span>}</div>
+                  <div className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">{v == null ? <span className="text-base font-medium text-slate-400">not in yet</span> : N(v, m.key as string, m.label)}</div>
                   <div><Delta now={v} avg={avg(m.key, m.weeks)} weeks={m.weeks} /></div>
                   <div className="text-[11px] text-slate-400">{m.sub}{last(m) != null ? ` · Sunday before: ${last(m)}` : ''}</div>
                 </div>
@@ -166,7 +219,7 @@ export default function SundayGlance() {
                     <thead><tr className="text-xs text-slate-400 text-left"><th className="font-normal">Room</th><th className="font-normal text-right">Kids</th><th className="font-normal text-right">Adults</th></tr></thead>
                     <tbody>
                       {ROOM_LABELS.map(([k, label]) => (
-                        <tr key={k} className="border-t border-slate-100 dark:border-slate-800"><td className="py-1">{label}</td><td className="text-right tabular-nums">{cur.rooms![k]?.kids ?? 0}</td><td className="text-right tabular-nums">{cur.rooms![k]?.adults ?? 0}</td></tr>
+                        <tr key={k} className="border-t border-slate-100 dark:border-slate-800"><td className="py-1">{label}</td><td className="text-right tabular-nums">{N(cur.rooms![k]?.kids ?? 0, 'room_counts', `${label} kids`)}</td><td className="text-right tabular-nums">{N(cur.rooms![k]?.adults ?? 0, 'room_counts', `${label} adults`)}</td></tr>
                       ))}
                     </tbody>
                   </table>
@@ -178,7 +231,7 @@ export default function SundayGlance() {
                 {Object.keys(cur.checkins).length ? (
                   <ul className="text-sm">
                     {Object.entries(cur.checkins).sort(([a], [b]) => a.localeCompare(b)).map(([name, n]) => (
-                      <li key={name} className="flex justify-between border-t border-slate-100 dark:border-slate-800 py-1 first:border-0"><span>{name}</span><span className="tabular-nums">{n}</span></li>
+                      <li key={name} className="flex justify-between border-t border-slate-100 dark:border-slate-800 py-1 first:border-0"><span>{name}</span><span className="tabular-nums">{N(n, 'kids', `Checked in: ${name}`, { klass: name })}</span></li>
                     ))}
                   </ul>
                 ) : <p className="text-xs text-slate-400">No check-ins recorded.</p>}
@@ -191,7 +244,7 @@ export default function SundayGlance() {
                     <thead><tr className="text-xs text-slate-400 text-left"><th className="font-normal">Group</th><th className="font-normal text-right">Teens</th><th className="font-normal text-right">Adults</th><th className="font-normal text-right">Guests</th></tr></thead>
                     <tbody>
                       {cur.small_groups.map((g) => (
-                        <tr key={g.name} className="border-t border-slate-100 dark:border-slate-800"><td className="py-1 pr-2">{g.name}</td><td className="text-right tabular-nums">{g.teens}</td><td className="text-right tabular-nums">{g.adults}</td><td className="text-right tabular-nums">{g.guests}</td></tr>
+                        <tr key={g.name} className="border-t border-slate-100 dark:border-slate-800"><td className="py-1 pr-2">{g.name}</td><td className="text-right tabular-nums">{N(g.teens, 'small_teens', `${g.name}: teens`, { group: g.name })}</td><td className="text-right tabular-nums">{N(g.adults, 'small_adults', `${g.name}: adults`, { group: g.name })}</td><td className="text-right tabular-nums">{N(g.guests, 'small_guests', `${g.name}: guests`)}</td></tr>
                       ))}
                     </tbody>
                   </table>
@@ -214,7 +267,7 @@ export default function SundayGlance() {
                   <tr key={s.date} onClick={() => { setIdx(i); setHistory(false) }}
                     className={`cursor-pointer border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60 ${i === idx ? 'bg-slate-100 dark:bg-slate-800 font-semibold' : ''}`}>
                     <td className="py-1.5 pr-3 whitespace-nowrap">{shortDate(s.date)}</td>
-                    {HISTORY.map((m) => <td key={m.key} className="py-1.5 px-2 text-right tabular-nums">{(s[m.key] as number | null) ?? '–'}</td>)}
+                    {HISTORY.map((m) => <td key={m.key} className="py-1.5 px-2 text-right tabular-nums">{(s[m.key] as number | null) == null ? '–' : N(s[m.key] as number, m.key as string, m.label, { date: s.date })}</td>)}
                   </tr>
                 ))}
               </tbody>
@@ -223,6 +276,7 @@ export default function SundayGlance() {
           </div>
         )}
       </div>
+      {peek && <PeekBox key={`${peek.date}${peek.kind}${peek.group}${peek.klass}`} peek={peek} onClose={() => setPeek(null)} />}
     </Card>
   )
 }
