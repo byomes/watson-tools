@@ -311,6 +311,87 @@ function MatchReview() {
   )
 }
 
+// Contact conflicts: two records that may be one person (shared email, same name with another email, alike names).
+function ConflictReview() {
+  const { data, error, reload } = useChm<{ conflicts: Row[] }>('conflicts')
+  const { refresh } = usePeople()
+  const [busy, setBusy] = useState<number | null>(null)
+  const [err, setErr] = useState('')
+  if (!data) return <Loading error={error} />
+
+  async function act(c: Row, action: string, confirmText?: string) {
+    if (confirmText && !window.confirm(confirmText)) return
+    setBusy(c.id)
+    setErr('')
+    try {
+      await chm('conflict', 'POST', { id: c.id, action })
+      reload()
+      refresh()
+    } catch (e) {
+      setErr(String((e as Error).message ?? e))
+      reload()
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const side = (title: string, m: Row) => (
+    <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-2.5 text-sm">
+      <div className="text-[11px] uppercase tracking-wide text-slate-400 mb-0.5">{title}</div>
+      {m.gone ? (
+        <>
+          <div className="font-medium text-slate-900 dark:text-white">{m.name}</div>
+          <div className="text-xs text-red-600 dark:text-red-400">This record no longer exists.</div>
+        </>
+      ) : (
+        <>
+          <div className="font-medium"><PersonLink id={m.id} name={m.name} /></div>
+          <div className="text-xs text-slate-500 break-all">{m.email || 'no email'}{m.phone ? ` · ${m.phone}` : ''}</div>
+          <div className="text-xs text-slate-400">
+            {m.visits ? `${m.visits} ${m.visits === 1 ? 'Sunday' : 'Sundays'}, last ${fmtDate(m.last_seen)}` : 'No attendance'}
+            {m.first_visit_date ? ` · first ${fmtDate(m.first_visit_date)}` : ''}
+            {m.active && m.active !== 'active' ? ` · ${m.active}` : ''}
+          </div>
+        </>
+      )}
+    </div>
+  )
+
+  return (
+    <Card title="Contact conflicts" action={<Pill tone={data.conflicts.length ? 'amber' : 'green'}>{data.conflicts.length}</Pill>}>
+      {err && <p className="px-4 text-sm text-red-600 mb-2">{err}</p>}
+      {data.conflicts.length === 0 ? <div className="px-4 pb-3"><Empty>None pending.</Empty></div> : (
+        <>
+          <p className="px-4 text-xs text-slate-500 mb-2">Two records that might be the same person. If they are, pick the one to keep: the other is folded into it, its history moves over, and its name is remembered so it will not come back. Click a name to fix details on the profile first.</p>
+          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+            {data.conflicts.map((c: Row) => {
+              const gone = c.existing.gone || c.new.gone
+              return (
+                <li key={c.id} className="px-4 py-3 flex flex-col gap-2">
+                  <div className="text-xs text-slate-500"><b className="text-slate-700 dark:text-slate-300">{c.label}</b> · found {fmtDate(c.detected_at)}{c.notes ? ` · ${c.notes}` : ''}</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">{side('On file', c.existing)}{side('Newer record', c.new)}</div>
+                  <div className="flex flex-wrap gap-2">
+                    {!gone && (
+                      <>
+                        <button type="button" className={btnCls} disabled={busy === c.id}
+                          onClick={() => act(c, 'keep_existing', `Same person. Keep "${c.existing.name}" and fold "${c.new.name}" into it? This cannot be undone.`)}>Same person: keep {c.existing.name}</button>
+                        <button type="button" className={btnCls} disabled={busy === c.id}
+                          onClick={() => act(c, 'keep_new', `Same person. Keep "${c.new.name}" and fold "${c.existing.name}" into it? This cannot be undone.`)}>Same person: keep {c.new.name}</button>
+                      </>
+                    )}
+                    <button type="button" className={btnGhost} disabled={busy === c.id} onClick={() => act(c, 'different')}>Two different people</button>
+                    <button type="button" className={btnGhost} disabled={busy === c.id} onClick={() => act(c, 'dismiss')}>Dismiss</button>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        </>
+      )}
+    </Card>
+  )
+}
+
 export function HealthView() {
   const { go } = useNav()
   const { data, error } = useChm<Row>('health')
@@ -342,15 +423,7 @@ export function HealthView() {
           </ul>
         )}
       </Card>
-      <Card title="Contact conflicts" action={<Pill tone={data.conflicts.length ? 'amber' : 'green'}>{data.conflicts.length}</Pill>}>
-        {data.conflicts.length === 0 ? <Empty>None pending.</Empty> : (
-          <ul className="text-sm divide-y divide-slate-100 dark:divide-slate-800">
-            {data.conflicts.slice(0, 15).map((c: Row) => (
-              <li key={c.id} className="py-1.5">{c.existing_name} <span className="text-slate-400">vs</span> {c.new_name} <span className="text-xs text-slate-400">{c.conflict_type}, {fmtDate(c.detected_at)}</span></li>
-            ))}
-          </ul>
-        )}
-      </Card>
+      <ConflictReview />
     </div>
   )
 }
