@@ -17,12 +17,11 @@ type Sunday = {
 type Peek = { date: string; kind: string; title: string; group?: string; klass?: string }
 type Who = { note: string; people: { id: number; name: string; detail: string }[]; kids: { id: number; name: string; detail: string }[] }
 
-const ROOM_LABELS: [string, string][] = [['nursery', 'Nursery'], ['toddlers', 'Toddlers'], ['prek', 'Pre-K'], ['elementary', 'Elementary']]
 
 // weeks = how many earlier Sundays form the baseline: 4 (about a month) for the big numbers, 8 for the small, jumpy ones.
 type Metric = { key: keyof Sunday; label: string; sub?: string; weeks: number }
 const M = (key: keyof Sunday, weeks: number, label: string, sub?: string): Metric => ({ key, weeks, label, sub })
-// The plain tiles. Kids (with the adults in the kids rooms) and Sunday small groups get their own boxes below.
+// The plain tiles. Kids (with the adults in the kids rooms) and Sunday small groups get their own tiles among them.
 const TILES: Metric[] = [
   M('total', 4, 'Total named', 'both campuses'),
   M('wilmington', 4, 'Wilmington', 'named in the room'),
@@ -57,56 +56,6 @@ function Delta({ now, avg, weeks }: { now: number | null; avg: number | null; we
     <span className={`text-xs font-medium ${d > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
       {d > 0 ? '▲' : '▼'} {Math.abs(d)} vs {weeks}-week average ({avg})
     </span>
-  )
-}
-
-type Follow = {
-  absent: { id: number; name: string; deacon: string; last_seen: string | null; weeks_away: number | null }[]
-  visitors: { id: number; name: string; campus: string; visit_no: number; note: string; open_followups: number }[]
-}
-
-// Who to reach out to for one Sunday: regulars who were not there, and the new and second-time visitors who were.
-function FollowPanels({ date, box }: { date: string; box: string }) {
-  const { data, error } = useChm<Follow>(`sunday-follow?date=${date}`)
-  return (
-    <>
-      <div className={box}>
-        <div className="text-sm font-semibold text-slate-900 dark:text-white mb-1">Regulars who were not there{data ? ` (${data.absent.length})` : ''}</div>
-        {!data ? <p className="text-xs text-slate-400">{error || 'Loading…'}</p> : data.absent.length === 0 ? <p className="text-xs text-slate-400">Every regular was here.</p> : (
-          <ul className="text-sm max-h-64 overflow-auto">
-            {data.absent.map((a) => (
-              <li key={a.id} className="flex items-baseline gap-2 border-t border-slate-100 dark:border-slate-800 py-1 first:border-0">
-                <PersonLink id={a.id} name={a.name} />
-                <span className="flex-1" />
-                <span className="text-xs text-slate-400 text-right">
-                  {a.weeks_away != null ? `last here ${a.weeks_away <= 1 ? 'the week before' : `${a.weeks_away} weeks earlier`}` : 'no earlier visit'}{a.deacon ? ` · ${a.deacon}` : ' · no deacon'}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-        <p className="text-[11px] text-slate-400 mt-1">Active people who had come at least 4 of the 8 Sundays before this one. Their last visit and deacon are on the right.</p>
-      </div>
-      <div className={box}>
-        <div className="text-sm font-semibold text-slate-900 dark:text-white mb-1">New and returning guests{data ? ` (${data.visitors.length})` : ''}</div>
-        {!data ? <p className="text-xs text-slate-400">{error || 'Loading…'}</p> : data.visitors.length === 0 ? <p className="text-xs text-slate-400">No first- or second-time visitors.</p> : (
-          <ul className="text-sm">
-            {data.visitors.map((v) => (
-              <li key={v.id} className="border-t border-slate-100 dark:border-slate-800 py-1 first:border-0">
-                <div className="flex items-baseline gap-2">
-                  <PersonLink id={v.id} name={v.name} />
-                  <span className="text-xs text-slate-400">{v.visit_no === 1 ? '1st visit' : '2nd visit'} · {v.campus}</span>
-                  <span className="flex-1" />
-                  {v.open_followups > 0 && <span className="text-xs text-amber-600 dark:text-amber-400">{v.open_followups} open follow-up{v.open_followups > 1 ? 's' : ''}</span>}
-                </div>
-                {v.note && <div className="text-xs text-slate-500 dark:text-slate-400">{v.note}</div>}
-              </li>
-            ))}
-          </ul>
-        )}
-        <p className="text-[11px] text-slate-400 mt-1">People on their first or second recorded Sunday, with what they wrote on their connect card.</p>
-      </div>
-    </>
   )
 }
 
@@ -261,37 +210,6 @@ export default function SundayGlance() {
               )
             })}
 
-            <div className="col-span-2 sm:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className={box}>
-                <div className="text-sm font-semibold text-slate-900 dark:text-white mb-1">Kids and nursery by room</div>
-                {cur.rooms ? (
-                  <table className="w-full text-sm">
-                    <thead><tr className="text-xs text-slate-400 text-left"><th className="font-normal">Room</th><th className="font-normal text-right">Kids</th><th className="font-normal text-right">Adults</th></tr></thead>
-                    <tbody>
-                      {ROOM_LABELS.map(([k, label]) => (
-                        <tr key={k} className="border-t border-slate-100 dark:border-slate-800"><td className="py-1">{label}</td><td className="text-right tabular-nums">{N(cur.rooms![k]?.kids ?? 0, 'room_counts', `${label} kids`)}</td><td className="text-right tabular-nums">{N(cur.rooms![k]?.adults ?? 0, 'room_counts', `${label} adults`)}</td></tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : <p className="text-xs text-slate-400">Donna has not entered the classroom counts for this Sunday yet.</p>}
-                <p className="text-[11px] text-slate-400 mt-1">From the classroom sheet.</p>
-              </div>
-              <FollowPanels key={cur.date} date={cur.date} box={box} />
-              <div className={box}>
-                <div className="text-sm font-semibold text-slate-900 dark:text-white mb-1">Sunday small groups, by group</div>
-                {noGroups ? <p className="text-xs text-slate-400">Nothing counted for this Sunday.</p> : (
-                  <table className="w-full text-sm">
-                    <thead><tr className="text-xs text-slate-400 text-left"><th className="font-normal">Group</th><th className="font-normal text-right">Teens</th><th className="font-normal text-right">Adults</th><th className="font-normal text-right">Guests</th></tr></thead>
-                    <tbody>
-                      {cur.small_groups.map((g) => (
-                        <tr key={g.name} className="border-t border-slate-100 dark:border-slate-800"><td className="py-1 pr-2">{g.name}</td><td className="text-right tabular-nums">{N(g.teens, 'small_teens', `${g.name}: teens`, { group: g.name })}</td><td className="text-right tabular-nums">{N(g.adults, 'small_adults', `${g.name}: adults`, { group: g.name })}</td><td className="text-right tabular-nums">{N(g.guests, 'small_guests', `${g.name}: guests`)}</td></tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-                <p className="text-[11px] text-slate-400 mt-1">Named people marked present, split by age that day (teens 13-17, adults 18+). Guests are the unnamed count.</p>
-              </div>
-            </div>
           </div>
         ) : (
           <div className="overflow-x-auto">
