@@ -8,16 +8,17 @@ type Sunday = {
   kids: number; class_adults: number | null; serving: number; first_time: number; cards: number
 }
 
-const METRICS: { key: keyof Sunday; label: string; sub?: string }[] = [
-  { key: 'total', label: 'Total named', sub: 'both campuses' },
-  { key: 'wilmington', label: 'Wilmington', sub: 'named in the room' },
-  { key: 'online', label: 'Online', sub: 'named online' },
-  { key: 'headcount', label: 'Headcount', sub: "Donna's count" },
-  { key: 'kids', label: 'Kids', sub: 'checked in' },
-  { key: 'class_adults', label: 'Class adults', sub: 'kids classrooms' },
-  { key: 'serving', label: 'Serving', sub: 'people on teams' },
-  { key: 'first_time', label: 'First-time', sub: 'first ever Sunday' },
-  { key: 'cards', label: 'Connect cards', sub: 'turned in' },
+// weeks = how many earlier Sundays form the baseline: 4 (about a month) for the big numbers, 8 for the small, jumpy ones.
+const METRICS: { key: keyof Sunday; label: string; sub?: string; weeks: number }[] = [
+  { key: 'total', weeks: 4, label: 'Total named', sub: 'both campuses' },
+  { key: 'wilmington', weeks: 4, label: 'Wilmington', sub: 'named in the room' },
+  { key: 'online', weeks: 4, label: 'Online', sub: 'named online' },
+  { key: 'headcount', weeks: 4, label: 'Headcount', sub: "Donna's count" },
+  { key: 'kids', weeks: 8, label: 'Kids', sub: 'checked in' },
+  { key: 'class_adults', weeks: 8, label: 'Class adults', sub: 'kids classrooms' },
+  { key: 'serving', weeks: 4, label: 'Serving', sub: 'people on teams' },
+  { key: 'first_time', weeks: 8, label: 'First-time', sub: 'first ever Sunday' },
+  { key: 'cards', weeks: 4, label: 'Connect cards', sub: 'turned in' },
 ]
 
 function longDate(d: string) {
@@ -27,13 +28,13 @@ function shortDate(d: string) {
   return new Date(d + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
-function Delta({ now, before }: { now: number | null; before: number | null | undefined }) {
-  if (now == null || before == null) return <span className="text-xs text-slate-400">no comparison</span>
-  const d = now - before
-  if (d === 0) return <span className="text-xs text-slate-400">same as the Sunday before</span>
+function Delta({ now, avg, weeks }: { now: number | null; avg: number | null; weeks: number }) {
+  if (now == null || avg == null) return <span className="text-xs text-slate-400">no comparison</span>
+  const d = Math.round((now - avg) * 10) / 10
+  if (d === 0) return <span className="text-xs text-slate-400">on the {weeks}-week average ({avg})</span>
   return (
     <span className={`text-xs font-medium ${d > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-      {d > 0 ? '▲' : '▼'} {Math.abs(d)} vs the Sunday before
+      {d > 0 ? '▲' : '▼'} {Math.abs(d)} vs {weeks}-week average ({avg})
     </span>
   )
 }
@@ -47,9 +48,9 @@ export default function SundayGlance() {
   if (!list.length) return null
   const cur = list[Math.min(idx, list.length - 1)]
   const prev = list[idx + 1]
-  const avg = (k: keyof Sunday) => {
-    const xs = list.slice(idx + 1, idx + 9).map((s) => s[k]).filter((v): v is number => typeof v === 'number')
-    return xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : null
+  const avg = (k: keyof Sunday, weeks: number) => {
+    const xs = list.slice(idx + 1, idx + 1 + weeks).map((s) => s[k]).filter((v): v is number => typeof v === 'number')
+    return xs.length >= 2 ? Math.round((xs.reduce((a, b) => a + b, 0) / xs.length) * 10) / 10 : null
   }
   const arrow = 'h-9 w-9 shrink-0 rounded-lg border border-slate-300 dark:border-slate-700 text-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent'
 
@@ -72,13 +73,14 @@ export default function SundayGlance() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {METRICS.map((m) => {
               const v = cur[m.key] as number | null
-              const a = avg(m.key)
+              const a = avg(m.key, m.weeks)
+              const last = prev ? (prev[m.key] as number | null) : null
               return (
                 <div key={m.key} className="rounded-lg border border-slate-200 dark:border-slate-800 p-3">
                   <div className="text-xs text-slate-500 dark:text-slate-400">{m.label}</div>
                   <div className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">{v ?? <span className="text-base font-medium text-slate-400">not in yet</span>}</div>
-                  <div><Delta now={v} before={prev ? (prev[m.key] as number | null) : null} /></div>
-                  <div className="text-[11px] text-slate-400">{m.sub}{a != null && v != null ? ` · 8-wk avg before: ${a}` : ''}</div>
+                  <div><Delta now={v} avg={a} weeks={m.weeks} /></div>
+                  <div className="text-[11px] text-slate-400">{m.sub}{last != null ? ` · Sunday before: ${last}` : ''}</div>
                 </div>
               )
             })}
