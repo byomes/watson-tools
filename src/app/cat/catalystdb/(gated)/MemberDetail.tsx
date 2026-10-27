@@ -390,7 +390,7 @@ export default function MemberDetail({
             }
             return (
               <div key={c.key} className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-slate-500 dark:text-slate-400">{c.label}</label>
+                <label className="text-xs font-medium text-slate-500 dark:text-slate-400">{c.key === 'connected' ? 'Assimilation' : c.label}</label>
                 {c.type === 'bool' ? (
                   <button
                     type="button"
@@ -425,6 +425,13 @@ export default function MemberDetail({
                     onChange={(e) => set(c.key, e.target.value)}
                     className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-sm text-slate-900 dark:text-white"
                   />
+                )}
+                {c.key === 'connected' && (
+                  <span className="text-xs text-slate-400">
+                    {member.connected_override
+                      ? 'Set by hand. Choose — to return to automatic.'
+                      : 'Automatic, from attendance. Choose a level (for example guest) to set it by hand.'}
+                  </span>
                 )}
               </div>
             )
