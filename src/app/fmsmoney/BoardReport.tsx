@@ -19,7 +19,7 @@ export type BoardData = {
     cash: number; monthly_income: number; monthly_expense: number; monthly_net: number; reserve: number; safe_to_spend: number
     runway_months: number | null; partners: number; largest_partner_share_pct: number; points: Point[]
   }
-  books_balanced: boolean; bank_feed: boolean; last_sync: string | null
+  books_balanced: boolean; reconciled?: boolean; bank_feed: boolean; last_sync: string | null
 }
 
 const card = 'rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 print:break-inside-avoid'
@@ -102,6 +102,12 @@ export default function BoardReport({ d }: { d: BoardData }) {
         <p className="text-xs text-slate-400">Prepared {new Date(d.generated).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}{d.last_sync ? `. Books last updated ${new Date(d.last_sync).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.` : '.'}</p>
       </header>
 
+      {d.reconciled === false && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-800 px-3 py-2 text-sm text-amber-900 dark:text-amber-200">
+          The books are still being reconciled to the bank, so spending and net assets are not final. Cash on hand is the bank&apos;s own balance.
+        </div>
+      )}
+
       {!d.bank_feed && (
         <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-800 px-3 py-2 text-sm text-amber-900 dark:text-amber-200">
           The bank account is not connected to the books yet, so spending shown here is only what has been entered by hand. Income comes from Givebutter.
@@ -112,7 +118,7 @@ export default function BoardReport({ d }: { d: BoardData }) {
         <Stat label={`Income, ${monthLabel(d.month, 'short')}`} value={usd(d.month_income)} />
         <Stat label={`Spending, ${monthLabel(d.month, 'short')}`} value={usd(d.month_spending)} />
         <Stat label="Net for the month" value={usd(d.month_change, { sign: true })} tone={d.month_change < 0 ? 'bad' : 'good'} />
-        <Stat label="Cash on hand" value={usd(f.cash)} sub={`Net assets ${usd(d.position.net_assets)}`} />
+        <Stat label="Cash on hand" value={usd(f.cash)} sub={d.reconciled === false ? 'Bank balance' : `Net assets ${usd(d.position.net_assets)}`} />
         <Stat label="Year to date income" value={usd(d.ytd_income)} />
         <Stat label="Year to date spending" value={usd(d.ytd_spending)} />
         <Stat label="Year to date net" value={usd(d.ytd_change, { sign: true })} tone={d.ytd_change < 0 ? 'bad' : 'good'} />

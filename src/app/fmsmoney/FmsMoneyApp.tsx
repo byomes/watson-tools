@@ -73,8 +73,13 @@ function Overview({ go }: { go: (t: string) => void }) {
           The Capital One account is not connected yet, so spending only shows what you enter by hand or import. Income comes from Givebutter.
         </div>
       )}
+      {o.cash_source === 'bank' && Math.abs(o.cash_gap) > 500 && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-800 px-3 py-2 text-sm text-amber-900 dark:text-amber-200">
+          Cash on hand is the bank&apos;s own balance. The books show {usd(o.cash + o.cash_gap)}, {usd(o.cash_gap)} more, because the bank history before August is not imported yet. Import the older bank CSV on the Transactions tab to close the gap.
+        </div>
+      )}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Stat label="Cash on hand" value={usd(o.cash)} sub={o.safe_to_spend != null ? `Safe to spend ${usd(o.safe_to_spend)}` : undefined} />
+        <Stat label="Cash on hand" value={usd(o.cash)} sub={`Safe to spend ${usd(o.safe_to_spend)} (cash above a ${usd(o.reserve)} reserve)`} />
         <Stat label={`Income, ${monthLabel(o.month, 'short')}`} value={usd(o.month_in)} />
         <Stat label={`Spending, ${monthLabel(o.month, 'short')}`} value={usd(o.month_out)} />
         <Stat label="Net this month" value={usd(net, { sign: true })} tone={net < 0 ? 'bad' : 'good'} />
