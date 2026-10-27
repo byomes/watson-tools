@@ -269,8 +269,8 @@ export default function ShepherdingStats({ groups, totals, smsMode, showCommitte
           <div className="flex gap-2 text-xs font-semibold">
             {([
               ['committed', 'Committed', 'Group + serve', 'green'],
-              ['rooted', 'Rooted', 'Group only', 'amber'],
-              ['serving_alone', 'Serving Alone', 'Serve only', 'orange'],
+              ['rooted', 'Grouped', 'Group only', 'amber'],
+              ['serving_alone', 'Serving', 'Serve only', 'orange'],
               ['unconnected', 'Unconnected', 'Neither', 'red'],
             ] as const).map(([key, label, sub, c]) => {
               const tone = {
