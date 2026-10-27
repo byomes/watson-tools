@@ -1,4 +1,5 @@
 'use client'
+import { sortByLastName, sortKidsByLastName } from '@/lib/people'
 
 import { useMemo, useState } from 'react'
 import CatalystDBBoard, { type BoardSpec } from '../catalystdb/(gated)/CatalystDBBoard'
@@ -274,7 +275,7 @@ export function KidsView() {
       </div>
       <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800">
         {shown.length === 0 && <div className="p-4"><Empty>No kids match.</Empty></div>}
-        {shown.map((k) => (
+        {sortKidsByLastName(shown).map((k) => (
           <button key={k.id} type="button" onClick={() => go(`kid/${k.id}`)} className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/60">
             <div className="flex-1 min-w-0">
               <div className="font-medium text-slate-900 dark:text-white">{k.first_name} {k.last_name}</div>
@@ -381,7 +382,7 @@ export function GroupsView() {
                     <div>
                       <h3 className="text-sm font-semibold mb-2 text-slate-900 dark:text-white">Roster</h3>
                       <ul className="divide-y divide-slate-100 dark:divide-slate-800 mb-3">
-                        {g.members.map((m: Row) => (
+                        {sortByLastName(g.members).map((m: Row) => (
                           <li key={m.id} className="py-1.5 flex items-center text-sm"><PersonLink id={m.id} name={m.name} />
                             {g.leaders.some((l: Row) => l.id === m.id) && <span className="ml-2"><Pill tone="blue">leader</Pill></span>}
                             <span className="flex-1" /><button type="button" className="text-xs text-slate-400 hover:text-red-600" onClick={() => remove(g, m.id, m.name)}>Remove</button></li>
@@ -440,7 +441,7 @@ export function ServingView() {
             {isOpen && (
               <div className="px-4 pb-4 border-t border-slate-100 dark:border-slate-800 pt-3">
                 <ul className="divide-y divide-slate-100 dark:divide-slate-800 mb-3">
-                  {t.members.map((m: Row) => (
+                  {sortByLastName(t.members).map((m: Row) => (
                     <li key={m.id} className="py-1.5 flex items-center gap-2 text-sm">
                       <PersonLink id={m.id} name={m.name} />
                       {m.position && <Pill>{m.position}</Pill>}

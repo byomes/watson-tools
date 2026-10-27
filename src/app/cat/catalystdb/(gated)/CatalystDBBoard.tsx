@@ -1,5 +1,6 @@
 'use client'
 
+import { byLastName, lastNameKey } from '@/lib/people'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { COLUMNS, FILTERABLE, type Col } from './columns'
 import MemberDetail from './MemberDetail'
@@ -23,10 +24,6 @@ const DEFAULT_VISIBLE = new Set(COLUMNS.filter((c) => c.defaultVisible).map((c) 
 
 // "name" is stored "First Last" -- sorting the raw string would alphabetize
 // by first name. Bill's ask: the standard view sorts by last name instead.
-function lastNameKey(name: string): string {
-  const parts = (name || '').trim().split(/\s+/)
-  return (parts.length > 1 ? parts[parts.length - 1] : name || '').toLowerCase()
-}
 
 // "Deactivated" here means the Deactivate action was used -- active is
 // 'disconnected' or 'deceased'. 'non-active' is a separate, manually-set
@@ -197,7 +194,8 @@ export default function CatalystDBBoard({
     rows = rows.slice().sort((a, b) => {
       const av = sort.key === 'name' ? lastNameKey(String(a.name ?? '')) : a[sort.key] ?? ''
       const bv = sort.key === 'name' ? lastNameKey(String(b.name ?? '')) : b[sort.key] ?? ''
-      return av < bv ? -sort.dir : av > bv ? sort.dir : 0
+      if (av !== bv) return av < bv ? -sort.dir : sort.dir
+      return byLastName(a as { name?: unknown; household_id?: unknown }, b as { name?: unknown; household_id?: unknown })
     })
     return rows
   }, [members, search, filters, teamFilter, serving, firstVisitRange, sort])

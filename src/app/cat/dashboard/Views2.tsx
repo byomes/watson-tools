@@ -3,15 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CAT_TOOL_SECTIONS } from '@/lib/catTools'
 import { EditableRecord } from './PersonProfile'
+import { byLastName, sortByLastName } from '@/lib/people'
 import {
   Card, ConnBadge, Empty, Loading, Pill, PersonLink, Tabs, btnCls, btnGhost, chm, fmtDate, inputCls, useChm, useNav, usePeople, type Row,
 } from './chm'
-
-// Default order: last name, then household (keeps a family together), then first name.
-function lastName(n: string) { const p = (n || '').trim().split(/\s+/); return p.length > 1 ? p[p.length - 1] : p[0] ?? '' }
-function byLastName(a: Row, b: Row) {
-  return lastName(a.name).localeCompare(lastName(b.name)) || String(a.household_id ?? '').localeCompare(String(b.household_id ?? '')) || String(a.name).localeCompare(String(b.name))
-}
 
 // ---------------------------------------------------------------- Deacons
 
@@ -316,7 +311,7 @@ export function HealthView() {
             <>
               <button type="button" className="text-xs text-slate-500 hover:underline mb-1" onClick={() => setOpen(open === label ? null : label)}>{open === label ? 'Hide list' : 'Show list'}</button>
               {open === label && (
-                <ul className="columns-1 sm:columns-2 text-sm">{rows.map((r) => <li key={r.id} className="py-0.5"><PersonLink id={r.id} name={r.name} /></li>)}</ul>
+                <ul className="columns-1 sm:columns-2 text-sm">{sortByLastName(rows).map((r) => <li key={r.id} className="py-0.5"><PersonLink id={r.id} name={r.name} /></li>)}</ul>
               )}
             </>
           )}
