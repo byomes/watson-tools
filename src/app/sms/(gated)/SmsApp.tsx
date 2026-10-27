@@ -1817,6 +1817,7 @@ export default function SmsApp() {
                     )}
                   </svg>
                   {batteryPct}%
+                  {batteryCharging && <span aria-hidden="true" style={{ color: '#2e9e5b' }}>⚡</span>}
                 </div>
               )}
               <button
