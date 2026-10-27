@@ -75,6 +75,34 @@ export function DeaconsView() {
     }
   }
 
+  async function newList() {
+    const name = (window.prompt('Name of the new deacon list?') ?? '').trim()
+    if (!name) return
+    setErr('')
+    try {
+      await chm('deacon-list-add', 'POST', { name })
+      reload()
+      setSel(name)
+      setPicked(new Set())
+    } catch (e) {
+      setErr(String((e as Error).message ?? e))
+    }
+  }
+
+  async function deleteList() {
+    if (!window.confirm(`Delete the list "${sel}"? Its ${list.length} ${list.length === 1 ? 'person goes' : 'people go'} back to Unassigned. No one is removed from the database.`)) return
+    setErr('')
+    try {
+      await chm('deacon-list-remove', 'POST', { name: sel })
+      setSel(NONE)
+      setPicked(new Set())
+      reload()
+      refresh()
+    } catch (e) {
+      setErr(String((e as Error).message ?? e))
+    }
+  }
+
   function exportAll() {
     downloadCsv('deacon-assignments.csv', [['Deacon', 'Person', 'Connected'], ...everyone.map((p) => [p.deacon || 'Unassigned', p.name, p.connected])])
   }
@@ -101,6 +129,8 @@ export function DeaconsView() {
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="text-lg font-bold text-slate-900 dark:text-white">Deacon assignments</h1>
         <span className="flex-1" />
+        <button type="button" className={btnGhost} onClick={newList}>New list</button>
+        {sel !== NONE && !(sel in data.buckets) && <button type="button" className={btnGhost} onClick={deleteList}>Delete list</button>}
         <button type="button" className={btnGhost} onClick={exportAll}>Download CSV</button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-[16rem_1fr] gap-4">
