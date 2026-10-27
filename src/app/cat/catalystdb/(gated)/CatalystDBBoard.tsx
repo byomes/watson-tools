@@ -167,7 +167,7 @@ export default function CatalystDBBoard({
       // hide only applies while Active is left on "All".
       if (!filters.active && isDeactivated(m)) return false
       if (q) {
-        const hay = `${m.name ?? ''} ${m.email ?? ''} ${m.phone ?? ''} ${m.notes ?? ''}`.toLowerCase()
+        const hay = `${m.name ?? ''} ${m.email ?? ''} ${m.phone ?? ''} ${m.notes ?? ''} ${m.profile_notes ?? ''}`.toLowerCase()
         if (!hay.includes(q)) return false
       }
       for (const [key, val] of Object.entries(filters)) {

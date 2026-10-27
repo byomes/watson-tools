@@ -378,7 +378,19 @@ export default function MemberDetail({
 
       <div className={embedded ? 'px-5 py-6' : 'flex-1 overflow-auto px-5 py-6'}>
         <div className="max-w-3xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {COLUMNS.map((c) => {
+          {COLUMNS.filter((c) => c.multiline).map((c) => (
+            <div key={c.key} className="flex flex-col gap-1 sm:col-span-2">
+              <label className="text-xs font-medium text-slate-500 dark:text-slate-400">{c.label}</label>
+              <textarea
+                value={String(draft[c.key] ?? '')}
+                onChange={(e) => set(c.key, e.target.value)}
+                rows={4}
+                placeholder="Who is this person? Anything that helps us remember."
+                className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-sm text-slate-900 dark:text-white"
+              />
+            </div>
+          ))}
+          {COLUMNS.filter((c) => !c.multiline).map((c) => {
             const value = draft[c.key]
             if (c.readOnly) {
               return (

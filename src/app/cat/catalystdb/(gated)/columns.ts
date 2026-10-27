@@ -22,6 +22,7 @@ export interface Col {
   options?: string[]
   defaultVisible?: boolean
   readOnly?: boolean
+  multiline?: boolean
 }
 
 // Real, individually-addressable deacon names, mirrored from
@@ -109,7 +110,9 @@ export const COLUMNS: Col[] = [
   { key: 'started_serving_date', label: 'Serving Since', type: 'date' },
   { key: 'service_pin_notes', label: 'Service Pin Notes', type: 'text' },
   { key: 'unsubscribed', label: 'Unsubscribed', type: 'bool' },
-  { key: 'notes', label: 'Notes', type: 'text' },
+  { key: 'notes', label: 'Import notes', type: 'text' },
+  // Human memory only ("who is this?"), edited in the person's Details; never used in reports or answers.
+  { key: 'profile_notes', label: 'Notes', type: 'text', multiline: true },
   { key: 'created_at', label: 'Created', type: 'text', readOnly: true },
   { key: 'updated_at', label: 'Updated', type: 'text', readOnly: true },
 ]
