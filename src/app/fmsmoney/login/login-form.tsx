@@ -8,7 +8,7 @@ export default function LoginForm() {
   return (
     <form action={action} className="flex flex-col gap-3">
       <input
-        name="pin" type="password" inputMode="numeric" autoComplete="off" autoFocus pattern="[0-9]*" maxLength={8}
+        name="pin" type="password" inputMode="numeric" autoComplete="off" autoFocus pattern="[0-9]*" maxLength={6}
         className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3 text-center text-2xl tracking-[0.4em]"
         aria-label="PIN"
       />

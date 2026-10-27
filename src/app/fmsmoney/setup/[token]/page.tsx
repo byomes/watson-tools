@@ -14,7 +14,7 @@ export default async function FmsSetupPage({ params }: { params: Promise<{ token
         <h1 className="text-xl font-bold text-center mb-1">FMS Finance</h1>
         {d?.name ? (
           <>
-            <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">Choose a PIN, {d.name}. Four to eight digits.</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">Choose a PIN, {d.name}. Six digits.</p>
             <SetupForm token={token} />
           </>
         ) : (
