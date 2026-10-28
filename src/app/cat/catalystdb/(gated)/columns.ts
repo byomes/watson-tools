@@ -25,21 +25,10 @@ export interface Col {
   multiline?: boolean
 }
 
-// Deacon dropdown. Starts with the old fixed list so the first paint is never empty, then the board swaps in the live list from
+// Deacon dropdown. Starts with just the unassigned marker (no church-specific names live in code), then the board swaps in the live list from
 // /api/cat/catalystdb/state (deacon_rules.assignable_lists + the reserved buckets) via setDeaconOptions(), so a list made on the
 // DSS dashboard shows up here too. Mutated in place on purpose: every dropdown reads COLUMNS' options array by reference.
-const DEACON_OPTIONS: string[] = [
-  'Bill Crook',
-  'Dino Mathena',
-  'Gerry DiMatteo',
-  'Jesse Franco',
-  'Jim Bouchat',
-  'Ray Williams',
-  'Tom Smith',
-  'Elders & Deacons',
-  'P Bill Yomes',
-  '--',
-]
+const DEACON_OPTIONS: string[] = ['--']
 
 export function setDeaconOptions(list: string[] | undefined) {
   if (!list || !list.length) return
