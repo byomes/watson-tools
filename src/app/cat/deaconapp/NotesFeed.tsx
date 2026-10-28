@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { notifyDssChanged, useDssSync } from '@/lib/dssSync'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { formatDeaconNoteDate } from '@/lib/deaconNotes'
 import { PersonName } from '@/lib/personLink'
 
@@ -298,6 +299,9 @@ export default function NotesFeed({ deaconName }: { deaconName: string }) {
   const [people, setPeople] = useState<Person[] | null>(null)
   const [entries, setEntries] = useState<FeedEntry[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [syncTick, setSyncTick] = useState(0)
+  const loadedOnce = useRef(false)
+  useDssSync(() => setSyncTick((t) => t + 1))
 
   useEffect(() => {
     let cancelled = false
@@ -320,16 +324,17 @@ export default function NotesFeed({ deaconName }: { deaconName: string }) {
         if (!cancelled) {
           setPeople(data)
           setEntries(sortNewestFirst(flattened))
+          loadedOnce.current = true
         }
       } catch (err) {
-        if (!cancelled) setLoadError(err instanceof Error ? err.message : 'Could not load notes')
+        if (!cancelled && !loadedOnce.current) setLoadError(err instanceof Error ? err.message : 'Could not load notes')
       }
     }
     load()
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [syncTick])
 
   async function submitFollowUp(personId: number, note: string): Promise<boolean> {
     try {
@@ -340,6 +345,7 @@ export default function NotesFeed({ deaconName }: { deaconName: string }) {
       })
       if (!res.ok) return false
       const created: DeaconNote = await res.json()
+      notifyDssChanged()
       const personName = people?.find((p) => p.id === personId)?.name ?? ''
       setEntries((prev) =>
         sortNewestFirst([
@@ -370,6 +376,7 @@ export default function NotesFeed({ deaconName }: { deaconName: string }) {
       })
       if (!res.ok) return false
       const updated: DeaconNote = await res.json()
+      notifyDssChanged()
       setEntries((prev) =>
         (prev ?? []).map((e) => (e.noteId === noteId ? { ...e, note: updated.note } : e)),
       )
@@ -383,6 +390,7 @@ export default function NotesFeed({ deaconName }: { deaconName: string }) {
     try {
       const res = await fetch(`/api/cat/deacons/member/${personId}/note/${noteId}`, { method: 'DELETE' })
       if (!res.ok) return false
+      notifyDssChanged()
       setEntries((prev) => (prev ?? []).filter((e) => e.noteId !== noteId))
       return true
     } catch {

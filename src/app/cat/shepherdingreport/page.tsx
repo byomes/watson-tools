@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { requireLiveTool } from '@/lib/requireLiveTool'
 import { getShepherdingReport, computeShepherdingTotals } from '@/lib/shepherdingReport'
+import AutoRefresh from '@/components/AutoRefresh'
 import { AutoThemeShell } from './AutoThemeShell'
 import GroupList from './GroupList'
 import ShepherdingStats from './ShepherdingStats'
@@ -42,6 +43,7 @@ export default async function ShepherdingReportPage() {
 
   return (
     <AutoThemeShell>
+      <AutoRefresh />
       <div className="min-h-screen bg-white dark:bg-gray-950 py-8 px-4">
         <div className="max-w-md mx-auto">
           <h1 className="text-2xl font-bold text-black dark:text-white mb-1">Catalyst Shepherding Report</h1>

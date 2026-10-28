@@ -1,8 +1,9 @@
 'use client'
 
 import { byLastName, lastNameKey } from '@/lib/people'
+import { notifyDssChanged, useDssSync } from '@/lib/dssSync'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { COLUMNS, FILTERABLE, type Col } from './columns'
+import { COLUMNS, FILTERABLE, setDeaconOptions, type Col } from './columns'
 import MemberDetail from './MemberDetail'
 import HouseholdsView from './HouseholdsView'
 import MergeConfirm from './MergeConfirm'
@@ -17,6 +18,7 @@ async function api(path: string, body?: unknown) {
     body: body ? JSON.stringify(body) : undefined,
   })
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? `Request failed (${res.status})`)
+  if (body) notifyDssChanged()
   return res.json()
 }
 
@@ -97,6 +99,10 @@ export default function CatalystDBBoard({
   const colPickerRef = useRef<HTMLDivElement>(null)
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [editing, setEditing] = useState<{ id: number; key: string } | null>(null)
+  const editingRef = useRef<typeof editing>(null)
+  useEffect(() => {
+    editingRef.current = editing
+  }, [editing])
   const [bulkField, setBulkField] = useState(COLUMNS[0].key)
   const [bulkValue, setBulkValue] = useState('')
   const [adding, setAdding] = useState(false)
@@ -118,15 +124,25 @@ export default function CatalystDBBoard({
   // In the dashboard, "open record" goes to the full profile; standalone it keeps the old detail card.
   const openPerson = (id: number) => (onOpenProfile ? onOpenProfile(id) : setOpenId(id))
 
-  useEffect(() => {
+  const [, setDeaconTick] = useState(0)
+  const loadState = (quiet: boolean) =>
     api('state')
       .then((d) => {
+        setDeaconOptions(d.deacon_options)
+        setDeaconTick((t) => t + 1)
         setMembers(d.members)
         setServing(d.serving ?? {})
         setTeamNames(d.teams ?? [])
       })
-      .catch((e) => setError(String(e.message ?? e)))
+      .catch((e) => { if (!quiet) setError(String(e.message ?? e)) })
+
+  useEffect(() => {
+    loadState(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+  // Other screens (and the deacon app) change members too: re-read on any DSS write, when the tab is shown again and once a
+  // minute, but never under a cell that is being edited.
+  useDssSync(() => { if (!editingRef.current) loadState(true) })
 
   // Teams are edited inside the profile card (its own calls), so re-read the team map when a card closes: the filter and the
   // list then reflect any adds/removes made there.

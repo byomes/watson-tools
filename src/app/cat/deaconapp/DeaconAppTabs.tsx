@@ -1,5 +1,6 @@
 'use client'
 
+import AutoRefresh from '@/components/AutoRefresh'
 import { useRef, useState, type ReactNode } from 'react'
 import DeaconBoard, { type DeaconBoardHandle } from '../deacons/DeaconBoard'
 import AttendanceBoard from '../attendance/AttendanceBoard'
@@ -207,6 +208,7 @@ export default function DeaconAppTabs({
 
   return (
     <>
+      <AutoRefresh />
       {/* h-dvh + overflow-hidden on the shell, with only the middle section
           scrolling, keeps header/footer from ever moving -- position:fixed
           for the footer used to visibly jump on iOS Safari as its address

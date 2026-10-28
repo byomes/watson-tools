@@ -1,5 +1,6 @@
 'use client'
 
+import { notifyDssChanged, useDssSync } from '@/lib/dssSync'
 import { useEffect, useMemo, useState } from 'react'
 import { PersonName } from '@/lib/personLink'
 
@@ -221,6 +222,7 @@ export default function AttendanceBoard() {
   useEffect(() => {
     fetchState('')
   }, [])
+  useDssSync(() => { if (data && !pending.size) fetchState(selectedDate) })
 
   const sundayOptions = useMemo(() => data?.recent_sundays ?? [], [data])
 
@@ -259,6 +261,7 @@ export default function AttendanceBoard() {
       return
     }
 
+    notifyDssChanged()
     await fetchState(data.service_date)
   }
 
@@ -287,6 +290,7 @@ export default function AttendanceBoard() {
 
     // Refetch — a campus change can move a member between the main list and
     // Inactive.
+    notifyDssChanged()
     await fetchState(data.service_date)
   }
 

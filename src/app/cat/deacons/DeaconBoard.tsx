@@ -4,6 +4,8 @@ import { createPortal } from 'react-dom'
 import { EditableSelect } from './EditableSelect'
 import { PersonName } from '@/lib/personLink'
 import { formatDeaconNoteDate } from '@/lib/deaconNotes'
+import { isMinor, isUnassigned } from '@/lib/memberRules'
+import { notifyDssChanged, useDssSync } from '@/lib/dssSync'
 import { BUCKET_META, COMMITTED_META, ENGAGEMENT_META, weeksLabel, type Bucket, type Committed, type Engagement } from '@/lib/shepherdingReportShared'
 
 interface PrayerRequest {
@@ -427,6 +429,7 @@ function AddPersonModal({
         setSaving(false)
         return
       }
+      notifyDssChanged()
       if (body.created) onCreated(body.created as Person)
       else onClose()
     } catch {
@@ -724,7 +727,7 @@ function PersonCard({
             </div>
           )}
           <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            {p.deacon || 'Unassigned'} · Last seen: {formatLastSeen(p.last_seen)}
+            {isUnassigned(p.deacon) ? 'Unassigned' : p.deacon} · Last seen: {formatLastSeen(p.last_seen)}
           </div>
           {(p.phone || p.email || p.address) && (
             <div className="flex flex-col gap-0.5 mt-1.5 text-xs">
@@ -986,12 +989,8 @@ const DeaconBoard = forwardRef<DeaconBoardHandle>(function DeaconBoard(_props, r
 
   useEffect(() => {
     load()
-    // Assignments are also changed on the DSS dashboard, so pick those up without a manual reload.
-    const refresh = () => { if (document.visibilityState === 'visible') load(true) }
-    document.addEventListener('visibilitychange', refresh)
-    const timer = setInterval(refresh, 60000)
-    return () => { document.removeEventListener('visibilitychange', refresh); clearInterval(timer) }
   }, [])
+  useDssSync(() => load(true))
 
   // "Inactive" is a deliberate bucket, not a real deacon — the backend
   // excludes it from the fetched deacon list (list_deacons()) so it never
@@ -1005,7 +1004,10 @@ const DeaconBoard = forwardRef<DeaconBoardHandle>(function DeaconBoard(_props, r
       .filter((p) => !q || p.name.toLowerCase().includes(q))
       .filter((p) => {
         if (!deaconFilter) return true
-        if (deaconFilter === UNASSIGNED) return !p.deacon
+        // Minors ride with their household's deacon: they never appear in a deacon's or the Unassigned list
+        // (search still finds them, and their family section shows them).
+        if (isMinor(p.birthdate)) return false
+        if (deaconFilter === UNASSIGNED) return isUnassigned(p.deacon)
         return p.deacon === deaconFilter
       })
       .sort(byLastName)
@@ -1023,8 +1025,8 @@ const DeaconBoard = forwardRef<DeaconBoardHandle>(function DeaconBoard(_props, r
   const { mainList, unassignedList, inactiveList } = useMemo(() => {
     if (!grouped) return { mainList: filtered, unassignedList: [], inactiveList: [] }
     return {
-      mainList: filtered.filter((p) => p.deacon && p.deacon !== 'Inactive'),
-      unassignedList: filtered.filter((p) => !p.deacon),
+      mainList: filtered.filter((p) => !isUnassigned(p.deacon) && p.deacon !== 'Inactive' && !isMinor(p.birthdate)),
+      unassignedList: filtered.filter((p) => isUnassigned(p.deacon) && !isMinor(p.birthdate)),
       inactiveList: filtered.filter((p) => p.deacon === 'Inactive'),
     }
   }, [filtered, grouped])
@@ -1042,6 +1044,8 @@ const DeaconBoard = forwardRef<DeaconBoardHandle>(function DeaconBoard(_props, r
       const updated: Person = await res.json()
       setPeople((prev) => prev.map((p) => (p.id === id ? updated : p)))
       setSaveState((s) => ({ ...s, [id]: 'saved' }))
+      // A deacon change also moves the household's minors and unassigned housemates; every screen re-reads.
+      notifyDssChanged()
     } catch {
       setSaveState((s) => ({ ...s, [id]: 'error' }))
     } finally {
@@ -1060,6 +1064,7 @@ const DeaconBoard = forwardRef<DeaconBoardHandle>(function DeaconBoard(_props, r
       })
       if (!res.ok) return false
       const created: DeaconNote = await res.json()
+      notifyDssChanged()
       setPeople((prev) =>
         prev.map((p) => (p.id === id ? { ...p, deacon_notes: [created, ...p.deacon_notes] } : p))
       )
@@ -1088,6 +1093,7 @@ const DeaconBoard = forwardRef<DeaconBoardHandle>(function DeaconBoard(_props, r
       if (!res.ok) return resBody?.error ?? 'Failed to save'
       const updated: Person[] = resBody.updated ?? []
       setPeople((prev) => prev.map((p) => updated.find((u) => u.id === p.id) ?? p))
+      notifyDssChanged()
       return null
     } catch {
       return 'Network error'

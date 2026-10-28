@@ -25,13 +25,10 @@ export interface Col {
   multiline?: boolean
 }
 
-// Real, individually-addressable deacon names, mirrored from
-// jobs.congregation.deacon_reports.list_deacons() (Python) as of 2026-09-24 --
-// plus the two deliberate non-name bucket values ('Elders & Deacons',
-// 'P Bill Yomes') that Bill wants kept distinct from Unassigned. Update this
-// list by hand if the real deacon roster changes; list_deacons() already
-// includes 'Unassigned' in its own output.
-const DEACON_OPTIONS = [
+// Deacon dropdown. Starts with the old fixed list so the first paint is never empty, then the board swaps in the live list from
+// /api/cat/catalystdb/state (deacon_rules.assignable_lists + the reserved buckets) via setDeaconOptions(), so a list made on the
+// DSS dashboard shows up here too. Mutated in place on purpose: every dropdown reads COLUMNS' options array by reference.
+const DEACON_OPTIONS: string[] = [
   'Bill Crook',
   'Dino Mathena',
   'Gerry DiMatteo',
@@ -43,6 +40,11 @@ const DEACON_OPTIONS = [
   'P Bill Yomes',
   '--',
 ]
+
+export function setDeaconOptions(list: string[] | undefined) {
+  if (!list || !list.length) return
+  DEACON_OPTIONS.splice(0, DEACON_OPTIONS.length, ...list)
+}
 
 export const COLUMNS: Col[] = [
   { key: 'name', label: 'Name', type: 'text', defaultVisible: true },

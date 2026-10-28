@@ -1,5 +1,6 @@
 'use client'
 
+import { notifyDssChanged, useDssSync } from '@/lib/dssSync'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 
 // Shared plumbing for the Catalyst dashboard: API helper, hash router, the people list
@@ -19,28 +20,38 @@ export async function chm<T = Row>(path: string, method: 'GET' | 'POST' | 'PATCH
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw new Error(data.error ?? `Request failed (${res.status})`)
+  if (method !== 'GET') notifyDssChanged()
   return data as T
+}
+
+// Every dashboard screen re-reads its data when something is written anywhere in the DSS, when you come back to the tab, and
+// once a minute (see lib/dssSync.ts), so a change made on one screen shows on all of them without a manual reload.
+export function useLiveTick(): number {
+  const [tick, setTick] = useState(0)
+  useDssSync(() => setTick((t) => t + 1))
+  return tick
 }
 
 export function useChm<T = Row>(path: string | null) {
   const [data, setData] = useState<T | null>(null)
   const [error, setError] = useState('')
   const [tick, setTick] = useState(0)
+  const live = useLiveTick()
   useEffect(() => {
     if (!path) return
-    let live = true
+    let alive = true
     chm<T>(path)
       .then((d) => {
-        if (live) {
+        if (alive) {
           setData(d)
           setError('')
         }
       })
-      .catch((e) => live && setError(String(e.message ?? e)))
+      .catch((e) => { if (alive && live === 0) setError(String(e.message ?? e)) })
     return () => {
-      live = false
+      alive = false
     }
-  }, [path, tick])
+  }, [path, tick, live])
   const reload = useCallback(() => setTick((t) => t + 1), [])
   return { data, error, reload, setData }
 }
@@ -87,7 +98,8 @@ export function PeopleProvider({ children }: { children: ReactNode }) {
       .then((d) => setPeople(d.members ?? []))
       .catch(() => {})
   }, [])
-  useEffect(load, [load])
+  const live = useLiveTick()
+  useEffect(load, [load, live])
   const value = useMemo(() => ({ people, refresh: load }), [people, load])
   return <PeopleContext.Provider value={value}>{children}</PeopleContext.Provider>
 }

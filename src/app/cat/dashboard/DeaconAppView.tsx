@@ -9,6 +9,7 @@ import NotesFeed from '../deaconapp/NotesFeed'
 import { PersonLinkProvider } from '@/lib/personLink'
 import type { Group, Totals } from '@/lib/shepherdingReportShared'
 import { useNav } from './chm'
+import AutoRefresh from '@/components/AutoRefresh'
 
 // The whole deacon (shepherding) app as one dashboard screen. Same components the phone app
 // renders; a PersonLinkProvider turns every person name inside into a link to their profile.
@@ -38,6 +39,7 @@ export default function DeaconAppView({
 
   return (
     <PersonLinkProvider value={(id) => go(`person/${id}`)}>
+      <AutoRefresh />
       <div className="p-3 sm:p-5">
         <div className="flex items-center gap-2 mb-4 flex-wrap">
           {TABS.map((t) => (
