@@ -6,7 +6,8 @@ import DeaconAppView from './DeaconAppView'
 import type { Group, Totals } from '@/lib/shepherdingReportShared'
 import { CareView, DeaconsView, HealthView, ToolsView } from './Views2'
 import { GroupsView, HomeView, KidDetail, KidsView, PeopleView, ServingView } from './Views'
-import { NavContext, PeopleProvider, useHashRoute, usePeople, inputCls } from './chm'
+import { NavContext, PeopleProvider, Toaster, useHashRoute, usePeople, inputCls } from './chm'
+import { DSS_NAME } from '@/lib/dssConfig'
 
 // The Catalyst church-management dashboard (wtsn.me/cat/dashboard). Hash-routed so a profile or
 // list is linkable and the browser Back button works; the People list stays mounted once opened
@@ -15,8 +16,8 @@ import { NavContext, PeopleProvider, useHashRoute, usePeople, inputCls } from '.
 const NAV: { key: string; label: string; icon: string; roles?: string[] }[] = [
   { key: 'home', label: 'Home', icon: 'M3 12l9-9 9 9M5 10v10h5v-6h4v6h5V10' },
   { key: 'people', label: 'People', icon: 'M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0zM4 21a8 8 0 0 1 16 0' },
-  { key: 'deacons', label: 'Deacons', icon: 'M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z' },
-  { key: 'deaconapp', label: 'Deacon App', icon: 'M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7zM9 12l2 2 4-4' },
+  { key: 'deacons', label: 'Deacon lists', icon: 'M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z' },
+  { key: 'deaconapp', label: 'Deacon app', icon: 'M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7zM9 12l2 2 4-4' },
   { key: 'care', label: 'Care', icon: 'M12 21s-8-5-8-11a5 5 0 0 1 8-3 5 5 0 0 1 8 3c0 6-8 11-8 11z' },
   { key: 'kids', label: 'Kids', icon: 'M12 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 22v-6a6 6 0 0 1 12 0v6' },
   { key: 'groups', label: 'Groups', icon: 'M3 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM17 10a3 3 0 1 0 0-5M21 20v-2a4 4 0 0 0-3-3.9' },
@@ -42,7 +43,10 @@ function GlobalSearch({ go }: { go: (r: string) => void }) {
   }, [q, people])
   return (
     <div className="relative flex-1 max-w-md">
-      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find a person…" className={`${inputCls} w-full`} />
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find a person…" aria-label="Find a person" className={`${inputCls} w-full`} />
+      {q.trim().length >= 2 && matches.length === 0 && (
+        <p className="absolute z-50 mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg px-3 py-2 text-sm text-slate-500">No one found</p>
+      )}
       {matches.length > 0 && (
         <ul className="absolute z-50 mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
           {matches.map((p) => (
@@ -80,7 +84,7 @@ function Shell({ user, themeToggle, logout, deacon }: { user: string; role: stri
   const nav = (
     <nav className="flex flex-col gap-0.5 p-3">
       {NAV.map((n) => (
-        <button key={n.key} type="button" onClick={() => go(n.key)}
+        <button key={n.key} type="button" onClick={() => go(n.key)} aria-current={head === n.key ? 'page' : undefined}
           className={`flex items-center gap-3.5 md:gap-3 rounded-lg px-3.5 py-2.5 md:px-3 md:py-2 text-[17px] md:text-sm font-medium ${head === n.key ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
           <Icon d={n.icon} />{n.label}
         </button>
@@ -92,7 +96,7 @@ function Shell({ user, themeToggle, logout, deacon }: { user: string; role: stri
     <NavContext.Provider value={{ go }}>
       <div className="flex h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
         <aside className="hidden md:flex w-52 shrink-0 flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-          <button type="button" onClick={() => window.location.reload()} title="Refresh" className="px-5 py-4 text-left text-sm font-bold hover:text-slate-600 dark:hover:text-slate-300">Catalyst DSS</button>
+          <button type="button" onClick={() => window.location.reload()} title="Refresh" className="px-5 py-4 text-left text-sm font-bold hover:text-slate-600 dark:hover:text-slate-300">{DSS_NAME}</button>
           {nav}
         </aside>
         {menu && (
@@ -106,7 +110,7 @@ function Shell({ user, themeToggle, logout, deacon }: { user: string; role: stri
             <button type="button" className="md:hidden text-slate-600 dark:text-slate-300" aria-label="Menu" onClick={() => setMenu(true)}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="h-6 w-6"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
-            <button type="button" onClick={() => window.location.reload()} title="Refresh" className="md:hidden shrink-0 text-sm font-bold">Catalyst DSS</button>
+            <button type="button" onClick={() => window.location.reload()} title="Refresh" className="md:hidden shrink-0 text-sm font-bold">{DSS_NAME}</button>
             <GlobalSearch go={go} />
             <span className="flex-1" />
             <span className="hidden sm:inline text-xs text-slate-400">{user}</span>
@@ -131,6 +135,7 @@ function Shell({ user, themeToggle, logout, deacon }: { user: string; role: stri
           </main>
         </div>
       </div>
+      <Toaster />
     </NavContext.Provider>
   )
 }

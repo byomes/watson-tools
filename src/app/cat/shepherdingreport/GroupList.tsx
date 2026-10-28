@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { notifyDssChanged } from '@/lib/dssSync'
 import { useRouter } from 'next/navigation'
 import { BUCKET_META, COMMITTED_META, ENGAGEMENT_META, weeksLabel, type Bucket, type Committed, type Engagement } from '@/lib/shepherdingReportShared'
 import AttendanceWeeksModal from './AttendanceWeeksModal'
@@ -191,6 +192,7 @@ function LastSeenBadge({ member, className }: { member: Member; className: strin
       })
       if (!res.ok) throw new Error('save failed')
       setStatus('idle')
+      notifyDssChanged()
       router.refresh()
     } catch {
       setStatus('error')

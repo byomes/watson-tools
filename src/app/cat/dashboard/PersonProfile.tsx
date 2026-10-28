@@ -3,9 +3,10 @@
 import { useMemo, useState } from 'react'
 import MemberDetail from '../catalystdb/(gated)/MemberDetail'
 import {
-  Card, ConnBadge, Empty, Loading, Pill, PersonLink, Tabs, btnCls, btnGhost, chm, fmtDate, ago, inputCls,
+  Card, ConnBadge, Empty, Loading, Pill, PersonLink, Tabs, btnCls, btnGhost, attempt, chm, fmtDate, ago, inputCls,
   useChm, useNav, usePeople, type Row,
 } from './chm'
+import { notifyDssChanged } from '@/lib/dssSync'
 
 // One person, everything about them. Tabs: Timeline (merged history, editable), Details (the
 // member fields), Attendance, Cards & Care, Family, Involvement, Record.
@@ -366,12 +367,10 @@ function InvolvementTab({ p, reload }: { p: Row; reload: () => void }) {
   const names = (serving?.teams ?? []).map((t) => t.name)
 
   async function mut(method: 'POST' | 'DELETE', team_name: string, position = '') {
-    await chm('team_member', method, { member_id: p.member.id, team_name, position })
-    reload()
+    if (await attempt(() => chm('team_member', method, { member_id: p.member.id, team_name, position }))) reload()
   }
   async function groupMut(method: 'POST' | 'DELETE', series: string) {
-    await chm('roster', method, { member_id: p.member.id, series })
-    reload()
+    if (await attempt(() => chm('roster', method, { member_id: p.member.id, series }))) reload()
   }
   const { data: groups } = useChm<{ groups: Row[] }>('groups')
   const [grp, setGrp] = useState('')
@@ -481,6 +480,7 @@ export default function PersonProfile({ id, tab, setTab, onBack }: { id: number;
         const res = await fetch('/api/cat/catalystdb/update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: [id], field, value }) })
         if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? 'Could not save')
       }))
+      notifyDssChanged()
       refresh()
       reload()
     } catch (e) {
@@ -489,7 +489,7 @@ export default function PersonProfile({ id, tab, setTab, onBack }: { id: number;
   }
 
   async function setDeacon(name: string) {
-    await chm('assign', 'POST', { ids: [id], deacon: name })
+    if (!(await attempt(() => chm('assign', 'POST', { ids: [id], deacon: name })))) return
     setAssigning(false)
     refresh()
     reload()
@@ -497,7 +497,12 @@ export default function PersonProfile({ id, tab, setTab, onBack }: { id: number;
 
   async function deactivate() {
     if (!confirm('Deactivate this member? This can be undone by re-activating.')) return
-    await fetch('/api/cat/catalystdb/deactivate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: [id] }) })
+    const ok = await attempt(async () => {
+      const res = await fetch('/api/cat/catalystdb/deactivate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: [id] }) })
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? 'Could not deactivate')
+    })
+    if (!ok) return
+    notifyDssChanged()
     refresh()
     reload()
   }

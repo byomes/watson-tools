@@ -11,6 +11,43 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Row = Record<string, any>
 
+// A save that fails must never fail silently: callers without their own error line wrap the call in attempt(), and the
+// <Toaster /> in the app shell shows the message for a few seconds.
+const ERROR_EVENT = 'dss-error'
+export function reportError(e: unknown) {
+  window.dispatchEvent(new CustomEvent(ERROR_EVENT, { detail: String((e as Error)?.message ?? e) }))
+}
+export async function attempt(fn: () => Promise<unknown>): Promise<boolean> {
+  try {
+    await fn()
+    return true
+  } catch (e) {
+    reportError(e)
+    return false
+  }
+}
+
+export function Toaster() {
+  const [msg, setMsg] = useState('')
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>
+    const on = (e: Event) => {
+      setMsg((e as CustomEvent<string>).detail)
+      clearTimeout(timer)
+      timer = setTimeout(() => setMsg(''), 7000)
+    }
+    window.addEventListener(ERROR_EVENT, on)
+    return () => { window.removeEventListener(ERROR_EVENT, on); clearTimeout(timer) }
+  }, [])
+  if (!msg) return null
+  return (
+    <div role="alert" className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] max-w-[92vw] flex items-center gap-3 rounded-lg bg-red-700 text-white px-4 py-2.5 text-sm shadow-lg">
+      <span>Could not save: {msg}</span>
+      <button type="button" onClick={() => setMsg('')} aria-label="Dismiss" className="font-bold">×</button>
+    </div>
+  )
+}
+
 export async function chm<T = Row>(path: string, method: 'GET' | 'POST' | 'PATCH' | 'DELETE' = 'GET', body?: unknown): Promise<T> {
   const res = await fetch(`/api/cat/chm/${path}`, {
     method,
@@ -176,7 +213,12 @@ export function Empty({ children }: { children: ReactNode }) {
 export function Loading({ error }: { error?: string }) {
   return (
     <div className="p-8 text-sm text-slate-500 dark:text-slate-400">
-      {error ? <span className="text-red-600 dark:text-red-400">{error}</span> : 'Loading…'}
+      {error ? (
+        <div className="flex flex-col items-start gap-2">
+          <span className="text-red-600 dark:text-red-400">Could not load this screen: {error}</span>
+          <button type="button" onClick={() => window.location.reload()} className={btnGhost}>Try again</button>
+        </div>
+      ) : 'Loading…'}
     </div>
   )
 }

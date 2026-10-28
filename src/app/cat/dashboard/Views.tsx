@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react'
 import SundayGlance from './SundayGlance'
 import CatalystDBBoard, { type BoardSpec } from '../catalystdb/(gated)/CatalystDBBoard'
 import {
-  Card, ConnBadge, Empty, Loading, Pill, PersonLink, PersonPicker, btnCls, btnGhost, chm, fmtDate, ago, inputCls,
+  Card, ConnBadge, Empty, Loading, Pill, PersonLink, PersonPicker, btnCls, btnGhost, attempt, chm, fmtDate, ago, inputCls,
   useChm, useNav, type Row,
 } from './chm'
 
@@ -214,15 +214,14 @@ export function PeopleView({ onOpenProfile }: { onOpenProfile: (id: number) => v
 
   async function save() {
     if (!current || !name.trim()) return
-    await chm('views', 'POST', { name: name.trim(), spec: current, shared: true })
+    if (!(await attempt(() => chm('views', 'POST', { name: name.trim(), spec: current, shared: true })))) return
     setName('')
     setNaming(false)
     reload()
   }
   async function del(v: SavedView) {
     if (!confirm(`Delete the saved view "${v.name}"?`)) return
-    await chm(`views/${v.id}`, 'DELETE')
-    reload()
+    if (await attempt(() => chm(`views/${v.id}`, 'DELETE'))) reload()
   }
 
   return (
@@ -301,7 +300,7 @@ export function KidDetail({ id, onBack }: { id: number; onBack: () => void }) {
   const d = edit ?? k
   async function save() {
     if (!edit) return
-    await chm(`kid/${id}`, 'PATCH', { first_name: d.first_name, last_name: d.last_name, gender: d.gender ?? '', current_class: d.current_class ?? '', current_class_9am: d.current_class_9am ?? '', household_id: d.household_id ?? '' })
+    if (!(await attempt(() => chm(`kid/${id}`, 'PATCH', { first_name: d.first_name, last_name: d.last_name, gender: d.gender ?? '', current_class: d.current_class ?? '', current_class_9am: d.current_class_9am ?? '', household_id: d.household_id ?? '' })))) return
     setEdit(null)
     reload()
   }
@@ -352,17 +351,14 @@ export function GroupsView() {
   const cats = Array.from(new Set(data.groups.map((g) => g.category)))
 
   async function add(g: Row, id: number) {
-    await chm('roster', 'POST', { series: g.key, member_id: id })
-    reload()
+    if (await attempt(() => chm('roster', 'POST', { series: g.key, member_id: id }))) reload()
   }
   async function remove(g: Row, id: number, name: string) {
     if (!confirm(`Remove ${name} from ${g.name}?`)) return
-    await chm('roster', 'DELETE', { series: g.key, member_id: id })
-    reload()
+    if (await attempt(() => chm('roster', 'DELETE', { series: g.key, member_id: id }))) reload()
   }
   async function setAdultClass(g: Row, on: boolean) {
-    await chm('group-setting', 'POST', { series: g.key, adult_sunday_class: on })
-    reload()
+    if (await attempt(() => chm('group-setting', 'POST', { series: g.key, adult_sunday_class: on }))) reload()
   }
   return (
     <div className="p-4 sm:p-6 max-w-5xl mx-auto flex flex-col gap-6">
@@ -427,13 +423,11 @@ export function ServingView() {
   const [open, setOpen] = useState<string | null>(null)
   if (!data) return <Loading error={error} />
   async function add(team: string, id: number) {
-    await chm('team_member', 'POST', { team_name: team, member_id: id })
-    reload()
+    if (await attempt(() => chm('team_member', 'POST', { team_name: team, member_id: id }))) reload()
   }
   async function remove(team: string, id: number, name: string) {
     if (!confirm(`Remove ${name} from ${team}?`)) return
-    await chm('team_member', 'DELETE', { team_name: team, member_id: id })
-    reload()
+    if (await attempt(() => chm('team_member', 'DELETE', { team_name: team, member_id: id }))) reload()
   }
   return (
     <div className="p-4 sm:p-6 max-w-5xl mx-auto flex flex-col gap-4">

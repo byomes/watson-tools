@@ -1157,12 +1157,14 @@ const DeaconBoard = forwardRef<DeaconBoardHandle>(function DeaconBoard(_props, r
         <input
           type="text"
           placeholder="Search by name…"
+          aria-label="Search by name"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="flex-1 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-700 dark:focus:border-blue-500"
         />
         <select
           value={deaconFilter}
+          aria-label="Filter by deacon"
           onChange={(e) => setDeaconFilter(e.target.value)}
           className="bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-700 dark:focus:border-blue-500"
         >
@@ -1178,6 +1180,9 @@ const DeaconBoard = forwardRef<DeaconBoardHandle>(function DeaconBoard(_props, r
         </span>
       </div>
 
+      {filtered.length === 0 && (
+        <p className="text-sm text-gray-500 dark:text-gray-400 py-6 text-center">No one matches. Clear the search or choose All deacons.</p>
+      )}
       <CardGrid people={mainList} cardProps={cardProps} />
 
       {grouped && (

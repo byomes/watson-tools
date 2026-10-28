@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { notifyDssChanged } from '@/lib/dssSync'
 import { COLUMNS } from './columns'
 
 type Member = Record<string, string | number | null>
@@ -75,6 +76,7 @@ function TeamsSection({ member, teamNames }: { member: Member; teamNames: string
       })
       const body = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(body.error || 'Could not add to team')
+      notifyDssChanged()
       setCreatedTeams((c) => (c.includes(teamName) ? c : [...c, teamName]))
       setAddTeam('')
       setCustomTeam('')
@@ -98,6 +100,7 @@ function TeamsSection({ member, teamNames }: { member: Member; teamNames: string
       })
       const body = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(body.error || 'Could not remove from team')
+      notifyDssChanged()
       await load()
     } catch (e) {
       setError(String((e as Error).message ?? e))
@@ -237,6 +240,7 @@ function AwardsSection({ member }: { member: Member }) {
       })
       const body = await res.json()
       if (!res.ok) throw new Error(body.error || 'Could not save')
+      notifyDssChanged()
       setAwards(body.awards)
     } catch (e) {
       setError(String((e as Error).message ?? e))

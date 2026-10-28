@@ -4,9 +4,10 @@ import ThemeToggleButton from '../catalystdb/(gated)/ThemeToggleButton'
 import { chmIdentity } from '@/lib/chmAuth'
 import { getShepherdingReport, computeShepherdingTotals } from '@/lib/shepherdingReport'
 import DashboardApp from './DashboardApp'
+import { DSS_NAME } from '@/lib/dssConfig'
 
 export const metadata: Metadata = {
-  title: 'Catalyst DSS',
+  title: DSS_NAME,
   robots: { index: false, follow: false },
 }
 

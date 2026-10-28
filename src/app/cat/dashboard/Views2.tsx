@@ -31,6 +31,9 @@ export function DeaconsView() {
   const [withHousehold, setWithHousehold] = useState(true)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
+  const [note, setNote] = useState('')
+  const [naming, setNaming] = useState<'' | 'new' | 'rename'>('')
+  const [nameVal, setNameVal] = useState('')
 
   const everyone: Row[] = useMemo(() => {
     if (!data) return []
@@ -66,6 +69,7 @@ export function DeaconsView() {
     setErr('')
     try {
       await chm('assign', 'POST', { ids, deacon: target === NONE ? '' : target })
+      setNote(`Moved ${ids.length} ${ids.length === 1 ? 'person' : 'people'} to ${target === NONE ? 'Unassigned' : target}.`)
       setPicked(new Set())
       reload()
       refresh()
@@ -76,12 +80,14 @@ export function DeaconsView() {
     }
   }
 
-  async function newList() {
-    const name = (window.prompt('Name of the new deacon list?') ?? '').trim()
-    if (!name) return
+  async function saveName() {
+    const name = nameVal.trim()
+    if (!name || (naming === 'rename' && name === sel)) { setNaming(''); return }
     setErr('')
     try {
-      await chm('deacon-list-add', 'POST', { name })
+      if (naming === 'new') await chm('deacon-list-add', 'POST', { name })
+      else await chm('deacon-list-rename', 'POST', { name: sel, new_name: name })
+      setNaming('')
       reload()
       setSel(name)
       setPicked(new Set())
@@ -89,20 +95,7 @@ export function DeaconsView() {
       setErr(String((e as Error).message ?? e))
     }
   }
-
-  async function renameList() {
-    const next = (window.prompt(`New name for the list "${sel}"?`, sel) ?? '').trim()
-    if (!next || next === sel) return
-    setErr('')
-    try {
-      await chm('deacon-list-rename', 'POST', { name: sel, new_name: next })
-      reload()
-      setSel(next)
-      setPicked(new Set())
-    } catch (e) {
-      setErr(String((e as Error).message ?? e))
-    }
-  }
+  const startNaming = (mode: 'new' | 'rename') => { setErr(''); setNote(''); setNameVal(mode === 'rename' ? sel : ''); setNaming(mode) }
 
   async function deleteList() {
     if (!window.confirm(`Delete the list "${sel}"? Its ${list.length} ${list.length === 1 ? 'person goes' : 'people go'} back to Unassigned. No one is removed from the database.`)) return
@@ -142,13 +135,21 @@ export function DeaconsView() {
   return (
     <div className="p-4 sm:p-6 max-w-6xl mx-auto flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-lg font-bold text-slate-900 dark:text-white">Deacon assignments</h1>
+        <h1 className="text-lg font-bold text-slate-900 dark:text-white">Deacon lists</h1>
         <span className="flex-1" />
-        <button type="button" className={btnGhost} onClick={newList}>New list</button>
-        {sel !== NONE && !(sel in data.buckets) && <button type="button" className={btnGhost} onClick={renameList}>Rename list</button>}
+        <button type="button" className={btnGhost} onClick={() => startNaming('new')}>New list</button>
+        {sel !== NONE && !(sel in data.buckets) && <button type="button" className={btnGhost} onClick={() => startNaming('rename')}>Rename list</button>}
         {sel !== NONE && !(sel in data.buckets) && <button type="button" className={btnGhost} onClick={deleteList}>Delete list</button>}
         <button type="button" className={btnGhost} onClick={exportAll}>Download CSV</button>
       </div>
+      {naming && (
+        <form onSubmit={(e) => { e.preventDefault(); saveName() }} className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3">
+          <label className="text-sm text-slate-700 dark:text-slate-200" htmlFor="deacon-list-name">{naming === 'new' ? 'Name of the new list' : `New name for "${sel}"`}</label>
+          <input id="deacon-list-name" autoFocus value={nameVal} onChange={(e) => setNameVal(e.target.value)} maxLength={80} className={`${inputCls} flex-1 min-w-[12rem]`} />
+          <button type="submit" className={btnCls} disabled={!nameVal.trim()}>{naming === 'new' ? 'Create list' : 'Rename'}</button>
+          <button type="button" className={btnGhost} onClick={() => setNaming('')}>Cancel</button>
+        </form>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-[16rem_1fr] gap-4">
         <div className="flex flex-col gap-1">
           {side(NONE, 'Unassigned', data.unassigned, true)}
@@ -169,8 +170,10 @@ export function DeaconsView() {
               </select>
               <button type="button" className={btnCls} disabled={busy || !picked.size || !target} onClick={apply}>{busy ? 'Moving…' : 'Move'}</button>
             </div>
-            {err && <p className="text-sm text-red-600 mb-2">{err}</p>}
-            {list.length === 0 ? <Empty>No one here.</Empty> : (
+            {err && <p className="text-sm text-red-600 mb-2" role="alert">{err}</p>}
+            {note && !err && <p className="text-sm text-emerald-700 dark:text-emerald-400 mb-2" role="status">{note}</p>}
+            <p className="text-xs text-slate-400 mb-2">Children under 18 are not listed. They follow their household&apos;s deacon.</p>
+            {list.length === 0 ? <Empty>{sel === NONE ? 'Everyone who needs a deacon has one.' : 'No one here yet. Open Unassigned, tick people, and move them to this list.'}</Empty> : (
               <ul className="divide-y divide-slate-100 dark:divide-slate-800">
                 {list.map((p) => (
                   <li key={p.id} className="py-1.5 flex items-center gap-3 text-sm">
@@ -242,7 +245,7 @@ export function CareView() {
                   {r.leadership_only ? <Pill tone="red">leadership only</Pill> : null}
                 </div>
                 <EditableRecord kind={c.kind} id={r.id} text={r[c.text] ?? ''} date={r[c.date] ?? ''} status={c.status ? r[c.status] : undefined} leadershipOnly={!!r.leadership_only} onChanged={reload}>
-                  <p className="text-sm text-slate-800 dark:text-slate-100 whitespace-pre-wrap">{String(r[c.text] ?? '').replace(/_/g, ' ')}</p>
+                  <p className="text-sm text-slate-800 dark:text-slate-100 whitespace-pre-wrap">{active === 'next_steps' ? String(r[c.text] ?? '').replace(/_/g, ' ') : String(r[c.text] ?? '')}</p>
                 </EditableRecord>
               </li>
             ))}
