@@ -413,7 +413,12 @@ function FamilyTab({ p, reload }: { p: Row; reload: () => void }) {
           </div>
           {p.member.household_id ? (
             <KidPicker householdId={p.member.household_id} exclude={kids.map((k) => k.id)} onAdded={reload} />
-          ) : <p className="text-xs text-slate-400">Add someone above to start a household before linking check-in kids.</p>}
+          ) : (
+            <div className="flex items-center gap-3">
+              <button type="button" onClick={() => edit({ action: 'create', member_id: me })} className="rounded-md border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">Make household</button>
+              <p className="text-xs text-slate-400">Gives {p.member.name} a household number now, or add someone above to start one together.</p>
+            </div>
+          )}
         </div>
       </Card>
     </div>
