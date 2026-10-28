@@ -390,15 +390,90 @@ function FamilyTab({ p, reload }: { p: Row; reload: () => void }) {
       <Card title={`Kids (${p.kids.length})`}>
         {p.kids.length === 0 ? <Empty>No kids linked through check-in.</Empty> : (
           <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-            {p.kids.map((k: Row) => (
-              <li key={k.id} className="py-2 flex items-center gap-3">
-                <button type="button" onClick={() => go(`kid/${k.id}`)} className="font-medium text-slate-900 dark:text-white hover:underline">{k.first_name} {k.last_name}</button>
-                {k.current_class && <Pill tone="blue">{k.current_class}</Pill>}
-              </li>
-            ))}
+            {p.kids.map((k: Row) => <KidRow key={k.id} k={k} onChanged={reload} onOpen={() => go(`kid/${k.id}`)} />)}
           </ul>
         )}
+        <div className="mt-3 border-t border-slate-100 dark:border-slate-800 pt-3">
+          {p.member.household_id ? (
+            <KidPicker householdId={p.member.household_id} exclude={p.kids.map((k: Row) => k.id)} onAdded={reload} />
+          ) : <p className="text-xs text-slate-400">Add this person to a household above before linking kids.</p>}
+        </div>
       </Card>
+    </div>
+  )
+}
+
+function KidRow({ k, onChanged, onOpen }: { k: Row; onChanged: () => void; onOpen: () => void }) {
+  const [editing, setEditing] = useState(false)
+  const [d, setD] = useState({ first_name: k.first_name ?? '', last_name: k.last_name ?? '', current_class: k.current_class ?? '', current_class_9am: k.current_class_9am ?? '' })
+
+  async function save() {
+    if (await attempt(() => chm(`kid/${k.id}`, 'PATCH', d))) {
+      setEditing(false)
+      onChanged()
+    }
+  }
+  async function unlink() {
+    if (!confirm(`Remove ${k.first_name} from this household? Their check-in record stays.`)) return
+    if (await attempt(() => chm(`kid/${k.id}`, 'PATCH', { household_id: '' }))) onChanged()
+  }
+  const f = (key: keyof typeof d, label: string) => (
+    <input value={d[key]} onChange={(e) => setD({ ...d, [key]: e.target.value })} placeholder={label} aria-label={label} className={`${inputCls} text-sm`} />
+  )
+  return (
+    <li className="py-2">
+      {editing ? (
+        <div className="grid grid-cols-2 gap-2">
+          {f('first_name', 'First name')}{f('last_name', 'Last name')}{f('current_class', '10 AM class')}{f('current_class_9am', '9 AM class')}
+          <div className="col-span-2 flex gap-2">
+            <button type="button" onClick={save} className={btnCls}>Save</button>
+            <button type="button" onClick={() => setEditing(false)} className={btnGhost}>Cancel</button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={onOpen} className="font-medium text-slate-900 dark:text-white hover:underline">{k.first_name} {k.last_name}</button>
+          {k.current_class && <Pill tone="blue">{k.current_class}</Pill>}
+          <span className="ml-auto flex gap-3 text-xs">
+            <button type="button" onClick={() => setEditing(true)} className="text-sky-600 hover:underline">Edit</button>
+            <button type="button" onClick={unlink} className="text-red-600 hover:underline">Remove</button>
+          </span>
+        </div>
+      )}
+    </li>
+  )
+}
+
+function KidPicker({ householdId, exclude, onAdded }: { householdId: string; exclude: number[]; onAdded: () => void }) {
+  const { data } = useChm<{ kids: Row[] }>('kids')
+  const [q, setQ] = useState('')
+  const matches = useMemo(() => {
+    const n = q.trim().toLowerCase()
+    if (n.length < 2) return []
+    return (data?.kids ?? []).filter((k) => !exclude.includes(k.id) && `${k.first_name} ${k.last_name}`.toLowerCase().includes(n)).slice(0, 8)
+  }, [q, data, exclude])
+
+  async function add(k: Row) {
+    if (k.household_id && !confirm(`${k.first_name} ${k.last_name} is linked to another household${k.parents?.length ? ` (${k.parents.join(', ')})` : ''}. Move them here?`)) return
+    if (await attempt(() => chm(`kid/${k.id}`, 'PATCH', { household_id: householdId }))) {
+      setQ('')
+      onAdded()
+    }
+  }
+  return (
+    <div className="relative">
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Link a kid from check-in…" className={`${inputCls} w-full`} />
+      {matches.length > 0 && (
+        <ul className="absolute z-30 mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg max-h-64 overflow-auto">
+          {matches.map((k) => (
+            <li key={k.id}>
+              <button type="button" onClick={() => add(k)} className="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-900 dark:text-white">
+                {k.first_name} {k.last_name} <span className="text-xs text-slate-400">{k.parents?.length ? k.parents.join(', ') : k.household_id ? k.household_id : 'no household'}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }
