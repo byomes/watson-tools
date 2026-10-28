@@ -19,7 +19,7 @@ export default function PinPad() {
   }
 
   useEffect(() => {
-    if (pin.length === 4 && !pending) {
+    if (pin.length === 6 && !pending) {
       formRef.current?.requestSubmit()
     }
   }, [pin, pending])
@@ -28,7 +28,7 @@ export default function PinPad() {
     if (pending) return
     if (key === 'back') {
       setPin((p) => p.slice(0, -1))
-    } else if (key && pin.length < 4) {
+    } else if (key && pin.length < 6) {
       setPin((p) => p + key)
     }
   }
@@ -46,7 +46,7 @@ export default function PinPad() {
     <form ref={formRef} action={formAction}>
       <input type="hidden" name="pin" value={pin} />
       <div className="flex justify-center gap-3 mb-6">
-        {[0, 1, 2, 3].map((i) => (
+        {[0, 1, 2, 3, 4, 5].map((i) => (
           <div
             key={i}
             className={`h-4 w-4 rounded-full border-2 ${

@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from 'react'
 import { loginAction } from '../actions'
 
-const PIN_LENGTH = 8
+const PIN_LENGTH = 6
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'back']
 
 export default function PinPad() {
