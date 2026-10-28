@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import MemberDetail from '../catalystdb/(gated)/MemberDetail'
 import {
-  Card, ConnBadge, Empty, Loading, Pill, PersonLink, Tabs, btnCls, btnGhost, attempt, chm, fmtDate, ago, inputCls,
+  Card, ConnBadge, Empty, Loading, Pill, PersonLink, PersonPicker, Tabs, btnCls, btnGhost, attempt, chm, fmtDate, ago, inputCls,
   useChm, useNav, usePeople, type Row,
 } from './chm'
 import { notifyDssChanged } from '@/lib/dssSync'
@@ -327,22 +327,65 @@ function CareTab({ p, reload }: { p: Row; reload: () => void }) {
   )
 }
 
-function FamilyTab({ p }: { p: Row }) {
+const HOUSEHOLD_ROLES = ['head', 'husband', 'wife', 'widow', 'widower', 'child', 'young adult']
+
+function FamilyTab({ p, reload }: { p: Row; reload: () => void }) {
   const { go } = useNav()
+  const [addRole, setAddRole] = useState('child')
+  const me: number = p.member.id
+
+  async function edit(body: Row) {
+    if (await attempt(() => chm('household', 'POST', body))) reload()
+  }
+  async function add(other: { id: number; name: string }) {
+    const body = { action: 'add', member_id: me, other_id: other.id, role: addRole }
+    try {
+      await chm('household', 'POST', body)
+    } catch (e) {
+      const msg = String((e as Error).message ?? e)
+      if (!msg.includes('Confirm to move')) return void attempt(() => Promise.reject(e))
+      if (!confirm(msg)) return
+      if (!(await attempt(() => chm('household', 'POST', { ...body, move: true })))) return
+    }
+    reload()
+  }
+  async function remove(h: Row) {
+    if (!confirm(`Remove ${h.name} from this household? Their record stays; only the family link is cleared.`)) return
+    edit({ action: 'remove', member_id: h.id })
+  }
+  const roleSelect = (id: number, value: string) => (
+    <select value={value} onChange={(e) => edit({ action: 'role', member_id: id, role: e.target.value })} className={`${inputCls} !py-1 text-xs`} aria-label="Household role">
+      <option value="">role not set</option>
+      {HOUSEHOLD_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+    </select>
+  )
+
   return (
     <div className="flex flex-col gap-4">
       <Card title={`Household ${p.member.household_id ? `(${p.member.household_id})` : ''}`}>
+        <div className="flex items-center gap-3 pb-2 text-sm">
+          <span className="font-medium text-slate-900 dark:text-white">{p.member.name} (this person)</span>
+          {roleSelect(me, p.member.household_role && p.member.household_role !== '--' ? p.member.household_role : '')}
+          {p.member.household_id && <button type="button" onClick={() => remove(p.member)} className="ml-auto text-xs text-red-600 hover:underline">Leave household</button>}
+        </div>
         {p.household.length === 0 ? <Empty>No one else in this household.</Empty> : (
           <ul className="divide-y divide-slate-100 dark:divide-slate-800">
             {p.household.map((h: Row) => (
               <li key={h.id} className="py-2 flex items-center gap-3">
                 <PersonLink id={h.id} name={h.name} />
-                <Pill>{h.household_role || 'role not set'}</Pill>
+                {roleSelect(h.id, h.household_role && h.household_role !== '--' ? h.household_role : '')}
                 <span className="text-xs text-slate-400 truncate">{h.phone || h.email || ''}</span>
+                <button type="button" onClick={() => remove(h)} className="ml-auto text-xs text-red-600 hover:underline">Remove</button>
               </li>
             ))}
           </ul>
         )}
+        <div className="mt-3 flex items-center gap-2 border-t border-slate-100 dark:border-slate-800 pt-3">
+          <div className="flex-1"><PersonPicker onPick={add} placeholder="Add someone to this household…" exclude={[me, ...p.household.map((h: Row) => h.id)]} /></div>
+          <select value={addRole} onChange={(e) => setAddRole(e.target.value)} className={`${inputCls} text-sm`} aria-label="Role for the person being added">
+            {HOUSEHOLD_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+          </select>
+        </div>
       </Card>
       <Card title={`Kids (${p.kids.length})`}>
         {p.kids.length === 0 ? <Empty>No kids linked through check-in.</Empty> : (
@@ -565,7 +608,7 @@ export default function PersonProfile({ id, tab, setTab, onBack }: { id: number;
             {tab === 'timeline' && <Timeline p={p} reload={reload} />}
             {tab === 'attendance' && <AttendanceTab p={p} />}
             {tab === 'care' && <CareTab p={p} reload={reload} />}
-            {tab === 'family' && <FamilyTab p={p} />}
+            {tab === 'family' && <FamilyTab p={p} reload={reload} />}
             {tab === 'involvement' && <InvolvementTab p={p} reload={reload} />}
             {tab === 'record' && <RecordTab p={p} />}
           </div>
