@@ -11,8 +11,8 @@ type LoginState = { error: string } | undefined
 export async function loginAction(_prevState: LoginState, formData: FormData): Promise<LoginState> {
   const pin = String(formData.get('pin') ?? '')
   const ip = await serverClientIp()
-  // 4-digit PINs are elders' deacon-app PINs; Bill/Donna's are longer, so don't burn a failed attempt on them.
-  const { matches, locked } = pin.length === 4 ? { matches: [], locked: false } : await verifyPin(pin, ip)
+  // One 4-digit PIN per leader. Bill and Donna's opens the full app; any other leader's valid PIN is not a failed attempt here.
+  const { matches, locked } = await verifyPin(pin, ip)
 
   if (locked) {
     return { error: 'Too many attempts. Ask Watson to "unlock login" via Telegram, then try again.' }

@@ -11,9 +11,7 @@ export const metadata: Metadata = {
 
 export const dynamic = 'force-dynamic'
 
-export default async function CatalystDBLoginPage({ searchParams }: { searchParams: Promise<{ next?: string; full?: string }> }) {
-  const sp = await searchParams
-  const elderPad = sp.next === '/cat/dashboard' && sp.full !== '1'
+export default async function CatalystDBLoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   if (await isLoggedIn()) redirect('/cat/catalystdb')
 
   return (
@@ -23,11 +21,8 @@ export default async function CatalystDBLoginPage({ searchParams }: { searchPara
           <h1 className="text-xl font-bold text-slate-900 dark:text-white text-center mb-1">
             Catalyst Database
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-8">{elderPad ? 'Enter your 4-digit PIN' : 'Enter the PIN'}</p>
-          <PinPad length={elderPad ? 4 : 6} />
-          {elderPad && (
-            <a href="?next=/cat/dashboard&full=1" className="block text-center text-xs text-slate-400 mt-6 underline">Bill or Donna? Use the 6-digit PIN</a>
-          )}
+          <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-8">Enter your 4-digit PIN</p>
+          <PinPad length={4} />
         </div>
       </div>
     </ThemeShell>
