@@ -649,6 +649,18 @@ export default function PersonProfile({ id, tab, setTab, onBack }: { id: number;
     reload()
   }
 
+  async function deletePermanently() {
+    if (!confirm(`Permanently delete ${m.name ?? `#${id}`}? This cannot be undone.`)) return
+    const ok = await attempt(async () => {
+      const res = await fetch('/api/cat/catalystdb/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: [id] }) })
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? 'Could not delete')
+    })
+    if (!ok) return
+    notifyDssChanged()
+    refresh()
+    onBack()
+  }
+
   const tabs = [
     { key: 'details', label: 'Details' },
     { key: 'timeline', label: 'Timeline' },
@@ -700,7 +712,7 @@ export default function PersonProfile({ id, tab, setTab, onBack }: { id: number;
         {tab === 'details' ? (
           <div className="max-w-4xl mx-auto">
             {saveErr && <p className="px-5 pt-3 text-sm text-red-600">{saveErr}</p>}
-            <MemberDetail embedded member={m} teamNames={(p.teams as Row[]).map((t) => t.team_name)} onClose={() => {}} onSave={saveFields} onDeactivate={deactivate} onDelete={() => {}} />
+            <MemberDetail embedded member={m} teamNames={(p.teams as Row[]).map((t) => t.team_name)} onClose={() => {}} onSave={saveFields} onDeactivate={deactivate} onDelete={deletePermanently} />
           </div>
         ) : (
           <div className="max-w-4xl mx-auto px-4 sm:px-6 py-5">
