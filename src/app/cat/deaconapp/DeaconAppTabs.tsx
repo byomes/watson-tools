@@ -152,7 +152,7 @@ function HelpTray({ open, onClose }: { open: boolean; onClose: () => void }) {
           <HelpSection title="List">
             <p>Everyone in the church, grouped by who&apos;s unassigned or inactive. Search by name, or filter to just your group.</p>
             <p>Tap the phone, text, or mail icon on a card to reach someone directly. Use the note field to log that you called, texted, or visited &mdash; it stays on their card.</p>
-            <p>Assign a person to a deacon, or add a spouse, child, or parent from their card to keep families linked.</p>
+            <p>Assign a person to a deacon, or add a spouse, child, or parent from their card to keep households linked.</p>
           </HelpSection>
 
           <HelpSection title="Report">

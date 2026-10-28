@@ -319,7 +319,7 @@ export function KidDetail({ id, onBack }: { id: number; onBack: () => void }) {
           {field('current_class', '10 AM class')}{field('current_class_9am', '9 AM class')}{field('household_id', 'Household ID')}
         </div>
       </Card>
-      <Card title="Family">
+      <Card title="Household">
         {data.family.length === 0 ? <Empty>No household linked. Set the household ID above.</Empty> : (
           <ul className="divide-y divide-slate-100 dark:divide-slate-800">
             {data.family.map((f: Row) => (

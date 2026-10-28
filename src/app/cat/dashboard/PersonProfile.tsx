@@ -356,7 +356,7 @@ function FamilyTab({ p, reload }: { p: Row; reload: () => void }) {
   }
   // A person who is also a check-in kid is removed through the kid row, which keeps both records in step.
   async function remove(name: string, memberId: number | null, kid?: Row) {
-    if (!confirm(`Remove ${name} from this household? Their record stays; only the family link is cleared.`)) return
+    if (!confirm(`Remove ${name} from this household? Their record stays; only the household link is cleared.`)) return
     if (kid) {
       if (await attempt(() => chm(`kid/${kid.id}`, 'PATCH', { household_id: '' }))) reload()
     } else if (memberId !== null) edit({ action: 'remove', member_id: memberId })
@@ -671,7 +671,7 @@ export default function PersonProfile({ id, tab, setTab, onBack }: { id: number;
     { key: 'timeline', label: 'Timeline' },
     { key: 'attendance', label: 'Attendance', count: p.stats.total },
     { key: 'care', label: 'Cards & Care', count: p.cards.length + p.prayer.length + p.followups.length + p.care_notes.length + p.deacon_notes.length },
-    { key: 'family', label: 'Family', count: p.household.length + p.kids.filter((k: Row) => !k.member_id || (k.member_id !== p.member.id && !p.household.some((h: Row) => h.id === k.member_id))).length },
+    { key: 'family', label: 'Household', count: p.household.length + p.kids.filter((k: Row) => !k.member_id || (k.member_id !== p.member.id && !p.household.some((h: Row) => h.id === k.member_id))).length },
     { key: 'involvement', label: 'Involvement', count: p.teams.length + p.groups.length },
     { key: 'record', label: 'Record' },
   ]
