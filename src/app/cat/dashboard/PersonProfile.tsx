@@ -333,6 +333,11 @@ function FamilyTab({ p, reload }: { p: Row; reload: () => void }) {
   const { go } = useNav()
   const [addRole, setAddRole] = useState('child')
   const me: number = p.member.id
+  const kids: Row[] = p.kids
+  const kidOf = (memberId: number) => kids.find((k) => k.member_id === memberId)
+  // Check-in kids with no member row in this household still get a line of their own.
+  const shown = new Set<number>([me, ...p.household.map((h: Row) => h.id)])
+  const kidsOnly = kids.filter((k) => !k.member_id || !shown.has(k.member_id))
 
   async function edit(body: Row) {
     if (await attempt(() => chm('household', 'POST', body))) reload()
@@ -349,9 +354,12 @@ function FamilyTab({ p, reload }: { p: Row; reload: () => void }) {
     }
     reload()
   }
-  async function remove(h: Row) {
-    if (!confirm(`Remove ${h.name} from this household? Their record stays; only the family link is cleared.`)) return
-    edit({ action: 'remove', member_id: h.id })
+  // A person who is also a check-in kid is removed through the kid row, which keeps both records in step.
+  async function remove(name: string, memberId: number | null, kid?: Row) {
+    if (!confirm(`Remove ${name} from this household? Their record stays; only the family link is cleared.`)) return
+    if (kid) {
+      if (await attempt(() => chm(`kid/${kid.id}`, 'PATCH', { household_id: '' }))) reload()
+    } else if (memberId !== null) edit({ action: 'remove', member_id: memberId })
   }
   const roleSelect = (id: number, value: string) => (
     <select value={value} onChange={(e) => edit({ action: 'role', member_id: id, role: e.target.value })} className={`${inputCls} !py-1 text-xs`} aria-label="Household role">
@@ -359,85 +367,101 @@ function FamilyTab({ p, reload }: { p: Row; reload: () => void }) {
       {HOUSEHOLD_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
     </select>
   )
+  const roleOf = (h: Row) => (h.household_role && h.household_role !== '--' ? h.household_role : '')
 
   return (
     <div className="flex flex-col gap-4">
       <Card title={`Household ${p.member.household_id ? `(${p.member.household_id})` : ''}`}>
-        <div className="flex items-center gap-3 pb-2 text-sm">
-          <span className="font-medium text-slate-900 dark:text-white">{p.member.name} (this person)</span>
-          {roleSelect(me, p.member.household_role && p.member.household_role !== '--' ? p.member.household_role : '')}
-          {p.member.household_id && <button type="button" onClick={() => remove(p.member)} className="ml-auto text-xs text-red-600 hover:underline">Leave household</button>}
-        </div>
-        {p.household.length === 0 ? <Empty>No one else in this household.</Empty> : (
-          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-            {p.household.map((h: Row) => (
-              <li key={h.id} className="py-2 flex items-center gap-3">
-                <PersonLink id={h.id} name={h.name} />
-                {roleSelect(h.id, h.household_role && h.household_role !== '--' ? h.household_role : '')}
-                <span className="text-xs text-slate-400 truncate">{h.phone || h.email || ''}</span>
-                <button type="button" onClick={() => remove(h)} className="ml-auto text-xs text-red-600 hover:underline">Remove</button>
-              </li>
-            ))}
-          </ul>
-        )}
-        <div className="mt-3 flex items-center gap-2 border-t border-slate-100 dark:border-slate-800 pt-3">
-          <div className="flex-1"><PersonPicker onPick={add} placeholder="Add someone to this household…" exclude={[me, ...p.household.map((h: Row) => h.id)]} /></div>
-          <select value={addRole} onChange={(e) => setAddRole(e.target.value)} className={`${inputCls} text-sm`} aria-label="Role for the person being added">
-            {HOUSEHOLD_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-          </select>
-        </div>
-      </Card>
-      <Card title={`Kids (${p.kids.length})`}>
-        {p.kids.length === 0 ? <Empty>No kids linked through check-in.</Empty> : (
-          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-            {p.kids.map((k: Row) => <KidRow key={k.id} k={k} onChanged={reload} onOpen={() => go(`kid/${k.id}`)} />)}
-          </ul>
-        )}
-        <div className="mt-3 border-t border-slate-100 dark:border-slate-800 pt-3">
+        <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+          <FamilyRow
+            name={<span className="font-medium text-slate-900 dark:text-white">{p.member.name} (this person)</span>}
+            role={roleSelect(me, roleOf(p.member))}
+            kid={kidOf(me)}
+            onRemove={p.member.household_id ? () => remove(p.member.name, me, kidOf(me)) : undefined}
+            removeLabel="Leave household"
+            onChanged={reload}
+          />
+          {p.household.map((h: Row) => (
+            <FamilyRow
+              key={h.id}
+              name={<PersonLink id={h.id} name={h.name} />}
+              role={roleSelect(h.id, roleOf(h))}
+              extra={h.phone || h.email || ''}
+              kid={kidOf(h.id)}
+              onRemove={() => remove(h.name, h.id, kidOf(h.id))}
+              onChanged={reload}
+            />
+          ))}
+          {kidsOnly.map((k) => (
+            <FamilyRow
+              key={`kid${k.id}`}
+              name={<button type="button" onClick={() => go(`kid/${k.id}`)} className="font-medium text-slate-900 dark:text-white hover:underline">{k.first_name} {k.last_name}</button>}
+              role={<Pill>child</Pill>}
+              kid={k}
+              onRemove={() => remove(`${k.first_name} ${k.last_name}`, null, k)}
+              onChanged={reload}
+            />
+          ))}
+        </ul>
+        {p.household.length === 0 && kidsOnly.length === 0 && <Empty>No one else in this household.</Empty>}
+        <div className="mt-3 flex flex-col gap-2 border-t border-slate-100 dark:border-slate-800 pt-3">
+          <div className="flex items-center gap-2">
+            <div className="flex-1"><PersonPicker onPick={add} placeholder="Add a person to this household…" exclude={[me, ...p.household.map((h: Row) => h.id)]} /></div>
+            <select value={addRole} onChange={(e) => setAddRole(e.target.value)} className={`${inputCls} text-sm`} aria-label="Role for the person being added">
+              {HOUSEHOLD_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </div>
           {p.member.household_id ? (
-            <KidPicker householdId={p.member.household_id} exclude={p.kids.map((k: Row) => k.id)} onAdded={reload} />
-          ) : <p className="text-xs text-slate-400">Add this person to a household above before linking kids.</p>}
+            <KidPicker householdId={p.member.household_id} exclude={kids.map((k) => k.id)} onAdded={reload} />
+          ) : <p className="text-xs text-slate-400">Add someone above to start a household before linking check-in kids.</p>}
         </div>
       </Card>
     </div>
   )
 }
 
-function KidRow({ k, onChanged, onOpen }: { k: Row; onChanged: () => void; onOpen: () => void }) {
+// One line of the household. If the person is also a check-in kid, their class pills and a class/name editor ride on the line.
+function FamilyRow({ name, role, extra, kid, onRemove, removeLabel = 'Remove', onChanged }: {
+  name: React.ReactNode
+  role: React.ReactNode
+  extra?: string
+  kid?: Row
+  onRemove?: () => void
+  removeLabel?: string
+  onChanged: () => void
+}) {
   const [editing, setEditing] = useState(false)
-  const [d, setD] = useState({ first_name: k.first_name ?? '', last_name: k.last_name ?? '', current_class: k.current_class ?? '', current_class_9am: k.current_class_9am ?? '' })
+  const [d, setD] = useState({ first_name: kid?.first_name ?? '', last_name: kid?.last_name ?? '', current_class: kid?.current_class ?? '', current_class_9am: kid?.current_class_9am ?? '' })
 
   async function save() {
-    if (await attempt(() => chm(`kid/${k.id}`, 'PATCH', d))) {
+    if (kid && (await attempt(() => chm(`kid/${kid.id}`, 'PATCH', d)))) {
       setEditing(false)
       onChanged()
     }
-  }
-  async function unlink() {
-    if (!confirm(`Remove ${k.first_name} from this household? Their check-in record stays.`)) return
-    if (await attempt(() => chm(`kid/${k.id}`, 'PATCH', { household_id: '' }))) onChanged()
   }
   const f = (key: keyof typeof d, label: string) => (
     <input value={d[key]} onChange={(e) => setD({ ...d, [key]: e.target.value })} placeholder={label} aria-label={label} className={`${inputCls} text-sm`} />
   )
   return (
     <li className="py-2">
-      {editing ? (
-        <div className="grid grid-cols-2 gap-2">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        {name}
+        {role}
+        {kid?.current_class && <Pill tone="blue">{kid.current_class}</Pill>}
+        {kid?.current_class_9am && <Pill tone="blue">9 AM: {kid.current_class_9am}</Pill>}
+        {extra && <span className="text-xs text-slate-400 truncate">{extra}</span>}
+        <span className="ml-auto flex gap-3 text-xs">
+          {kid && <button type="button" onClick={() => setEditing(!editing)} className="text-sky-600 hover:underline">{editing ? 'Close' : 'Edit classes'}</button>}
+          {onRemove && <button type="button" onClick={onRemove} className="text-red-600 hover:underline">{removeLabel}</button>}
+        </span>
+      </div>
+      {editing && kid && (
+        <div className="grid grid-cols-2 gap-2 mt-2">
           {f('first_name', 'First name')}{f('last_name', 'Last name')}{f('current_class', '10 AM class')}{f('current_class_9am', '9 AM class')}
           <div className="col-span-2 flex gap-2">
             <button type="button" onClick={save} className={btnCls}>Save</button>
             <button type="button" onClick={() => setEditing(false)} className={btnGhost}>Cancel</button>
           </div>
-        </div>
-      ) : (
-        <div className="flex items-center gap-3">
-          <button type="button" onClick={onOpen} className="font-medium text-slate-900 dark:text-white hover:underline">{k.first_name} {k.last_name}</button>
-          {k.current_class && <Pill tone="blue">{k.current_class}</Pill>}
-          <span className="ml-auto flex gap-3 text-xs">
-            <button type="button" onClick={() => setEditing(true)} className="text-sky-600 hover:underline">Edit</button>
-            <button type="button" onClick={unlink} className="text-red-600 hover:underline">Remove</button>
-          </span>
         </div>
       )}
     </li>
@@ -630,7 +654,7 @@ export default function PersonProfile({ id, tab, setTab, onBack }: { id: number;
     { key: 'timeline', label: 'Timeline' },
     { key: 'attendance', label: 'Attendance', count: p.stats.total },
     { key: 'care', label: 'Cards & Care', count: p.cards.length + p.prayer.length + p.followups.length + p.care_notes.length + p.deacon_notes.length },
-    { key: 'family', label: 'Family', count: p.household.length + p.kids.length },
+    { key: 'family', label: 'Family', count: p.household.length + p.kids.filter((k: Row) => !k.member_id || (k.member_id !== p.member.id && !p.household.some((h: Row) => h.id === k.member_id))).length },
     { key: 'involvement', label: 'Involvement', count: p.teams.length + p.groups.length },
     { key: 'record', label: 'Record' },
   ]
