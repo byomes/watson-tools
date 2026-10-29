@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 
 const STORAGE_KEY = 'deaconapp-theme'
 const LIGHT_THEME_COLOR = '#219f40'
-const DARK_THEME_COLOR = '#219f40' // matches the shell's dark:bg-gray-950
+const DARK_THEME_COLOR = '#219f40' // 9e9 green, matches the header
 
 export type Theme = 'light' | 'dark'
 
