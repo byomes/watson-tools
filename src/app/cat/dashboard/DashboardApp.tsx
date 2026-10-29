@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, type ReactNode } from 'react'
+import { Fragment, useMemo, useState, type ReactNode } from 'react'
 import PersonProfile from './PersonProfile'
 import DeaconAppView from './DeaconAppView'
 import type { Group, Totals } from '@/lib/shepherdingReportShared'
@@ -8,7 +8,7 @@ import { CareView, DeaconsView, HealthView, ToolsView } from './Views2'
 import { GroupsView, HomeView, KidDetail, KidsView, PeopleView, ServingView } from './Views'
 import { NavContext, PeopleProvider, Toaster, useHashRoute, usePeople, inputCls } from './chm'
 import { DSS_NAME, DSS_CHURCH, DSS_TAGLINE } from '@/lib/dssConfig'
-import { CAT_TOOL_SECTIONS } from '@/lib/catTools'
+import { toolSections, ADMIN_TOOL_HREFS } from '@/lib/catTools'
 
 // The Catalyst church-management dashboard (wtsn.me/cat/dashboard). Hash-routed so a profile or
 // list is linkable and the browser Back button works; the People list stays mounted once opened
@@ -24,11 +24,12 @@ const NAV: { key: string; label: string; icon: string; roles?: string[] }[] = [
   { key: 'groups', label: 'Groups', icon: 'M3 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM17 10a3 3 0 1 0 0-5M21 20v-2a4 4 0 0 0-3-3.9' },
   { key: 'serving', label: 'Serving', icon: 'M5 12l5 5L20 7' },
   { key: 'health', label: 'Data health', icon: 'M3 12h4l3-8 4 16 3-8h4' },
+  { key: 'admin', label: 'Admin', icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z' },
   { key: 'tools', label: 'Tools', icon: 'M14 6l4 4-9 9H5v-4zM13 7l4 4' },
 ]
 
-// Admin pages Donna and Bill use, listed straight in the sidebar. The public connect card form and the Deacon app (its own item above) stay out.
-const ADMIN_TOOLS = CAT_TOOL_SECTIONS.flatMap((sec) => sec.tools).filter((t) => t.href !== '/cat/connect' && t.href !== '/cat/deaconapp')
+// Admin tools sit under the Admin menu item; everything else stays under Tools. The public connect card form and the Deacon app (its own item) are not listed.
+const ADMIN_TOOLS = toolSections(true).flatMap((sec) => sec.tools)
 
 function Icon({ d }: { d: string }) {
   return (
@@ -78,7 +79,7 @@ function Shell({ user, themeToggle, logout, deacon }: { user: string; role: stri
     goRoute(r)
   }
   const [section, a, b] = route.split('/')
-  const head = section === 'person' ? 'people' : section === 'kid' ? 'kids' : section === 'tool' ? 'tools' : section
+  const head = section === 'person' ? 'people' : section === 'kid' ? 'kids' : section === 'tool' ? (ADMIN_TOOL_HREFS.has('/' + route.split('/').slice(1).join('/').split('?')[0]) ? 'admin' : 'tools') : section
   if (head === 'people' && !peopleSeen) setPeopleSeen(true)
 
   const personId = section === 'person' ? Number(a) : NaN
@@ -88,21 +89,26 @@ function Shell({ user, themeToggle, logout, deacon }: { user: string; role: stri
   const nav = (
     <nav className="flex flex-col gap-0.5 p-3">
       {NAV.map((n) => (
-        <button key={n.key} type="button" onClick={() => go(n.key)} aria-current={(n.key === 'tools' ? section === 'tools' : head === n.key) ? 'page' : undefined}
-          className={`flex items-center gap-3.5 md:gap-3 rounded-lg px-3.5 py-2.5 md:px-3 md:py-2 text-[17px] md:text-sm font-medium ${(n.key === 'tools' ? section === 'tools' : head === n.key) ? 'bg-nine/10 text-nine font-semibold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
-          <Icon d={n.icon} />{n.label}
-        </button>
-      ))}
-      <p className="mt-4 mb-1 px-3.5 md:px-3 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Admin</p>
-      {ADMIN_TOOLS.map((t) => {
-        const on = section === 'tool' && ('/' + route.split('/').slice(1).join('/')).split('?')[0] === t.href
-        return (
-          <button key={t.href} type="button" onClick={() => go('tool' + t.href)} aria-current={on ? 'page' : undefined}
-            className={`flex items-center gap-3.5 md:gap-3 rounded-lg px-3.5 py-2 md:px-3 md:py-1.5 text-left text-[16px] md:text-sm ${on ? 'bg-nine/10 text-nine font-semibold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
-            <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${on ? 'bg-nine' : 'bg-slate-300 dark:bg-slate-600'}`} />{t.name}
+        <Fragment key={n.key}>
+          <button type="button" onClick={() => go(n.key)} aria-current={head === n.key ? 'page' : undefined}
+            className={`flex items-center gap-3.5 md:gap-3 rounded-lg px-3.5 py-2.5 md:px-3 md:py-2 text-[17px] md:text-sm font-medium ${head === n.key ? 'bg-nine/10 text-nine font-semibold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+            <Icon d={n.icon} />{n.label}
           </button>
-        )
-      })}
+          {n.key === 'admin' && head === 'admin' && (
+            <div className="ml-5 flex flex-col gap-0.5 border-l border-slate-200 dark:border-slate-700 pl-2">
+              {ADMIN_TOOLS.map((t) => {
+                const on = section === 'tool' && ('/' + route.split('/').slice(1).join('/')).split('?')[0] === t.href
+                return (
+                  <button key={t.href} type="button" onClick={() => go('tool' + t.href)} aria-current={on ? 'page' : undefined}
+                    className={`rounded-lg px-3 py-1.5 text-left text-[16px] md:text-sm ${on ? 'bg-nine/10 text-nine font-semibold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                    {t.name}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </Fragment>
+      ))}
     </nav>
   )
 
@@ -151,6 +157,7 @@ function Shell({ user, themeToggle, logout, deacon }: { user: string; role: stri
             {section === 'deaconapp' && <DeaconAppView user={user} groups={deacon.groups} totals={deacon.totals} date={deacon.date} />}
             {section === 'care' && <CareView />}
             {section === 'health' && <HealthView />}
+            {head === 'admin' && <ToolsView admin href={toolHref} />}
             {head === 'tools' && <ToolsView href={toolHref} />}
           </main>
         </div>

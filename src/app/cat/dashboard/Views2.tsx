@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { CAT_TOOL_SECTIONS } from '@/lib/catTools'
+import { toolSections } from '@/lib/catTools'
 import { EditableRecord } from './PersonProfile'
 import { byLastName, sortByLastName } from '@/lib/people'
 import {
@@ -456,7 +456,7 @@ export function HealthView() {
 
 // ------------------------------------------------------------------ Tools
 
-export function ToolsView({ href }: { href: string }) {
+export function ToolsView({ href, admin = false }: { href: string; admin?: boolean }) {
   const { go } = useNav()
   const frameRef = useRef<HTMLIFrameElement>(null)
   const sendTheme = useCallback(() => {
@@ -473,18 +473,18 @@ export function ToolsView({ href }: { href: string }) {
   if (href) {
     return (
       <div className="flex flex-col h-full">
-        <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"><button type="button" onClick={() => go('tools')} className="text-xs text-slate-500 hover:underline">← All tools</button></div>
+        <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"><button type="button" onClick={() => go(admin ? 'admin' : 'tools')} className="text-xs text-slate-500 hover:underline">{admin ? '← All admin' : '← All tools'}</button></div>
         <iframe ref={frameRef} key={href} src={href} onLoad={sendTheme} className="flex-1 w-full border-0 bg-white dark:bg-slate-950" title="Tool" />
       </div>
     )
   }
   return (
     <div className="p-4 sm:p-6 max-w-4xl mx-auto flex flex-col gap-5">
-      {CAT_TOOL_SECTIONS.map((sec) => (
+      {toolSections(admin).map((sec) => (
         <div key={sec.title}>
           <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">{sec.title}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {sec.tools.flatMap((t) => (t.children ? [t, ...t.children] : [t])).map((t) => (
+            {sec.tools.flatMap((t) => (t.children ? [t, ...t.children.filter((c) => c.href !== t.href)] : [t])).map((t) => (
               <button key={t.href + t.name} type="button" onClick={() => go('tool' + t.href)} className="text-left rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3 hover:border-slate-400 dark:hover:border-slate-600">
                 <div className="text-sm font-medium text-slate-900 dark:text-white">{t.name}</div>
                 <div className="text-xs text-slate-500">{t.note}</div>
