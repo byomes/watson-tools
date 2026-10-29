@@ -225,7 +225,7 @@ export default function DeaconAppTabs({
             className="flex items-center active:opacity-60"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/9e9/mark-white.png" alt="9e9" className="h-10 w-auto" />
+            <img src="/9e9/mark-white.png" alt="9e9" className="h-8 w-auto" />
           </button>
           <div className="flex items-center gap-1">
             <button
