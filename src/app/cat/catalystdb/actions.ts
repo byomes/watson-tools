@@ -18,18 +18,21 @@ export async function loginAction(_prevState: LoginState, formData: FormData): P
     return { error: 'Too many attempts. Ask Watson to "unlock login" via Telegram, then try again.' }
   }
   if (matches.length === 0) {
-    // Not Bill or Donna. An elder's deacon-app PIN opens the DSS dashboard only, never the Catalyst Database.
+    // Not Bill or Donna. An elder's deacon-app PIN opens the DSS dashboard and the 9e9 app (as their own account) only, never the Catalyst Database.
     let fromDashboard = false
+    let elderNext = '/cat/dashboard'
     try {
       const ref = (await headers()).get('referer')
-      fromDashboard = (ref ? new URL(ref).searchParams.get('next') : null) === '/cat/dashboard'
+      const wanted = ref ? new URL(ref).searchParams.get('next') : null
+      fromDashboard = wanted === '/cat/dashboard' || wanted === '/cat/9e9'
+      if (wanted === '/cat/9e9') elderNext = wanted
     } catch {}
     if (fromDashboard) {
       const { elder, locked: elderLocked } = await verifyElderPin(pin, ip)
       if (elderLocked) return { error: 'Too many attempts. Ask Watson to "unlock login" via Telegram, then try again.' }
       if (elder) {
         await createElderSession(elder)
-        redirect('/cat/dashboard')
+        redirect(elderNext)
       }
     }
     return { error: 'Wrong PIN' }
