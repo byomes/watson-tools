@@ -1,6 +1,15 @@
 'use client'
 import { useEffect, useState } from 'react'
 import type { AttendanceWeek } from '@/lib/shepherdingReportShared'
+import { formatDeaconNoteDate } from '@/lib/deaconNotes'
+import { notifyDssChanged } from '@/lib/dssSync'
+
+interface DeaconNote {
+  id: number
+  note: string
+  created_at: string
+  author_deacon: string | null
+}
 
 // service_date is a plain "YYYY-MM-DD" string -- parsed via new Date() that
 // gets treated as UTC midnight and can print a day early in US timezones
@@ -18,10 +27,13 @@ export default function AttendanceWeeksModal({
   memberId,
   memberName,
   onClose,
+  showNotes,
 }: {
   memberId: number
   memberName: string
   onClose: () => void
+  // Deacon app only: the standalone report page has no deacon session to read or write notes with.
+  showNotes?: boolean
 }) {
   const [weeks, setWeeks] = useState<AttendanceWeek[] | null>(null)
   const [error, setError] = useState(false)
@@ -43,6 +55,56 @@ export default function AttendanceWeeksModal({
       cancelled = true
     }
   }, [memberId])
+
+  const [notes, setNotes] = useState<DeaconNote[] | null>(null)
+  const [notesError, setNotesError] = useState(false)
+  const [adding, setAdding] = useState(false)
+  const [draft, setDraft] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState(false)
+
+  useEffect(() => {
+    if (!showNotes) return
+    let cancelled = false
+    fetch(`/api/cat/deacons/member/${memberId}/notes`)
+      .then((res) => {
+        if (!res.ok) throw new Error('failed')
+        return res.json()
+      })
+      .then((data: DeaconNote[]) => {
+        if (!cancelled) setNotes(data)
+      })
+      .catch(() => {
+        if (!cancelled) setNotesError(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [memberId, showNotes])
+
+  async function saveNote() {
+    const note = draft.trim()
+    if (!note || saving) return
+    setSaving(true)
+    setSaveError(false)
+    try {
+      const res = await fetch(`/api/cat/deacons/member/${memberId}/note`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note }),
+      })
+      if (!res.ok) throw new Error('failed')
+      const created: DeaconNote = await res.json()
+      notifyDssChanged()
+      setNotes((prev) => [created, ...(prev ?? [])])
+      setDraft('')
+      setAdding(false)
+    } catch {
+      setSaveError(true)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const presentCount = weeks?.filter((w) => w.present).length ?? null
 
@@ -73,7 +135,7 @@ export default function AttendanceWeeksModal({
           </button>
         </div>
 
-        <div className="px-4 py-5">
+        <div className="px-4 py-5 overflow-y-auto">
           {error && (
             <p className="text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-md px-3 py-2">
               Could not load attendance right now. Try again shortly.
@@ -128,6 +190,81 @@ export default function AttendanceWeeksModal({
                 </span>
               </div>
             </>
+          )}
+
+          {showNotes && (
+            <div className="mt-5 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Notes</h3>
+                {!adding && (
+                  <button
+                    type="button"
+                    onClick={() => setAdding(true)}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-nine text-white active:opacity-80"
+                  >
+                    Add a note
+                  </button>
+                )}
+              </div>
+
+              {adding && (
+                <div className="mb-3">
+                  <textarea
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    rows={3}
+                    autoFocus
+                    placeholder={`Note about ${memberName}`}
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm p-2"
+                  />
+                  {saveError && (
+                    <p className="text-xs text-red-700 dark:text-red-300 mt-1">Could not save the note. Try again.</p>
+                  )}
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      type="button"
+                      onClick={saveNote}
+                      disabled={saving || !draft.trim()}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-nine text-white disabled:opacity-50"
+                    >
+                      {saving ? 'Saving…' : 'Save note'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAdding(false)
+                        setDraft('')
+                        setSaveError(false)
+                      }}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {notesError && (
+                <p className="text-xs text-red-700 dark:text-red-300">Could not load notes right now.</p>
+              )}
+              {!notesError && !notes && <p className="text-xs text-gray-400 dark:text-gray-500">Loading notes…</p>}
+              {notes && notes.length === 0 && !adding && (
+                <p className="text-xs text-gray-500 dark:text-gray-400">No notes yet.</p>
+              )}
+              {notes && notes.length > 0 && (
+                <ul className="space-y-2">
+                  {notes.map((n) => (
+                    <li key={n.id} className="rounded-lg border border-gray-200 dark:border-gray-700 p-2.5">
+                      <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap break-words">{n.note}</p>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                        {n.author_deacon ? `${n.author_deacon} · ` : ''}
+                        {formatDeaconNoteDate(n.created_at)}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           )}
         </div>
       </div>

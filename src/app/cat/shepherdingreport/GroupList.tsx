@@ -229,7 +229,7 @@ function LastSeenBadge({ member, className }: { member: Member; className: strin
 // updates race. Remounting sidesteps the race entirely, and a plain
 // uncontrolled <details> still lets a tap on any one summary work natively
 // in between bulk actions.
-export default function GroupList({ groups, smsMode }: { groups: Group[]; smsMode?: 'native' | 'webapp' }) {
+export default function GroupList({ groups, smsMode, showNotes }: { groups: Group[]; smsMode?: 'native' | 'webapp'; showNotes?: boolean }) {
   const [bulk, setBulk] = useState<{ open: boolean; gen: number } | null>(null)
   const [selected, setSelected] = useState<Member | null>(null)
 
@@ -313,6 +313,7 @@ export default function GroupList({ groups, smsMode }: { groups: Group[]; smsMod
         <AttendanceWeeksModal
           memberId={selected.id}
           memberName={selected.name}
+          showNotes={showNotes}
           onClose={() => setSelected(null)}
         />
       )}

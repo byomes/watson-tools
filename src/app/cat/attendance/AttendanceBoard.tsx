@@ -3,6 +3,7 @@
 import { notifyDssChanged, useDssSync } from '@/lib/dssSync'
 import { useEffect, useMemo, useState } from 'react'
 import { PersonName } from '@/lib/personLink'
+import { byLastName } from '@/lib/people'
 
 type CampusPreference = 'Wilmington' | 'Online' | 'Hybrid' | 'Inactive'
 
@@ -123,7 +124,10 @@ function MemberSection({
   onToggle: (member: Member) => void
   onCampusChange: (member: Member, value: CampusPreference) => void
 }) {
-  const visible = members.filter((m) => m.name.toLowerCase().includes(filter.toLowerCase()))
+  // Not yet attended first, then attended, each in last-name order (Bill, 2026-10-29).
+  const visible = members
+    .filter((m) => m.name.toLowerCase().includes(filter.toLowerCase()))
+    .sort((a, b) => Number(a.present) - Number(b.present) || byLastName(a, b))
   const presentCount = members.filter((m) => m.present).length
 
   return (
