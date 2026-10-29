@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react'
 
 const STORAGE_KEY = 'deaconapp-theme'
-const LIGHT_THEME_COLOR = '#ffffff'
-const DARK_THEME_COLOR = '#030712' // matches the shell's dark:bg-gray-950
+const LIGHT_THEME_COLOR = '#219f40'
+const DARK_THEME_COLOR = '#219f40' // matches the shell's dark:bg-gray-950
 
 export type Theme = 'light' | 'dark'
 

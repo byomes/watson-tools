@@ -217,35 +217,32 @@ export default function DeaconAppTabs({
           status bar / browser chrome -- which samples the real page
           background, not this div -- follows the toggle too. */}
       <div className="h-dvh bg-white dark:bg-gray-950 flex flex-col overflow-hidden">
-        <div className="shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3 relative">
-          <h1 className="flex items-center justify-center">
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              aria-label="Refresh app"
-              className="flex items-center gap-2 font-bold text-black dark:text-white active:opacity-60"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/catalyst-c-logo.jpg" alt="" className="h-6 w-6 rounded-md" />
-              Shepherding App
-            </button>
-          </h1>
+        <div className="shrink-0 bg-nine text-white shadow-sm px-4 h-16 flex items-center justify-between">
           <button
             type="button"
-            onClick={() => setHelpOpen(true)}
-            aria-label="Help"
-            title="Help"
-            className="absolute left-4 top-1/2 -translate-y-1/2 w-[45px] h-[45px] flex items-center justify-center text-gray-500 dark:text-gray-400 active:opacity-60"
+            onClick={() => window.location.reload()}
+            aria-label="Refresh app"
+            className="flex items-center active:opacity-60"
           >
-            <HelpIcon />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/9e9/mark-white.png" alt="9e9" className="h-10 w-auto" />
           </button>
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setHelpOpen(true)}
+              aria-label="Help"
+              title="Help"
+              className="w-[45px] h-[45px] flex items-center justify-center text-white active:opacity-60"
+            >
+              <HelpIcon />
+            </button>
             <button
               type="button"
               onClick={() => boardRef.current?.openAddPerson()}
               aria-label="Add new person"
               title="Add new person"
-              className="w-[45px] h-[45px] flex items-center justify-center text-gray-500 dark:text-gray-400 active:opacity-60"
+              className="w-[45px] h-[45px] flex items-center justify-center text-white active:opacity-60"
             >
               <PlusIcon />
             </button>
@@ -253,7 +250,7 @@ export default function DeaconAppTabs({
               type="button"
               onClick={toggleTheme}
               aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              className="w-[45px] h-[45px] flex items-center justify-center text-gray-500 dark:text-gray-400 active:opacity-60"
+              className="w-[45px] h-[45px] flex items-center justify-center text-white active:opacity-60"
             >
               {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
             </button>
@@ -314,7 +311,7 @@ export default function DeaconAppTabs({
                 type="button"
                 onClick={() => setTab(t.id)}
                 className={`flex-1 flex flex-col items-center justify-center gap-1 py-[18px] transition ${
-                  active ? 'text-black dark:text-white' : 'text-gray-400 dark:text-gray-500'
+                  active ? 'text-nine' : 'text-gray-400 dark:text-gray-500'
                 }`}
               >
                 <Icon />

@@ -93,7 +93,7 @@ export default function PinPad() {
           <div
             key={i}
             className={`h-4 w-4 rounded-full border-2 ${
-              i < pin.length ? 'bg-black border-black dark:bg-white dark:border-white' : 'border-gray-300 dark:border-gray-600'
+              i < pin.length ? 'bg-nine border-nine' : 'border-gray-300 dark:border-gray-600'
             }`}
           />
         ))}
