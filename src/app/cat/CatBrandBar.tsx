@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { DSS_CHURCH, DSS_TAGLINE } from '@/lib/dssConfig'
 
-const SKIP = ['/cat/dashboard', '/cat/9e9', '/cat/connect', '/cat/catalystdb', '/cat/deaconapp']
+const SKIP = ['/cat/dashboard', '/cat/9e9', '/cat/connect', '/cat/catalystdb', '/cat/deaconapp', '/cat/deaconapp-bill']
 
 export default function CatBrandBar() {
   const path = usePathname() ?? ''
