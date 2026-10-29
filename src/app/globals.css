@@ -55,3 +55,8 @@ body {
 html.cat-refresh-h1 h1 {
   cursor: pointer;
 }
+
+/* 9e9 Digital Shepherding brand green (the dashboard accent) */
+@theme {
+  --color-nine: #219f40;
+}

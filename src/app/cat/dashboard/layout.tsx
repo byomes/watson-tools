@@ -4,7 +4,7 @@ import { hasDashboardSession } from '@/lib/chmElderAuth'
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: light)', color: '#219f40' },
     { media: '(prefers-color-scheme: dark)', color: '#020617' },
   ],
 }

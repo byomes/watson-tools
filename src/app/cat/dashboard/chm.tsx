@@ -248,7 +248,7 @@ export function Tabs({ tabs, active, onChange }: { tabs: { key: string; label: s
 export const inputCls =
   'rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400'
 export const btnCls =
-  'rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-3.5 py-1.5 text-xs font-semibold hover:opacity-90 disabled:opacity-40'
+  'rounded-lg bg-nine text-white px-3.5 py-1.5 text-xs font-semibold hover:opacity-90 disabled:opacity-40'
 export const btnGhost =
   'rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-3 py-1.5 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40'
 
