@@ -7,7 +7,7 @@ import type { Group, Totals } from '@/lib/shepherdingReportShared'
 import { CareView, DeaconsView, HealthView, ToolsView } from './Views2'
 import { GroupsView, HomeView, KidDetail, KidsView, PeopleView, ServingView } from './Views'
 import { NavContext, PeopleProvider, Toaster, useHashRoute, usePeople, inputCls } from './chm'
-import { DSS_NAME, DSS_TAGLINE } from '@/lib/dssConfig'
+import { DSS_NAME } from '@/lib/dssConfig'
 
 // The Catalyst church-management dashboard (wtsn.me/cat/dashboard). Hash-routed so a profile or
 // list is linkable and the browser Back button works; the People list stays mounted once opened
@@ -96,9 +96,8 @@ function Shell({ user, themeToggle, logout, deacon }: { user: string; role: stri
     <NavContext.Provider value={{ go }}>
       <div className="flex h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
         <aside className="hidden md:flex w-52 shrink-0 flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-          <button type="button" onClick={() => window.location.reload()} title="Refresh" className="px-4 py-3 text-left hover:opacity-80">
-            <span className="block rounded-lg bg-white p-1.5"><img src="/9e9/logo.png" alt={DSS_NAME} className="h-auto w-full" /></span>
-            <span className="mt-1.5 block text-xs italic text-nine">{DSS_TAGLINE}</span>
+          <button type="button" onClick={() => window.location.reload()} title="Refresh" className="bg-nine px-5 py-4 text-left hover:opacity-90">
+            <img src="/9e9/logo-white.png" alt={DSS_NAME} className="h-auto w-full" />
           </button>
           {nav}
         </aside>
@@ -113,7 +112,7 @@ function Shell({ user, themeToggle, logout, deacon }: { user: string; role: stri
             <button type="button" className="md:hidden text-slate-600 dark:text-slate-300" aria-label="Menu" onClick={() => setMenu(true)}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="h-6 w-6"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
-            <button type="button" onClick={() => window.location.reload()} title="Refresh" className="md:hidden shrink-0 rounded bg-white px-1.5 py-0.5"><img src="/9e9/logo.png" alt={DSS_NAME} className="h-7 w-auto" /></button>
+            <button type="button" onClick={() => window.location.reload()} title="Refresh" className="md:hidden shrink-0 rounded bg-nine px-2 py-1"><img src="/9e9/logo-white.png" alt={DSS_NAME} className="h-7 w-auto" /></button>
             <GlobalSearch go={go} />
             <span className="flex-1" />
             <span className="hidden sm:inline text-xs text-slate-400">{user}</span>

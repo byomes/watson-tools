@@ -59,4 +59,30 @@ html.cat-refresh-h1 h1 {
 /* 9e9 Digital Shepherding brand green (the dashboard accent) */
 @theme {
   --color-nine: #219f40;
+  --color-nine-dark: #1b8236;
+  /* Neutrals: brand gray #5c5c5c family with a faint green cast, replacing the default blue-gray slate */
+  --color-slate-50: #f6f7f6;
+  --color-slate-100: #eceeec;
+  --color-slate-200: #dfe3df;
+  --color-slate-300: #c5cbc5;
+  --color-slate-400: #9ba39b;
+  --color-slate-500: #7b837b;
+  --color-slate-600: #5c5c5c;
+  --color-slate-700: #444a44;
+  --color-slate-800: #2f342f;
+  --color-slate-900: #1b1e1b;
+  --color-slate-950: #121412;
+  /* Accent: brand green replaces blue for selection, links and highlights */
+  --color-blue-50: #e8f5ec;
+  --color-blue-100: #d0ebd7;
+  --color-blue-200: #a8d9b5;
+  --color-blue-300: #7cc593;
+  --color-blue-400: #4cb86a;
+  --color-blue-500: #219f40;
+  --color-blue-600: #1b8236;
+  --color-blue-700: #17692c;
+  --color-blue-800: #14562a;
+  --color-blue-900: #124523;
+  --color-blue-950: #0c2a15;
+  --color-indigo-500: #219f40;
 }
