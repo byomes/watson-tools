@@ -32,6 +32,7 @@ interface Person {
   phone: string | null
   address: string | null
   birthdate: string | null
+  is_kid?: number | boolean
   household_id: string | null
   household_role: string | null
   deacon: string | null
@@ -48,6 +49,10 @@ interface Person {
 }
 
 const UNASSIGNED = '__unassigned__'
+
+// Under 18 by birthdate, or a kids check-in profile with no birthdate on file (age still wins when we have it).
+const isChild = (p: { birthdate: string | null; is_kid?: number | boolean }) =>
+  isMinor(p.birthdate) || (!!p.is_kid && !p.birthdate?.trim())
 
 const MEMBER_STATUS_LABELS: Record<string, string> = {
   disconnected: 'Disconnected',
@@ -1006,7 +1011,7 @@ const DeaconBoard = forwardRef<DeaconBoardHandle>(function DeaconBoard(_props, r
         if (!deaconFilter) return true
         // Minors ride with their household's deacon: they never appear in a deacon's or the Unassigned list
         // (search still finds them, and their family section shows them).
-        if (isMinor(p.birthdate)) return false
+        if (isChild(p)) return false
         if (deaconFilter === UNASSIGNED) return isUnassigned(p.deacon)
         return p.deacon === deaconFilter
       })
@@ -1025,8 +1030,8 @@ const DeaconBoard = forwardRef<DeaconBoardHandle>(function DeaconBoard(_props, r
   const { mainList, unassignedList, inactiveList } = useMemo(() => {
     if (!grouped) return { mainList: filtered, unassignedList: [], inactiveList: [] }
     return {
-      mainList: filtered.filter((p) => !isUnassigned(p.deacon) && p.deacon !== 'Inactive' && !isMinor(p.birthdate)),
-      unassignedList: filtered.filter((p) => isUnassigned(p.deacon) && !isMinor(p.birthdate)),
+      mainList: filtered.filter((p) => !isUnassigned(p.deacon) && p.deacon !== 'Inactive' && !isChild(p)),
+      unassignedList: filtered.filter((p) => isUnassigned(p.deacon) && !isChild(p)),
       inactiveList: filtered.filter((p) => p.deacon === 'Inactive'),
     }
   }, [filtered, grouped])
