@@ -9,6 +9,15 @@ export type CatToolSection = { title: string; tools: CatTool[] }
 
 export const CAT_TOOL_SECTIONS: CatToolSection[] = [
   {
+    title: 'Church setup',
+    tools: [
+      { name: 'Church settings', href: '/cat/9e9/admin/', note: 'Name, campuses, services, follow-up rules, wording', admin: true },
+      { name: 'Import people', href: '/cat/9e9/import/', note: 'Bring people in from a spreadsheet', admin: true },
+      { name: 'Backups', href: '/cat/9e9/backup/', note: 'Encrypted copies of your data', admin: true },
+      { name: 'Audit log', href: '/cat/9e9/admin/audit', note: 'Who changed what, and when', admin: true },
+    ],
+  },
+  {
     title: 'Attendance',
     tools: [
       {
