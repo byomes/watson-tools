@@ -33,6 +33,8 @@ interface Person {
   address: string | null
   birthdate: string | null
   is_kid?: number | boolean
+  active?: string | null
+  needs_deacon?: boolean
   household_id: string | null
   household_role: string | null
   deacon: string | null
@@ -52,6 +54,10 @@ const UNASSIGNED = '__unassigned__'
 
 // Under 18 by birthdate. With no birthdate on file, a kids check-in profile or the "child" household role
 // counts (age still wins when we have it; mark grown children living at home "young adult").
+// Same rule as the dashboard's Unassigned list: active, an adult, and connected far enough to need a deacon.
+const needsDeacon = (p: { deacon: string | null; active?: string | null; needs_deacon?: boolean }) =>
+  isUnassigned(p.deacon) && p.active === 'active' && p.needs_deacon !== false
+
 const isChild = (p: { birthdate: string | null; is_kid?: number | boolean; household_role?: string | null }) =>
   isMinor(p.birthdate) ||
   (!p.birthdate?.trim() && (!!p.is_kid || (p.household_role ?? '').trim().toLowerCase() === 'child'))
@@ -1014,7 +1020,7 @@ const DeaconBoard = forwardRef<DeaconBoardHandle>(function DeaconBoard(_props, r
         // Minors ride with their household's deacon: they never appear in a deacon's or the Unassigned list
         // (search still finds them, and their family section shows them).
         if (isChild(p)) return false
-        if (deaconFilter === UNASSIGNED) return isUnassigned(p.deacon)
+        if (deaconFilter === UNASSIGNED) return needsDeacon(p)
         return p.deacon === deaconFilter
       })
       .sort(byLastName)
@@ -1033,7 +1039,7 @@ const DeaconBoard = forwardRef<DeaconBoardHandle>(function DeaconBoard(_props, r
     if (!grouped) return { mainList: filtered, unassignedList: [], inactiveList: [] }
     return {
       mainList: filtered.filter((p) => !isUnassigned(p.deacon) && p.deacon !== 'Inactive' && !isChild(p)),
-      unassignedList: filtered.filter((p) => isUnassigned(p.deacon) && !isChild(p)),
+      unassignedList: filtered.filter((p) => needsDeacon(p) && !isChild(p)),
       inactiveList: filtered.filter((p) => p.deacon === 'Inactive'),
     }
   }, [filtered, grouped])
