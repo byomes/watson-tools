@@ -3,7 +3,7 @@ import { chmIdentity } from '@/lib/chmAuth'
 import { watsonFetch } from '@/lib/watson'
 
 // wtsn.me/cat/9e9: the Catalyst data in the 9e9 Digital Shepherding app (a separate Flask app on the Beelink).
-// Only the Bill/Donna PIN session gets through; the app then has its own sign-in on top. Requests travel to
+// Only the Bill/Donna PIN session and the two mapped elders (Jim Bouchat, Bill Crook) get through; the app then has its own sign-in on top. Requests travel to
 // Watson as a JSON envelope (jobs/congregation/nine_proxy_web.py) so binary bodies and images survive.
 // Only the app's own session cookie is forwarded, never the other wtsn.me cookies.
 
@@ -12,10 +12,14 @@ export const dynamic = 'force-dynamic'
 const PREFIX = '/cat/9e9'
 const APP_COOKIE = 'nine_session'
 
-// The signed-in Bill/Donna session maps to that person's account in the app, so there is no second sign-in.
-function appUser(name: string): string {
+// The signed-in session maps to that person's account in the app, so there is no second sign-in.
+// Bill/Donna come in on the admin PIN; Jim Bouchat and Bill Crook on their elder (deacon-app) PIN.
+function appUser(name: string, role: string): string {
   const n = name.toLowerCase()
-  return n.includes('donna') ? 'donna@9e9.app' : n.includes('bill') ? 'bill@9e9.app' : ''
+  if (role === 'admin') return n.includes('donna') ? 'donna@9e9.app' : n.includes('bill') ? 'bill@9e9.app' : ''
+  if (n.includes('bouchat')) return 'jim.bouchat@verizon.net'
+  if (n.includes('crook')) return 'wccrook@verizon.net'
+  return ''
 }
 
 type Ctx = { params: Promise<{ path?: string[] }> }
@@ -27,7 +31,8 @@ function appCookie(req: NextRequest): string {
 
 async function forward(req: NextRequest, ctx: Ctx) {
   const who = await chmIdentity()
-  if (!who || who.role !== 'admin') {
+  const nineUser = who ? appUser(who.user, who.role) : ''
+  if (!who || (who.role !== 'admin' && !nineUser)) {
     if (req.method === 'GET') return NextResponse.redirect(new URL(`/cat/catalystdb/login?next=${PREFIX}`, req.url))
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
@@ -51,7 +56,7 @@ async function forward(req: NextRequest, ctx: Ctx) {
           'accept-language': req.headers.get('accept-language') ?? '',
           'user-agent': req.headers.get('user-agent') ?? '',
         },
-        nine_user: appUser(who.user),
+        nine_user: nineUser,
         body_b64: body,
       }),
     },
