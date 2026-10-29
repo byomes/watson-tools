@@ -1,3 +1,5 @@
+import { shep } from './dssConfig'
+
 // The one list of tools Donna and Bill reach from the Catalyst Database menu.
 // Add a new tool here and it shows up in the menu; nothing else to wire.
 // Each tool keeps its own login (the tracker is link-only, Connection uses the
@@ -55,7 +57,7 @@ export const CAT_TOOL_SECTIONS: CatToolSection[] = [
   {
     title: 'Other',
     tools: [
-      { name: 'Shepherd App', href: '/cat/deaconapp', note: 'Shepherd care tools' },
+      { name: shep('Shepherd App'), href: '/cat/deaconapp', note: shep('Shepherd care tools') },
       { name: 'Catalyst Social', href: '/cat/social', note: 'Social posts', admin: true },
       { name: 'Connect Card (public form)', href: '/cat/connect', note: 'What visitors fill out' },
     ],

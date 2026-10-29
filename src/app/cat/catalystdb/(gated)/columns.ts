@@ -1,3 +1,4 @@
+import { shep } from '@/lib/dssConfig'
 // Single source of truth for every editable members column -- drives the
 // table, the inline cell editor, the filter bar, and the bulk-edit field
 // picker in CatalystDBBoard.tsx. Keeping this as data (not per-column JSX)
@@ -80,7 +81,7 @@ export const COLUMNS: Col[] = [
   },
   {
     key: 'deacon',
-    label: 'Shepherd',
+    label: shep('Shepherd'),
     type: 'select',
     options: DEACON_OPTIONS,
     defaultVisible: true,

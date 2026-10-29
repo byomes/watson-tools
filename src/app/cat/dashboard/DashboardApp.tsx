@@ -7,7 +7,7 @@ import type { Group, Totals } from '@/lib/shepherdingReportShared'
 import { CareView, DeaconsView, HealthView, NineFrame, ToolsView } from './Views2'
 import { GroupsView, HomeView, KidDetail, KidsView, PeopleView, ServingView } from './Views'
 import { NavContext, PeopleProvider, Toaster, useHashRoute, usePeople, inputCls } from './chm'
-import { DSS_NAME, DSS_CHURCH, DSS_TAGLINE } from '@/lib/dssConfig'
+import { DSS_NAME, DSS_CHURCH, DSS_TAGLINE, shep } from '@/lib/dssConfig'
 import { ADMIN_TOOL_HREFS } from '@/lib/catTools'
 
 // The Catalyst church-management dashboard (wtsn.me/cat/dashboard). Hash-routed so a profile or
@@ -17,8 +17,8 @@ import { ADMIN_TOOL_HREFS } from '@/lib/catTools'
 const NAV: { key: string; label: string; icon: string; roles?: string[]; app?: string }[] = [
   { key: 'home', label: 'Home', icon: 'M3 12l9-9 9 9M5 10v10h5v-6h4v6h5V10' },
   { key: 'people', label: 'People', icon: 'M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0zM4 21a8 8 0 0 1 16 0' },
-  { key: 'deacons', label: 'Shepherd List', icon: 'M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z' },
-  { key: 'deaconapp', label: 'Shepherd App', icon: 'M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7zM9 12l2 2 4-4' },
+  { key: 'deacons', label: shep('Shepherd List'), icon: 'M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z' },
+  { key: 'deaconapp', label: shep('Shepherd App'), icon: 'M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7zM9 12l2 2 4-4' },
   { key: 'care', label: 'Care', icon: 'M12 21s-8-5-8-11a5 5 0 0 1 8-3 5 5 0 0 1 8 3c0 6-8 11-8 11z' },
   { key: 'kids', label: 'Kids', icon: 'M12 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 22v-6a6 6 0 0 1 12 0v6' },
   { key: 'groups', label: 'Groups', icon: 'M3 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM17 10a3 3 0 1 0 0-5M21 20v-2a4 4 0 0 0-3-3.9' },
