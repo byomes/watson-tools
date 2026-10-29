@@ -16,7 +16,7 @@ const APP_COOKIE = 'nine_session'
 // Bill/Donna come in on the admin PIN; Jim Bouchat and Bill Crook on their elder (deacon-app) PIN.
 function appUser(name: string, role: string): string {
   const n = name.toLowerCase()
-  if (role === 'admin') return n.includes('donna') ? 'donna@catalyst302.com' : n.includes('bill') ? 'bill@9e9.app' : ''
+  if (role === 'admin') return n.includes('donna') ? 'donna@catalyst302.com' : n.includes('bill') ? 'pastorbill@catalyst302.com' : ''
   if (n.includes('bouchat')) return 'jim.bouchat@verizon.net'
   if (n.includes('crook')) return 'wccrook@verizon.net'
   return ''
