@@ -50,9 +50,11 @@ interface Person {
 
 const UNASSIGNED = '__unassigned__'
 
-// Under 18 by birthdate, or a kids check-in profile with no birthdate on file (age still wins when we have it).
-const isChild = (p: { birthdate: string | null; is_kid?: number | boolean }) =>
-  isMinor(p.birthdate) || (!!p.is_kid && !p.birthdate?.trim())
+// Under 18 by birthdate. With no birthdate on file, a kids check-in profile or the "child" household role
+// counts (age still wins when we have it; mark grown children living at home "young adult").
+const isChild = (p: { birthdate: string | null; is_kid?: number | boolean; household_role?: string | null }) =>
+  isMinor(p.birthdate) ||
+  (!p.birthdate?.trim() && (!!p.is_kid || (p.household_role ?? '').trim().toLowerCase() === 'child'))
 
 const MEMBER_STATUS_LABELS: Record<string, string> = {
   disconnected: 'Disconnected',
