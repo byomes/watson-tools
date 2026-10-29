@@ -17,7 +17,7 @@ const TYPE_META: Record<string, { label: string; dot: string; kind?: string }> =
   prayer: { label: 'Prayer', dot: 'bg-violet-500', kind: 'prayer' },
   next_step: { label: 'Next steps', dot: 'bg-teal-500', kind: 'next_step' },
   followup: { label: 'Follow-ups', dot: 'bg-amber-500', kind: 'followup' },
-  deacon_note: { label: 'Deacon notes', dot: 'bg-orange-500', kind: 'deacon_note' },
+  deacon_note: { label: 'Shepherd notes', dot: 'bg-orange-500', kind: 'deacon_note' },
   care: { label: 'Care log', dot: 'bg-rose-500', kind: 'care_note' },
   group: { label: 'Groups', dot: 'bg-indigo-500' },
   serving: { label: 'Serving', dot: 'bg-lime-600' },
@@ -146,7 +146,7 @@ function AddRecord({ memberId, onAdded }: { memberId: number; onAdded: () => voi
           <optgroup label="Other records">
             <option value="prayer">Prayer request</option>
             <option value="next_step">Next step</option>
-            <option value="deacon_note">Deacon note</option>
+            <option value="deacon_note">Shepherd note</option>
             <option value="followup">Follow-up</option>
           </optgroup>
         </select>
@@ -321,7 +321,7 @@ function CareTab({ p, reload }: { p: Row; reload: () => void }) {
       <Records title="Care log" rows={p.care_notes} kind="care_note" text="body" date="note_date" reload={reload} />
       <Records title="Prayer requests" rows={p.prayer} kind="prayer" text="request_text" date="date" reload={reload} />
       <Records title="Next steps" rows={p.next_steps} kind="next_step" text="step" date="date" reload={reload} />
-      <Records title="Deacon notes" rows={p.deacon_notes} kind="deacon_note" text="note" date="created_at" status="status" reload={reload} />
+      <Records title="Shepherd notes" rows={p.deacon_notes} kind="deacon_note" text="note" date="created_at" status="status" reload={reload} />
       <Records title="Connect cards" rows={p.cards} kind="card" text="questions_comments" date="service_date" reload={reload} />
     </div>
   )
@@ -689,7 +689,7 @@ export default function PersonProfile({ id, tab, setTab, onBack }: { id: number;
           <span className="flex-1" />
           <div className="relative">
             <button type="button" onClick={() => setAssigning((v) => !v)} className={btnGhost}>
-              Deacon: {m.deacon && m.deacon !== '--' ? m.deacon : 'unassigned'} ▾
+              Shepherd: {m.deacon && m.deacon !== '--' ? m.deacon : 'unassigned'} ▾
             </button>
             {assigning && (
               <ul className="absolute right-0 z-30 mt-1 w-52 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg max-h-72 overflow-auto">

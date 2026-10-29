@@ -80,7 +80,7 @@ export const COLUMNS: Col[] = [
   },
   {
     key: 'deacon',
-    label: 'Deacon',
+    label: 'Shepherd',
     type: 'select',
     options: DEACON_OPTIONS,
     defaultVisible: true,

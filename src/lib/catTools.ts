@@ -55,7 +55,7 @@ export const CAT_TOOL_SECTIONS: CatToolSection[] = [
   {
     title: 'Other',
     tools: [
-      { name: 'Deacon App', href: '/cat/deaconapp', note: 'Deacon care tools' },
+      { name: 'Shepherd App', href: '/cat/deaconapp', note: 'Shepherd care tools' },
       { name: 'Catalyst Social', href: '/cat/social', note: 'Social posts', admin: true },
       { name: 'Connect Card (public form)', href: '/cat/connect', note: 'What visitors fill out' },
     ],

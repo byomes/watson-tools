@@ -67,7 +67,7 @@ export default function DeaconAppView({
         <div className={tab === 'shepherding' ? '' : 'hidden'}>
           <div className="max-w-md mx-auto">
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              {date ? `Generated ${date}` : 'Report unavailable'} — grouped by deacon, most at-risk first in each group.
+              {date ? `Generated ${date}` : 'Report unavailable'} — grouped by shepherd, most at-risk first in each group.
             </p>
             {!groups && <p className="text-sm text-red-700 dark:text-red-300">Could not load the report right now. Try again shortly.</p>}
             {totals && groups && <ShepherdingStats groups={groups} totals={totals} />}

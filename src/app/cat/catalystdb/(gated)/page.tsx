@@ -36,7 +36,7 @@ export default async function CatalystDBPage() {
             type="submit"
             aria-label="Log out"
             title="Log out"
-            className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white active:opacity-60"
+            className="text-white/90 hover:text-white active:opacity-60"
           >
             <LogoutIcon />
           </button>

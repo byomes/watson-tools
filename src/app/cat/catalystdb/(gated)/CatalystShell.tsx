@@ -87,7 +87,7 @@ export default function CatalystShell({
 
   const itemCls = (on: boolean) =>
     `block w-full text-left rounded-lg px-3 py-2 ${
-      on ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-100 dark:hover:bg-slate-800'
+      on ? 'bg-nine/10' : 'hover:bg-slate-100 dark:hover:bg-slate-800'
     }`
 
   // Flat list for the phone dashboard: sub-items become their own buttons.
@@ -147,7 +147,7 @@ export default function CatalystShell({
 
   return (
     <div className="flex flex-col h-screen">
-      <div className="flex items-center justify-between gap-3 px-4 py-5 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 shrink-0">
+      <div className="flex h-16 items-center justify-between gap-3 px-4 bg-nine text-white shadow-sm shrink-0">
         <div className="flex items-center gap-3 min-w-0">
           {isMobile ? (
             !home && (
@@ -158,7 +158,7 @@ export default function CatalystShell({
                   setHome(true)
                   setActive(null)
                 }}
-                className="rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-white active:opacity-60"
+                className="rounded-lg bg-white/20 px-4 py-2 text-sm font-semibold text-white active:opacity-60"
               >
                 &lsaquo; Tools
               </button>
@@ -170,16 +170,17 @@ export default function CatalystShell({
               aria-expanded={open}
               title="Tools"
               onClick={() => setOpen((o) => !o)}
-              className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white active:opacity-60"
+              className="text-white/90 hover:text-white active:opacity-60"
             >
               <MenuIcon />
             </button>
           )}
+          <img src="/9e9/mark-white.png" alt="9e9" className="h-9 w-auto shrink-0" />
           <button
             type="button"
             title="Refresh"
             onClick={() => (active ? setRefreshStamp(Date.now()) : window.location.reload())}
-            className="text-lg font-semibold text-slate-900 dark:text-white hover:opacity-70 active:opacity-50 truncate"
+            className="text-lg font-semibold text-white hover:opacity-80 active:opacity-60 truncate"
           >
             {onDashboard ? 'Catalyst' : active ? active.name : 'Catalyst Database'}
           </button>
@@ -190,14 +191,14 @@ export default function CatalystShell({
               href={active.href}
               target="_blank"
               rel="noreferrer"
-              className="text-xs text-slate-500 dark:text-slate-400 hover:underline"
+              className="text-xs text-white/80 hover:underline"
             >
               <span className="hidden sm:inline">Open in new tab</span>
               <span className="sm:hidden">New tab</span>
             </a>
           )}
           {!onDashboard && logout}
-          {themeToggle}
+          <span className="text-white [&_button]:!text-white/90 [&_button:hover]:!text-white">{themeToggle}</span>
         </div>
       </div>
 

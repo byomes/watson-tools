@@ -57,7 +57,7 @@ export default function PinPad({ length = 6 }: { length?: 4 | 6 }) {
             key={i}
             className={`h-3.5 w-3.5 rounded-full border-2 transition-colors ${
               i < pin.length
-                ? 'bg-slate-900 border-slate-900 dark:bg-white dark:border-white'
+                ? 'bg-nine border-nine'
                 : 'border-slate-300 dark:border-slate-600'
             }`}
           />

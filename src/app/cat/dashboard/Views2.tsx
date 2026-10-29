@@ -112,7 +112,7 @@ export function DeaconsView() {
   }
 
   function exportAll() {
-    downloadCsv('deacon-assignments.csv', [['Deacon', 'Person', 'Connected'], ...everyone.map((p) => [p.deacon || 'Unassigned', p.name, p.connected])])
+    downloadCsv('deacon-assignments.csv', [['Shepherd', 'Person', 'Connected'], ...everyone.map((p) => [p.deacon || 'Unassigned', p.name, p.connected])])
   }
 
   const mix = (rows: Row[]) => {
@@ -135,7 +135,7 @@ export function DeaconsView() {
   return (
     <div className="p-4 sm:p-6 max-w-6xl mx-auto flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-lg font-bold text-slate-900 dark:text-white">Deacon lists</h1>
+        <h1 className="text-lg font-bold text-slate-900 dark:text-white">Shepherd List</h1>
         <span className="flex-1" />
         <button type="button" className={btnGhost} onClick={() => startNaming('new')}>New list</button>
         {sel !== NONE && !(sel in data.buckets) && <button type="button" className={btnGhost} onClick={() => startNaming('rename')}>Rename list</button>}
@@ -172,8 +172,8 @@ export function DeaconsView() {
             </div>
             {err && <p className="text-sm text-red-600 mb-2" role="alert">{err}</p>}
             {note && !err && <p className="text-sm text-emerald-700 dark:text-emerald-400 mb-2" role="status">{note}</p>}
-            <p className="text-xs text-slate-400 mb-2">Children under 18 are not listed. They follow their household&apos;s deacon.</p>
-            {list.length === 0 ? <Empty>{sel === NONE ? 'Everyone who needs a deacon has one.' : 'No one here yet. Open Unassigned, tick people, and move them to this list.'}</Empty> : (
+            <p className="text-xs text-slate-400 mb-2">Children under 18 are not listed. They follow their household&apos;s shepherd.</p>
+            {list.length === 0 ? <Empty>{sel === NONE ? 'Everyone who needs a shepherd has one.' : 'No one here yet. Open Unassigned, tick people, and move them to this list.'}</Empty> : (
               <ul className="divide-y divide-slate-100 dark:divide-slate-800">
                 {list.map((p) => (
                   <li key={p.id} className="py-1.5 flex items-center gap-3 text-sm">
@@ -214,7 +214,7 @@ export function CareView() {
     ...(data.followups ? [{ key: 'followups', label: 'Follow-ups', count: data.followups.filter((f: Row) => f.status === 'open').length }] : []),
     { key: 'prayer', label: 'Prayer', count: data.prayer.length },
     { key: 'next_steps', label: 'Next steps', count: data.next_steps.length },
-    { key: 'deacon_notes', label: 'Deacon notes', count: data.deacon_notes.length },
+    { key: 'deacon_notes', label: 'Shepherd notes', count: data.deacon_notes.length },
     { key: 'care_notes', label: 'Care log', count: data.care_notes.length },
   ]
   const active = tab || tabs[0].key

@@ -130,7 +130,7 @@ export function HomeView({ user }: { user?: string }) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Stat label="Active people" value={s.totals.active} sub={`${s.totals.partners} partners`} onClick={() => go('people')} />
         <Stat label="Kids" value={s.totals.kids} onClick={() => go('kids')} />
-        <Stat label="Need a deacon" value={s.unassigned_people} tone={s.unassigned_people ? 'warn' : undefined} onClick={() => go('deacons')} />
+        <Stat label="Need a shepherd" value={s.unassigned_people} tone={s.unassigned_people ? 'warn' : undefined} onClick={() => go('deacons')} />
         <Stat label={s.open_followups !== undefined ? 'Open follow-ups' : 'Prayer, 14 days'} value={s.open_followups ?? s.recent_prayer} onClick={() => go('care')} />
       </div>
 
@@ -153,7 +153,7 @@ export function HomeView({ user }: { user?: string }) {
               {s.at_risk.map((p: Row) => (
                 <li key={p.id} className="py-1.5 flex items-center gap-2 text-sm">
                   <PersonLink id={p.id} name={p.name} /> <ConnBadge value={p.connected} />
-                  <span className="flex-1" /><span className="text-xs text-slate-400">{p.deacon && p.deacon !== '--' ? p.deacon : 'no deacon'}</span>
+                  <span className="flex-1" /><span className="text-xs text-slate-400">{p.deacon && p.deacon !== '--' ? p.deacon : 'no shepherd'}</span>
                 </li>
               ))}
             </ul>
