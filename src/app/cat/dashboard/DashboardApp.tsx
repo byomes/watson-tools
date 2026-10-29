@@ -8,7 +8,7 @@ import { CareView, DeaconsView, HealthView, NineFrame, ToolsView } from './Views
 import { GroupsView, HomeView, KidDetail, KidsView, PeopleView, ServingView } from './Views'
 import { NavContext, PeopleProvider, Toaster, useHashRoute, usePeople, inputCls } from './chm'
 import { DSS_NAME, DSS_CHURCH, DSS_TAGLINE } from '@/lib/dssConfig'
-import { toolSections, ADMIN_TOOL_HREFS } from '@/lib/catTools'
+import { ADMIN_TOOL_HREFS } from '@/lib/catTools'
 
 // The Catalyst church-management dashboard (wtsn.me/cat/dashboard). Hash-routed so a profile or
 // list is linkable and the browser Back button works; the People list stays mounted once opened
@@ -26,14 +26,10 @@ const NAV: { key: string; label: string; icon: string; roles?: string[]; app?: s
   { key: 'leadership', label: 'Leadership', app: '/cat/9e9/leadership/', icon: 'M12 3l2.5 5 5.5.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.5-.8z' },
   { key: 'notifications', label: 'Notifications', app: '/cat/9e9/notifications/', icon: 'M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8zM13.7 21a2 2 0 0 1-3.4 0' },
   { key: 'forms', label: 'Forms', app: '/cat/9e9/forms/', icon: 'M7 3h8l4 4v14H7zM15 3v4h4M10 12h6M10 16h6' },
-  { key: 'survey', label: 'Survey', app: '/cat/9e9/survey/', icon: 'M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9' },
   { key: 'health', label: 'Data health', icon: 'M3 12h4l3-8 4 16 3-8h4' },
   { key: 'admin', label: 'Admin', icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z' },
   { key: 'tools', label: 'Tools', icon: 'M14 6l4 4-9 9H5v-4zM13 7l4 4' },
 ]
-
-// Admin tools sit under the Admin menu item; everything else stays under Tools. The public connect card form and the Deacon app (its own item) are not listed.
-const ADMIN_TOOLS = toolSections(true).flatMap((sec) => sec.tools)
 
 function Icon({ d }: { d: string }) {
   return (
@@ -98,19 +94,6 @@ function Shell({ user, themeToggle, logout, deacon }: { user: string; role: stri
             className={`flex items-center gap-3.5 md:gap-3 rounded-lg px-3.5 py-2.5 md:px-3 md:py-2 text-[17px] md:text-sm font-medium ${head === n.key ? 'bg-nine/10 text-nine font-semibold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
             <Icon d={n.icon} />{n.label}{n.app && <span className="ml-auto rounded-full bg-nine/15 px-1.5 text-[10px] font-semibold uppercase text-nine">beta</span>}
           </button>
-          {n.key === 'admin' && head === 'admin' && (
-            <div className="ml-5 flex flex-col gap-0.5 border-l border-slate-200 dark:border-slate-700 pl-2">
-              {ADMIN_TOOLS.map((t) => {
-                const on = section === 'tool' && ('/' + route.split('/').slice(1).join('/')).split('?')[0] === t.href
-                return (
-                  <button key={t.href} type="button" onClick={() => go('tool' + t.href)} aria-current={on ? 'page' : undefined}
-                    className={`rounded-lg px-3 py-1.5 text-left text-[16px] md:text-sm ${on ? 'bg-nine/10 text-nine font-semibold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
-                    {t.name}
-                  </button>
-                )
-              })}
-            </div>
-          )}
         </Fragment>
       ))}
     </nav>
