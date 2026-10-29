@@ -496,3 +496,20 @@ export function ToolsView({ href, admin = false }: { href: string; admin?: boole
     </div>
   )
 }
+
+
+/** A page of the 9e9 app (the product itself) shown inside the dashboard. It signs the person in automatically and follows the dashboard's light/dark setting. */
+export function NineFrame({ src }: { src: string }) {
+  const frameRef = useRef<HTMLIFrameElement>(null)
+  const sendTheme = useCallback(() => {
+    frameRef.current?.contentWindow?.postMessage({ type: 'cat-theme', dark: document.documentElement.classList.contains('dark') }, window.location.origin)
+  }, [])
+  useEffect(() => {
+    const mo = new MutationObserver(sendTheme)
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    const onMsg = (e: MessageEvent) => e.origin === window.location.origin && e.data?.type === 'cat-theme-request' && sendTheme()
+    window.addEventListener('message', onMsg)
+    return () => { mo.disconnect(); window.removeEventListener('message', onMsg) }
+  }, [sendTheme])
+  return <iframe ref={frameRef} src={src} onLoad={sendTheme} className="h-full w-full border-0 bg-slate-50 dark:bg-slate-950" title="9e9" />
+}

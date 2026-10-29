@@ -12,6 +12,12 @@ export const dynamic = 'force-dynamic'
 const PREFIX = '/cat/9e9'
 const APP_COOKIE = 'nine_session'
 
+// The signed-in Bill/Donna session maps to that person's account in the app, so there is no second sign-in.
+function appUser(name: string): string {
+  const n = name.toLowerCase()
+  return n.includes('donna') ? 'donna@9e9.app' : n.includes('bill') ? 'bill@9e9.app' : ''
+}
+
 type Ctx = { params: Promise<{ path?: string[] }> }
 
 function appCookie(req: NextRequest): string {
@@ -45,6 +51,7 @@ async function forward(req: NextRequest, ctx: Ctx) {
           'accept-language': req.headers.get('accept-language') ?? '',
           'user-agent': req.headers.get('user-agent') ?? '',
         },
+        nine_user: appUser(who.user),
         body_b64: body,
       }),
     },
