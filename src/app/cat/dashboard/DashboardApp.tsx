@@ -96,8 +96,8 @@ function Shell({ user, themeToggle, logout, deacon }: { user: string; role: stri
     <NavContext.Provider value={{ go }}>
       <div className="flex h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
         <aside className="hidden md:flex w-52 shrink-0 flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-          <button type="button" onClick={() => window.location.reload()} title="Refresh" className="bg-nine px-5 py-4 text-left hover:opacity-90">
-            <img src="/9e9/mark-white.png" alt={DSS_NAME} className="mx-auto h-auto w-28" />
+          <button type="button" onClick={() => window.location.reload()} title="Refresh" className="flex h-16 shrink-0 items-center justify-center bg-nine px-4 hover:opacity-90">
+            <img src="/9e9/mark-white.png" alt={DSS_NAME} className="h-10 w-auto" />
           </button>
           {nav}
           <div className="mt-auto px-5 py-4 border-t border-slate-200 dark:border-slate-800">
@@ -112,7 +112,7 @@ function Shell({ user, themeToggle, logout, deacon }: { user: string; role: stri
           </div>
         )}
         <div className="flex-1 min-w-0 flex flex-col">
-          <header className="shrink-0 flex items-center gap-3 px-3 sm:px-5 py-3 bg-nine text-white shadow-sm">
+          <header className="shrink-0 flex h-16 items-center gap-3 px-3 sm:px-5 bg-nine text-white shadow-sm">
             <button type="button" className="md:hidden text-white" aria-label="Menu" onClick={() => setMenu(true)}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="h-6 w-6"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
