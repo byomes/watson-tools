@@ -7,7 +7,7 @@ import type { Group, Totals } from '@/lib/shepherdingReportShared'
 import { CareView, DeaconsView, HealthView, ToolsView } from './Views2'
 import { GroupsView, HomeView, KidDetail, KidsView, PeopleView, ServingView } from './Views'
 import { NavContext, PeopleProvider, Toaster, useHashRoute, usePeople, inputCls } from './chm'
-import { DSS_NAME } from '@/lib/dssConfig'
+import { DSS_NAME, DSS_CHURCH, DSS_TAGLINE } from '@/lib/dssConfig'
 
 // The Catalyst church-management dashboard (wtsn.me/cat/dashboard). Hash-routed so a profile or
 // list is linkable and the browser Back button works; the People list stays mounted once opened
@@ -100,6 +100,10 @@ function Shell({ user, themeToggle, logout, deacon }: { user: string; role: stri
             <img src="/9e9/mark-white.png" alt={DSS_NAME} className="mx-auto h-auto w-28" />
           </button>
           {nav}
+          <div className="mt-auto px-5 py-4 border-t border-slate-200 dark:border-slate-800">
+            <p className="text-sm font-semibold">{DSS_CHURCH}</p>
+            <p className="text-xs italic text-nine">{DSS_TAGLINE}</p>
+          </div>
         </aside>
         {menu && (
           <div className="md:hidden fixed inset-0 z-40 flex">
@@ -108,20 +112,20 @@ function Shell({ user, themeToggle, logout, deacon }: { user: string; role: stri
           </div>
         )}
         <div className="flex-1 min-w-0 flex flex-col">
-          <header className="shrink-0 flex items-center gap-3 px-3 sm:px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-            <button type="button" className="md:hidden text-slate-600 dark:text-slate-300" aria-label="Menu" onClick={() => setMenu(true)}>
+          <header className="shrink-0 flex items-center gap-3 px-3 sm:px-5 py-3 bg-nine text-white shadow-sm">
+            <button type="button" className="md:hidden text-white" aria-label="Menu" onClick={() => setMenu(true)}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="h-6 w-6"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
-            <button type="button" onClick={() => window.location.reload()} title="Refresh" className="md:hidden shrink-0 rounded bg-nine px-2 py-1"><img src="/9e9/mark-white.png" alt={DSS_NAME} className="h-7 w-auto" /></button>
+            <button type="button" onClick={() => window.location.reload()} title="Refresh" className="md:hidden shrink-0"><img src="/9e9/mark-white.png" alt={DSS_NAME} className="h-7 w-auto" /></button>
             <GlobalSearch go={go} />
-            <span className="flex-1" />
-            <span className="hidden sm:inline text-xs text-slate-400">{user}</span>
-            <span className="scale-75 origin-right text-slate-500 dark:text-slate-400">{themeToggle}</span>
+            <span className="hidden sm:block flex-1" />
+            <span className="hidden sm:inline text-sm text-white/90">{user}</span>
+            <span className="scale-75 origin-right text-white [&_button]:!text-white/90 [&_button:hover]:!text-white">{themeToggle}</span>
             {logout}
           </header>
           <main className="flex-1 min-h-0 overflow-auto">
             {peopleSeen && <div className={showPeopleList ? 'h-full' : 'hidden'}><PeopleView onOpenProfile={(id) => go(`person/${id}`)} /></div>}
-            {head === 'home' && <HomeView />}
+            {head === 'home' && <HomeView user={user} />}
             {section === 'person' && Number.isFinite(personId) && (
               <PersonProfile key={personId} id={personId} tab={b || 'details'} setTab={(t) => go(`person/${personId}/${t}`)} onBack={() => (window.history.length > 1 ? window.history.back() : go('people'))} />
             )}

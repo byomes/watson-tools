@@ -3,6 +3,7 @@ import { sortByLastName, sortKidsByLastName } from '@/lib/people'
 
 import { useMemo, useState } from 'react'
 import SundayGlance from './SundayGlance'
+import { DSS_CHURCH, DSS_TAGLINE } from '@/lib/dssConfig'
 import CatalystDBBoard, { type BoardSpec } from '../catalystdb/(gated)/CatalystDBBoard'
 import {
   Card, ConnBadge, Empty, Loading, Pill, PersonLink, PersonPicker, btnCls, btnGhost, attempt, chm, fmtDate, ago, inputCls,
@@ -114,13 +115,17 @@ function TrendChart({ trend }: { trend: Row[] }) {
   )
 }
 
-export function HomeView() {
+export function HomeView({ user }: { user?: string }) {
   const { go } = useNav()
   const { data: s, error } = useChm<Row>('summary')
   if (!s) return <Loading error={error} />
   const total = Object.values(s.connected as Record<string, number>).reduce((a, b) => a + b, 0) || 1
   return (
     <div className="p-4 sm:p-6 max-w-6xl mx-auto flex flex-col gap-5">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Welcome{user ? `, ${user}` : ''}</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400">{DSS_CHURCH} &middot; <span className="italic text-nine">{DSS_TAGLINE}</span></p>
+      </div>
       <SundayGlance />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Stat label="Active people" value={s.totals.active} sub={`${s.totals.partners} partners`} onClick={() => go('people')} />

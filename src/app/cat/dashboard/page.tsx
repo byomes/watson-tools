@@ -4,10 +4,10 @@ import ThemeToggleButton from '../catalystdb/(gated)/ThemeToggleButton'
 import { chmIdentity } from '@/lib/chmAuth'
 import { getShepherdingReport, computeShepherdingTotals } from '@/lib/shepherdingReport'
 import DashboardApp from './DashboardApp'
-import { DSS_NAME } from '@/lib/dssConfig'
+import { DSS_NAME, DSS_CHURCH } from '@/lib/dssConfig'
 
 export const metadata: Metadata = {
-  title: DSS_NAME,
+  title: `${DSS_CHURCH} | ${DSS_NAME}`,
   robots: { index: false, follow: false },
 }
 
@@ -34,7 +34,7 @@ export default async function DashboardPage() {
       themeToggle={<ThemeToggleButton />}
       logout={
         <form action={logoutAction}>
-          <button type="submit" aria-label="Log out" title="Log out" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white active:opacity-60">
+          <button type="submit" aria-label="Log out" title="Log out" className="text-white/90 hover:text-white active:opacity-60">
             <LogoutIcon />
           </button>
         </form>
