@@ -8,6 +8,7 @@ import { CareView, DeaconsView, HealthView, ToolsView } from './Views2'
 import { GroupsView, HomeView, KidDetail, KidsView, PeopleView, ServingView } from './Views'
 import { NavContext, PeopleProvider, Toaster, useHashRoute, usePeople, inputCls } from './chm'
 import { DSS_NAME, DSS_CHURCH, DSS_TAGLINE } from '@/lib/dssConfig'
+import { CAT_TOOL_SECTIONS } from '@/lib/catTools'
 
 // The Catalyst church-management dashboard (wtsn.me/cat/dashboard). Hash-routed so a profile or
 // list is linkable and the browser Back button works; the People list stays mounted once opened
@@ -25,6 +26,9 @@ const NAV: { key: string; label: string; icon: string; roles?: string[] }[] = [
   { key: 'health', label: 'Data health', icon: 'M3 12h4l3-8 4 16 3-8h4' },
   { key: 'tools', label: 'Tools', icon: 'M14 6l4 4-9 9H5v-4zM13 7l4 4' },
 ]
+
+// Admin pages Donna and Bill use, listed straight in the sidebar. The public connect card form and the Deacon app (its own item above) stay out.
+const ADMIN_TOOLS = CAT_TOOL_SECTIONS.flatMap((sec) => sec.tools).filter((t) => t.href !== '/cat/connect' && t.href !== '/cat/deaconapp')
 
 function Icon({ d }: { d: string }) {
   return (
@@ -84,18 +88,28 @@ function Shell({ user, themeToggle, logout, deacon }: { user: string; role: stri
   const nav = (
     <nav className="flex flex-col gap-0.5 p-3">
       {NAV.map((n) => (
-        <button key={n.key} type="button" onClick={() => go(n.key)} aria-current={head === n.key ? 'page' : undefined}
-          className={`flex items-center gap-3.5 md:gap-3 rounded-lg px-3.5 py-2.5 md:px-3 md:py-2 text-[17px] md:text-sm font-medium ${head === n.key ? 'bg-nine/10 text-nine font-semibold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+        <button key={n.key} type="button" onClick={() => go(n.key)} aria-current={(n.key === 'tools' ? section === 'tools' : head === n.key) ? 'page' : undefined}
+          className={`flex items-center gap-3.5 md:gap-3 rounded-lg px-3.5 py-2.5 md:px-3 md:py-2 text-[17px] md:text-sm font-medium ${(n.key === 'tools' ? section === 'tools' : head === n.key) ? 'bg-nine/10 text-nine font-semibold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
           <Icon d={n.icon} />{n.label}
         </button>
       ))}
+      <p className="mt-4 mb-1 px-3.5 md:px-3 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Admin</p>
+      {ADMIN_TOOLS.map((t) => {
+        const on = section === 'tool' && ('/' + route.split('/').slice(1).join('/')).split('?')[0] === t.href
+        return (
+          <button key={t.href} type="button" onClick={() => go('tool' + t.href)} aria-current={on ? 'page' : undefined}
+            className={`flex items-center gap-3.5 md:gap-3 rounded-lg px-3.5 py-2 md:px-3 md:py-1.5 text-left text-[16px] md:text-sm ${on ? 'bg-nine/10 text-nine font-semibold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+            <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${on ? 'bg-nine' : 'bg-slate-300 dark:bg-slate-600'}`} />{t.name}
+          </button>
+        )
+      })}
     </nav>
   )
 
   return (
     <NavContext.Provider value={{ go }}>
       <div className="flex h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
-        <aside className="hidden md:flex w-52 shrink-0 flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+        <aside className="hidden md:flex w-56 shrink-0 flex-col overflow-y-auto border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
           <button type="button" onClick={() => window.location.reload()} title="Refresh" className="flex h-16 shrink-0 items-center justify-center bg-nine px-4 hover:opacity-90">
             <img src="/9e9/mark-white.png" alt={DSS_NAME} className="h-10 w-auto" />
           </button>
