@@ -37,7 +37,6 @@ export const CAT_TOOL_SECTIONS: CatToolSection[] = [
   {
     title: 'People',
     tools: [
-      { name: 'Servant Teams', href: '/cat/servants', note: 'Team rosters', admin: true },
       { name: 'Connection', href: '/cat/connection', note: 'How connected each person is', admin: true },
       { name: 'Birthdays & Anniversaries', href: '/cat/bday', note: 'Upcoming dates' },
       { name: 'Paper Connect Cards', href: '/cat/papercards', note: 'Enter paper cards' },
