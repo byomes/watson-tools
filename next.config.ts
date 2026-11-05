@@ -12,7 +12,10 @@ const PRIVATE_PATHS = ["/voice-editor", "/kitfy", "/chi", "/money", "/xmas", "/f
 const nextConfig: NextConfig = {
   async redirects() {
     if (!process.env.VERCEL) return [];
-    return PRIVATE_PATHS.flatMap((p) => {
+    // 2026-11-04: the Catalyst connect card now lives on the 9e9 server. Temporary (307)
+    // so it is easy to undo; /api/cat/connect is left in place for forms already open.
+    const connectCard = { source: "/cat/connect", destination: "https://catalyst.9e9.app/f/connect-card", permanent: false };
+    return [connectCard, ...PRIVATE_PATHS.flatMap((p) => {
       const app = p.slice(1);
       return [
         { source: p, destination: `/private-forward.html?app=${app}`, permanent: false },
@@ -20,7 +23,7 @@ const nextConfig: NextConfig = {
         { source: p === "/chi" ? "/chi/:path((?!train$|train/).*)" : `${p}/:path*`, destination: `/private-forward.html?app=${app}`, permanent: false },
         { source: `/api${p}/:path*`, destination: `/private-forward.html?app=${app}`, permanent: false },
       ];
-    });
+    })];
   },
   // hamprep (Technician exam prep) lives as its own separate Vercel
   // project/Neon DB, not folded into this app's public_tools registry.
