@@ -97,6 +97,17 @@ const nextConfig: NextConfig = {
         source: "/curator/:path+",
         destination: "https://curator-watson.vercel.app/curator/:path*",
       },
+      // Winter Clothing Check (Micah, Emily, Khaela): app runs on the Beelink
+      // (winter-app.service :10037); Funnel path /winter-app on :8443 strips
+      // its prefix. The page uses relative API URLs so /winter works here.
+      {
+        source: "/winter",
+        destination: "https://watson.tail0243ff.ts.net:8443/winter-app/",
+      },
+      {
+        source: "/winter/:path+",
+        destination: "https://watson.tail0243ff.ts.net:8443/winter-app/:path*",
+      },
     ];
   },
 };
