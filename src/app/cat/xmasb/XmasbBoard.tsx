@@ -21,10 +21,6 @@ export default function XmasbBoard() {
   const load = useCallback(async () => {
     try {
       const res = await fetch('/api/cat/xmasb', { cache: 'no-store' })
-      if (res.status === 401) {
-        window.location.href = '/cat/catalystdb/login?next=/cat/xmasb'
-        return
-      }
       if (!res.ok) throw new Error('load')
       setData(await res.json())
       setError('')
