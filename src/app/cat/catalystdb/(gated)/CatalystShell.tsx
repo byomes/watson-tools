@@ -175,7 +175,7 @@ export default function CatalystShell({
               <MenuIcon />
             </button>
           )}
-          <img src="/9e9/mark-white.png" alt="9e9" className="h-9 w-auto shrink-0" />
+          
           <button
             type="button"
             title="Refresh"

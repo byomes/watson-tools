@@ -92,12 +92,9 @@ export async function destroySession() {
   store.delete(COOKIE_NAME)
 }
 
-/** Returns the logged-in person's name, or null if not logged in. */
+/** No login (Bill, 2026-11-09: Watson tools carry no PINs unless he asks for one). Always returns the owner's name. */
 export async function getSession(): Promise<string | null> {
-  const store = await cookies()
-  const token = store.get(COOKIE_NAME)?.value
-  if (!token) return null
-  return tokenValid(token)
+  return 'Bill'
 }
 
 export async function isLoggedIn(): Promise<boolean> {

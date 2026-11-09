@@ -12,6 +12,7 @@ export default function CatBrandBar() {
   useEffect(() => {
     try { setFramed(window.self !== window.top) } catch { setFramed(true) }
   }, [])
+  return null // 9e9 branding removed from Watson pages (Bill, 2026-11-09)
   if (SKIP.some((p) => path === p || path.startsWith(p + '/')) || framed) return null
   return (
     <div className="bg-nine text-white shadow-sm" style={{ visibility: framed === null ? 'hidden' : 'visible' }}>

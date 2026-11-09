@@ -104,7 +104,7 @@ function Shell({ user, themeToggle, logout, deacon }: { user: string; role: stri
       <div className="flex h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
         <aside className="hidden md:flex w-56 shrink-0 flex-col overflow-y-auto border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
           <button type="button" onClick={() => window.location.reload()} title="Refresh" className="flex h-16 shrink-0 items-center justify-center bg-nine px-4 hover:opacity-90">
-            <img src="/9e9/mark-white.png" alt={DSS_NAME} className="h-10 w-auto" />
+            
           </button>
           {nav}
           <div className="mt-auto px-5 py-4 border-t border-slate-200 dark:border-slate-800">
@@ -123,7 +123,7 @@ function Shell({ user, themeToggle, logout, deacon }: { user: string; role: stri
             <button type="button" className="md:hidden text-white" aria-label="Menu" onClick={() => setMenu(true)}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="h-6 w-6"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
-            <button type="button" onClick={() => window.location.reload()} title="Refresh" className="md:hidden shrink-0"><img src="/9e9/mark-white.png" alt={DSS_NAME} className="h-7 w-auto" /></button>
+            
             <GlobalSearch go={go} />
             <span className="hidden sm:block flex-1" />
             <span className="hidden sm:inline text-sm text-white/90">{user}</span>
