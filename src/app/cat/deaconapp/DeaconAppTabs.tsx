@@ -173,7 +173,7 @@ function HelpTray({ open, onClose }: { open: boolean; onClose: () => void }) {
 
           <HelpSection title="Top &amp; bottom bar">
             <p>Tap the app name to refresh. The <strong>+</strong> button adds a new person to the roster. The sun/moon icon switches light and dark mode.</p>
-            <p>The <strong>Watson</strong> button at the bottom right opens a Telegram chat with Watson, the church assistant &mdash; ask it questions about attendance or anyone in the directory any time.</p>
+            <p>The <strong>Watson</strong> button at the bottom right opens a Telegram chat with Watson, Dr. Bill&rsquo;s assistant &mdash; ask it questions about attendance or anyone in the directory any time.</p>
           </HelpSection>
         </div>
       </div>
