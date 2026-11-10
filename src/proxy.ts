@@ -49,7 +49,28 @@ function gedGate(request: NextRequest): NextResponse | null {
   return new NextResponse("Locked", { status: 401 });
 }
 
+// Church-side tools retired 2026-11-09 (Bill): the Catalyst data and every leader screen now live in 9e9 at catalyst.9e9.app.
+// Temporary (302) redirects so nothing is deleted and this can be undone by removing this block.
+// Kept on purpose: /cat/connect (public connect card), /cat/papercards (intake bridge), scratch, social, tableaccess, xmasb.
+const RETIRED_CHURCH_PAGES = [
+  "/cat/deaconapp", "/cat/deaconapp-bill", "/cat/deacons", "/cat/attendance", "/cat/attsched", "/cat/kidsatt",
+  "/cat/kidstoday", "/cat/serving", "/cat/group", "/cat/groups", "/cat/tracker", "/cat/shepcheck",
+  "/cat/shepherdingreport", "/cat/bday", "/cat/connection", "/cat/events", "/cat/dashboard", "/cat/catalystdb", "/cat/9e9",
+];
+const NINE_LIVE = "https://catalyst.9e9.app/";
+
+function retiredChurchPage(request: NextRequest): NextResponse | null {
+  const path = request.nextUrl.pathname.replace(/\/+$/, "");
+  for (const base of RETIRED_CHURCH_PAGES) {
+    if (path === base || path.startsWith(base + "/")) return NextResponse.redirect(NINE_LIVE, 302);
+  }
+  return null;
+}
+
 export default function proxy(request: NextRequest) {
+  const retired = retiredChurchPage(request);
+  if (retired) return retired;
+
   const gated = gedGate(request);
   if (gated) return gated;
 
