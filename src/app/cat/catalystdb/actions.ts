@@ -43,7 +43,7 @@ export async function loginAction(_prevState: LoginState, formData: FormData): P
   // already fully authorized users of this tool).
   await createSession(matches[0])
   // Other PIN-gated tools (the Bill/Donna session is shared) bounce back here via ?next=.
-  let next = '/cat/catalystdb'
+  let next = '/cat/dashboard'
   try {
     const ref = (await headers()).get('referer')
     const wanted = ref ? new URL(ref).searchParams.get('next') : null

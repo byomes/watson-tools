@@ -440,7 +440,7 @@ export function HealthView() {
           )}
         </Card>
       ))}
-      <Card title="Possible duplicate people" action={<button type="button" className={btnGhost} onClick={() => go('tool/cat/duplicates')}>Review and merge</button>}>
+      <Card title="Possible duplicate people" action={<button type="button" className={btnGhost} onClick={() => window.open('https://catalyst.9e9.app/data-health/duplicates', '_blank', 'noopener')}>Review and merge in 9e9</button>}>
         {data.duplicates.length === 0 ? <Empty>None pending.</Empty> : (
           <ul className="text-sm divide-y divide-slate-100 dark:divide-slate-800">
             {data.duplicates.slice(0, 15).map((d: Row) => (

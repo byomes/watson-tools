@@ -58,8 +58,6 @@ export const CAT_TOOL_SECTIONS: CatToolSection[] = [
   {
     title: 'Clean-up',
     tools: [
-      { name: 'Duplicate Members', href: '/cat/duplicates', note: 'Review and merge', admin: true },
-      { name: 'Duplicate Event Registrations', href: '/cat/event-duplicates', note: 'Review repeat sign-ups', admin: true },
     ],
   },
   {
