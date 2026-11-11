@@ -3732,10 +3732,23 @@ export default function SmsApp() {
 
       {/* ---- NEW MESSAGE MODAL ---- */}
       {composeOpen && (
-        <div className="fixed left-0 right-0 bg-black/40 flex items-end justify-center z-20" style={{ top: composeViewportTop, height: composeViewportHeight ? `${composeViewportHeight}px` : '100dvh' }}>
-          <div className="w-full max-w-md rounded-t-2xl flex flex-col min-h-0" style={{ background: COLORS.surface, color: COLORS.ink, maxHeight: '100%', height: 'min(100%, 760px)' }}>
-            <h3 className="text-sm font-semibold flex-none px-5 pt-4 pb-3 border-b" style={{ borderColor: COLORS.line }}>New message</h3>
-            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3 p-5" style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
+        <div className="fixed left-0 right-0 z-50 flex flex-col" style={{ top: composeViewportTop, height: composeViewportHeight ? `${composeViewportHeight}px` : '100dvh', background: COLORS.surface, color: COLORS.ink }}>
+          <div className="w-full max-w-md mx-auto flex flex-col min-h-0 flex-1">
+            <div className="flex-none flex items-center justify-between px-4 border-b" style={{ borderColor: COLORS.line, paddingTop: 'max(10px, env(safe-area-inset-top))', paddingBottom: 10 }}>
+              <button onClick={closeCompose} className="text-sm px-2 py-1.5" style={{ color: COLORS.inkSoft }}>
+                Cancel
+              </button>
+              <h3 className="text-sm font-semibold">New message</h3>
+              <button
+                onClick={sendNewMessage}
+                disabled={!composePhone.trim() || !composeText.trim() || (composeShowSchedule && !composeScheduleAt) || composeSending}
+                className="text-sm px-3 py-1.5 rounded-lg text-white disabled:opacity-40"
+                style={{ background: COLORS.moss }}
+              >
+                {composeShowSchedule ? 'Schedule' : 'Send'}
+              </button>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3 p-4" style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
             <div className="relative">
               <input
                 autoFocus
@@ -3903,19 +3916,6 @@ export default function SmsApp() {
               />
             )}
             </div>
-            <div className="flex-none flex gap-2 justify-end px-5 py-3 border-t" style={{ borderColor: COLORS.line, paddingBottom: 'max(12px, env(safe-area-inset-bottom))', background: COLORS.surface }}>
-              <button onClick={closeCompose} className="text-sm px-3 py-1.5" style={{ color: COLORS.inkSoft }}>
-                Cancel
-              </button>
-              <button
-                onClick={sendNewMessage}
-                disabled={!composePhone.trim() || !composeText.trim() || (composeShowSchedule && !composeScheduleAt) || composeSending}
-                className="text-sm px-3 py-1.5 rounded-lg text-white disabled:opacity-40"
-                style={{ background: COLORS.moss }}
-              >
-                {composeShowSchedule ? 'Schedule' : 'Send'}
-              </button>
-            </div>
           </div>
         </div>
       )}
@@ -3924,7 +3924,7 @@ export default function SmsApp() {
 
       {/* ---- DEV MOCK INJECT MODAL ---- */}
       {injectOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-6 z-20">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-6 z-50">
           <div className="w-full max-w-sm rounded-2xl p-5 flex flex-col gap-3" style={{ background: COLORS.surface, color: COLORS.ink }}>
             <h3 className="text-sm font-semibold">Simulate an inbound text (dev only)</h3>
             <input
@@ -3967,7 +3967,7 @@ export default function SmsApp() {
 
       {/* ---- AT RISK / CRITICAL MODAL ---- */}
       {showAttention && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-6 z-20">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-6 z-50">
           <div className="w-full max-w-sm max-h-[80vh] rounded-2xl p-5 flex flex-col gap-3" style={{ background: COLORS.surface, color: COLORS.ink }}>
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold">At Risk, Critical &amp; Disconnected</h3>
