@@ -15,7 +15,9 @@ const nextConfig: NextConfig = {
     // 2026-11-04: the Catalyst connect card now lives on the 9e9 server. Temporary (307)
     // so it is easy to undo; /api/cat/connect is left in place for forms already open.
     const connectCard = { source: "/cat/connect", destination: "https://catalyst.9e9.app/f/connect-card", permanent: false };
-    return [connectCard, ...PRIVATE_PATHS.flatMap((p) => {
+    // 2026-11-10: easy-to-remember shortcut to the 9e9 sandbox (tailnet only; works on a phone running Tailscale).
+    const sandbox = { source: "/sandbox", destination: "https://watson.tail0243ff.ts.net:10034/", permanent: false };
+    return [connectCard, sandbox, ...PRIVATE_PATHS.flatMap((p) => {
       const app = p.slice(1);
       return [
         { source: p, destination: `/private-forward.html?app=${app}`, permanent: false },
