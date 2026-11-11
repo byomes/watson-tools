@@ -7,12 +7,14 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
 
-  const q = new URL(req.url).searchParams.get('q') || ''
-  if (!q.trim()) {
+  const params = new URL(req.url).searchParams
+  const q = params.get('q') || ''
+  const all = params.get('all') === '1'
+  if (!q.trim() && !all) {
     return NextResponse.json({ contacts: [] })
   }
 
-  const res = await watsonFetch(`/api/sms/contacts?q=${encodeURIComponent(q)}`, {
+  const res = await watsonFetch(`/api/sms/contacts?${all && !q.trim() ? 'all=1' : `q=${encodeURIComponent(q)}`}`, {
     headers: { 'X-Watson-Key': process.env.SMS_APP_API_KEY ?? '' },
   })
   if (!res.ok) {

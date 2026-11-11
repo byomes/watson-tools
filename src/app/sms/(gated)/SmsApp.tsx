@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSmsTheme } from '@/lib/useSmsTheme'
 import { useSmsPush } from '@/lib/useSmsPush'
+import { ContactEditor, ContactsPanel, type SmsContact } from './ContactsPanel'
 
 type Thread = {
   id: number
@@ -35,7 +36,7 @@ type Message = {
 type ScheduledMessage = { id: number; body: string; send_at: string; status: 'pending' | 'failed'; error: string | null }
 type Template = { id: string; label: string; body: string; updated_at: string }
 type SearchHit = { message_id: number; thread_id: number; body: string; created_at: string; contact_name: string | null; phone: string }
-type Contact = { id: number; name: string; phone: string }
+type Contact = SmsContact
 type Member = { id: number; name: string; phone: string | null }
 type AttentionMember = {
   id: number
@@ -61,7 +62,7 @@ type Context = {
   started_serving_date?: string | null
 }
 
-type View = 'list' | 'thread' | 'templates' | 'settings' | 'broadcast' | 'broadcastHistory'
+type View = 'list' | 'thread' | 'templates' | 'settings' | 'broadcast' | 'broadcastHistory' | 'contacts'
 
 type GroupFilter = { deacons?: string[]; teams?: string[]; roles?: string[]; campuses?: string[]; events?: number[]; events_not?: number[]; gender?: 'male' | 'female'; attendance?: { mode: 'attended' | 'not_attended'; weeks: number } }
 type SmsGroup = { id: number; name: string; filter: GroupFilter; active_only: boolean; manual_only: boolean; recipient_count: number }
@@ -490,6 +491,12 @@ export default function SmsApp() {
   const [composeSending, setComposeSending] = useState(false)
   const [composeContacts, setComposeContacts] = useState<Contact[]>([])
   const [composeContactPicked, setComposeContactPicked] = useState(false)
+  const [phoneMatches, setPhoneMatches] = useState<Contact[]>([])
+  const [checkedPhone, setCheckedPhone] = useState('')
+  const [contactPhoneToSave, setContactPhoneToSave] = useState('')
+  const [showAllRecipients, setShowAllRecipients] = useState(false)
+  const [composeViewportHeight, setComposeViewportHeight] = useState<number | null>(null)
+  const [composeViewportTop, setComposeViewportTop] = useState(0)
   // Which extra-recipient row (if any) currently has an open contact-picker
   // dropdown, mirroring composeContacts/composeContactPicked above but for
   // the "Add another person" rows used to start a group text.
@@ -543,7 +550,7 @@ export default function SmsApp() {
     if (!vv) return
     const fit = () => {
       if (rootRef.current) rootRef.current.style.height = `${vv.height}px`
-      if (window.scrollY !== 0) window.scrollTo(0, 0)
+      if (!composeOpen && window.scrollY !== 0) window.scrollTo(0, 0)
     }
     fit()
     vv.addEventListener('resize', fit)
@@ -552,14 +559,32 @@ export default function SmsApp() {
       vv.removeEventListener('resize', fit)
       vv.removeEventListener('scroll', fit)
     }
-  }, [])
+  }, [composeOpen])
   const listScrollRef = useRef<HTMLDivElement | null>(null)
   const pullStartY = useRef<number | null>(null)
   const [pullDistance, setPullDistance] = useState(0)
   const [pullReleased, setPullReleased] = useState(false)
   const PULL_THRESHOLD = 64
   const composeGrowRef = useAutoGrowTextarea(compose)
-  const composeTextGrowRef = useAutoGrowTextarea(composeText)
+  const composeTextGrowRef = useAutoGrowTextarea(composeText, Math.round((composeViewportHeight ?? 700) * 0.4))
+
+  useEffect(() => {
+    if (!composeOpen) return
+    const vv = window.visualViewport
+    const fit = () => {
+      setComposeViewportHeight(vv?.height ?? window.innerHeight)
+      setComposeViewportTop(vv?.offsetTop ?? 0)
+    }
+    fit()
+    vv?.addEventListener('resize', fit)
+    vv?.addEventListener('scroll', fit)
+    window.addEventListener('resize', fit)
+    return () => {
+      vv?.removeEventListener('resize', fit)
+      vv?.removeEventListener('scroll', fit)
+      window.removeEventListener('resize', fit)
+    }
+  }, [composeOpen])
 
   // ---- Broadcast (group text-out) state ----
   const [broadcastStep, setBroadcastStep] = useState<'compose' | 'review'>('compose')
@@ -1304,6 +1329,19 @@ export default function SmsApp() {
   }, [composeName, composeOpen, composeContactPicked])
 
   useEffect(() => {
+    if (!composeOpen || !/^\+?[\d\s().-]{7,}$/.test(composePhone.trim())) {
+      return
+    }
+    let cancelled = false
+    const timer = setTimeout(() => {
+      api<{ contacts: Contact[] }>(`/api/sms/contacts?q=${encodeURIComponent(composePhone.trim())}`)
+        .then((data) => { if (!cancelled) { setPhoneMatches(data.contacts); setCheckedPhone(composePhone.trim()) } })
+        .catch(() => {})
+    }, 250)
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [composePhone, composeOpen])
+
+  useEffect(() => {
     if (!addPersonOpen || addPersonPicked || !addPersonName.trim()) {
       setAddPersonContacts([])
       return
@@ -1657,6 +1695,8 @@ export default function SmsApp() {
     setExtraRecipients([])
     setComposeText('')
     setComposeContacts([])
+    setPhoneMatches([])
+    setCheckedPhone('')
     setComposeContactPicked(false)
     setComposeShowSchedule(false)
     setComposeScheduleAt('')
@@ -1669,6 +1709,28 @@ export default function SmsApp() {
     setComposePhone(c.phone)
     setComposeContactPicked(true)
     setComposeContacts([])
+  }
+
+  function contactSaved(saved: SmsContact) {
+    const update = (items: Thread[]) => items.map((thread) => {
+      if (thread.is_group || thread.phone.replace(/\D/g, '') !== saved.phone.replace(/\D/g, '')) return thread
+      return { ...thread, contact_name: saved.name }
+    })
+    setThreads(update)
+    setArchivedThreads(update)
+    if (composePhone.replace(/\D/g, '') === saved.phone.replace(/\D/g, '')) {
+      setComposeName(saved.name)
+      setComposeContactPicked(true)
+    }
+    setContactPhoneToSave('')
+  }
+
+  function contactDeleted(deleted: SmsContact) {
+    const update = (items: Thread[]) => items.map((thread) =>
+      !thread.is_group && thread.phone.replace(/\D/g, '') === deleted.phone.replace(/\D/g, '')
+        ? { ...thread, contact_name: null } : thread)
+    setThreads(update)
+    setArchivedThreads(update)
   }
 
   function pickExtraContact(i: number, c: Contact) {
@@ -2136,6 +2198,9 @@ export default function SmsApp() {
               <div className={mono('text-xs')} style={{ color: COLORS.inkSoft }}>
                 {activeThread.is_group ? `${activeThread.participants.length} people` : activeThread.phone}
               </div>
+              {!activeThread.is_group && !activeThread.contact_name && (
+                <button onClick={() => setContactPhoneToSave(activeThread.phone)} className="text-xs font-medium" style={{ color: COLORS.moss }}>Add contact</button>
+              )}
               <button
                 onClick={() => setAddPersonOpen((o) => !o)}
                 className="text-xs font-medium"
@@ -3395,6 +3460,8 @@ export default function SmsApp() {
       )}
 
       {/* ---- SETTINGS VIEW ---- */}
+      {view === 'contacts' && <ContactsPanel colors={COLORS} onBack={() => setView('list')} onSaved={contactSaved} onDeleted={contactDeleted} />}
+
       {view === 'settings' && (
         <div className="flex flex-col flex-1 min-h-0">
           <div className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: COLORS.line }}>
@@ -3526,6 +3593,9 @@ export default function SmsApp() {
               <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: COLORS.inkSoft, letterSpacing: '0.05em' }}>
                 Messaging
               </h3>
+              <button onClick={() => setView('contacts')} className="rounded-2xl border p-3 flex items-center justify-between text-sm" style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}>
+                <span>Contacts</span><span style={{ color: COLORS.inkSoft }}>&rsaquo;</span>
+              </button>
               <button
                 onClick={() => setView('templates')}
                 className="rounded-2xl border p-3 flex items-center justify-between text-sm"
@@ -3662,9 +3732,10 @@ export default function SmsApp() {
 
       {/* ---- NEW MESSAGE MODAL ---- */}
       {composeOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-6 z-20">
-          <div className="w-full max-w-sm rounded-2xl p-5 flex flex-col gap-3" style={{ background: COLORS.surface, color: COLORS.ink }}>
-            <h3 className="text-sm font-semibold">New message</h3>
+        <div className="fixed left-0 right-0 bg-black/40 flex items-end justify-center z-20" style={{ top: composeViewportTop, height: composeViewportHeight ? `${composeViewportHeight}px` : '100dvh' }}>
+          <div className="w-full max-w-md rounded-t-2xl flex flex-col min-h-0" style={{ background: COLORS.surface, color: COLORS.ink, maxHeight: '100%', height: 'min(100%, 760px)' }}>
+            <h3 className="text-sm font-semibold flex-none px-5 pt-4 pb-3 border-b" style={{ borderColor: COLORS.line }}>New message</h3>
+            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3 p-5" style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
             <div className="relative">
               <input
                 autoFocus
@@ -3693,6 +3764,7 @@ export default function SmsApp() {
                       <span className={mono('text-xs')} style={{ color: COLORS.inkSoft }}>
                         {c.phone}
                       </span>
+                      <span className="text-xs" style={{ color: COLORS.inkSoft }}>{c.source === 'church' ? 'Church' : 'Mine'}</span>
                     </button>
                   ))}
                 </div>
@@ -3700,12 +3772,23 @@ export default function SmsApp() {
             </div>
             <input
               value={composePhone}
-              onChange={(e) => setComposePhone(e.target.value)}
+              onChange={(e) => { setComposePhone(e.target.value); setPhoneMatches([]); setCheckedPhone('') }}
               placeholder="Phone number"
               inputMode="tel"
               className="border rounded-lg px-3 py-2 text-sm"
               style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
             />
+            {/^\+?[\d\s().-]{7,}$/.test(composePhone.trim()) && checkedPhone === composePhone.trim() && !composeName.trim() && phoneMatches.length === 0 && (
+              <button onClick={() => setContactPhoneToSave(composePhone.trim())} className="text-xs font-medium self-start" style={{ color: COLORS.moss }}>Save as contact</button>
+            )}
+            {extraRecipients.length > 0 && (
+              <div className="flex flex-wrap gap-1 overflow-y-auto" style={{ maxHeight: showAllRecipients ? '20vh' : 30, WebkitOverflowScrolling: 'touch' }}>
+                {extraRecipients.slice(0, showAllRecipients ? undefined : 2).map((r, i) => <span key={i} className="rounded-full border px-2 py-1 text-xs truncate max-w-[45%]" style={{ borderColor: COLORS.line }}>{r.name || r.phone || 'New recipient'}</span>)}
+                {!showAllRecipients && extraRecipients.length > 2 && <button onClick={() => setShowAllRecipients(true)} className="text-xs" style={{ color: COLORS.moss }}>+{extraRecipients.length - 2} more</button>}
+                {showAllRecipients && extraRecipients.length > 2 && <button onClick={() => setShowAllRecipients(false)} className="text-xs" style={{ color: COLORS.moss }}>Show less</button>}
+              </div>
+            )}
+            <div className="overflow-y-auto flex flex-col gap-2" style={{ maxHeight: showAllRecipients ? '34vh' : 96, WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
             {extraRecipients.map((r, i) => (
               <div key={i} className="flex gap-2 items-start">
                 <div className="flex flex-col gap-2 flex-1">
@@ -3737,6 +3820,7 @@ export default function SmsApp() {
                             <span className={mono('text-xs')} style={{ color: COLORS.inkSoft }}>
                               {c.phone}
                             </span>
+                          <span className="text-xs" style={{ color: COLORS.inkSoft }}>{c.source === 'church' ? 'Church' : 'Mine'}</span>
                           </button>
                         ))}
                       </div>
@@ -3767,13 +3851,15 @@ export default function SmsApp() {
                 </button>
               </div>
             ))}
+            </div>
+            {extraRecipients.length > 1 && <button onClick={() => setShowAllRecipients((v) => !v)} className="text-xs self-start" style={{ color: COLORS.moss }}>{showAllRecipients ? 'Collapse recipients' : `+${extraRecipients.length - 1} more recipients`}</button>}
             {composeError && (
               <div className="text-xs" style={{ color: COLORS.clay }}>
                 {composeError}
               </div>
             )}
             <button
-              onClick={() => setExtraRecipients((prev) => [...prev, { phone: '', name: '' }])}
+              onClick={() => { setExtraRecipients((prev) => [...prev, { phone: '', name: '' }]); setShowAllRecipients(true) }}
               className="text-xs font-medium self-start"
               style={{ color: COLORS.moss }}
             >
@@ -3793,7 +3879,7 @@ export default function SmsApp() {
               placeholder="Message text"
               rows={3}
               className="border rounded-lg px-3 py-2 text-sm resize-none overflow-y-auto"
-              style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
+              style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink, maxHeight: '40vh', minHeight: 80, flexShrink: 0, WebkitOverflowScrolling: 'touch' }}
             />
             <button
               onClick={() => setComposeShowSchedule((s) => !s)}
@@ -3816,7 +3902,8 @@ export default function SmsApp() {
                 style={{ borderColor: COLORS.line, background: COLORS.surface, color: COLORS.ink }}
               />
             )}
-            <div className="flex gap-2 justify-end">
+            </div>
+            <div className="flex-none flex gap-2 justify-end px-5 py-3 border-t" style={{ borderColor: COLORS.line, paddingBottom: 'max(12px, env(safe-area-inset-bottom))', background: COLORS.surface }}>
               <button onClick={closeCompose} className="text-sm px-3 py-1.5" style={{ color: COLORS.inkSoft }}>
                 Cancel
               </button>
@@ -3832,6 +3919,8 @@ export default function SmsApp() {
           </div>
         </div>
       )}
+
+      {contactPhoneToSave && <ContactEditor key={contactPhoneToSave} colors={COLORS} phone={contactPhoneToSave} onClose={() => setContactPhoneToSave('')} onSaved={contactSaved} />}
 
       {/* ---- DEV MOCK INJECT MODAL ---- */}
       {injectOpen && (
