@@ -101,10 +101,12 @@ export default function Smn27() {
       <style>{CSS}</style>
 
       <header className="hero">
-        <p className="eyebrow">Sunday Mornings</p>
+        <p className="eyebrow">Sunday Mornings at Catalyst</p>
         <h1>Teaching in 2027</h1>
         <p className="lede">
-          A look ahead at the year. One thread runs through all of it: how to live godly lives in an ungodly culture.
+          When I finished planning our 2027 sermons, a clear theme emerged: how to live godly lives amid an ungodly culture.
+          Not by hiding from the world, and not by becoming like it, but by being faithful in it. I call it{' '}
+          <em>Holy Amid Hostility</em>.
         </p>
       </header>
 
@@ -170,7 +172,7 @@ const CSS = `
 .hero{background:var(--navy); color:#f4efe4; padding:64px 20px 56px; text-align:center}
 .eyebrow{letter-spacing:.22em; text-transform:uppercase; font-size:.75rem; opacity:.7; margin:0 0 12px}
 .hero h1{font-family:Georgia,"Times New Roman",serif; font-weight:600; font-size:clamp(2.4rem,8vw,4rem); line-height:1.1; margin:0}
-.lede{max-width:34rem; margin:18px auto 0; font-size:1.1rem; opacity:.85}
+.lede{max-width:36rem; margin:18px auto 0; font-size:1.1rem; opacity:.85}
 .glance{max-width:46rem; margin:-22px auto 0; padding:0 20px}
 .bar{display:flex; gap:3px; height:26px; border-radius:13px; overflow:hidden; background:var(--card); padding:4px; box-shadow:0 6px 24px rgba(0,0,0,.18)}
 .seg{display:block; border-radius:9px; flex-basis:0; min-width:6px; opacity:.92}
