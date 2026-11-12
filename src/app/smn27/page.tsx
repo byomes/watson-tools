@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Teaching in 2027',
-  description: 'A look ahead at the teaching series planned for Sunday mornings in 2027.',
+  title: 'Teaching in 2027 | Catalyst Community Church',
+  description: 'Dr. Bill Yomes looks ahead at the teaching series planned for Sunday mornings at Catalyst Community Church in 2027.',
   robots: { index: false, follow: false },
 }
 
@@ -108,6 +108,10 @@ export default function Smn27() {
           Not by hiding from the world, and not by becoming like it, but by being faithful in it. I call it,{' '}
           <em>&ldquo;Holy Amidst Hostility.&rdquo;</em>
         </p>
+        <p className="by">
+          <strong>Dr. Bill Yomes</strong>
+          <span>Senior Pastor, Catalyst Community Church</span>
+        </p>
       </header>
 
       <section aria-label="The year at a glance" className="glance">
@@ -147,6 +151,7 @@ export default function Smn27() {
       </ol>
 
       <footer className="foot">
+        <p className="sig">Dr. Bill Yomes, Senior Pastor, Catalyst Community Church</p>
         <p>
           Dates are approximate. A year is a long time, and the plan will flex as life and ministry require. A few Sundays
           each year are set aside for missionary visits and guest speakers.
@@ -192,6 +197,10 @@ const CSS = `
 .blurb{text-wrap:pretty;margin:0; font-size:1rem}
 .chips{list-style:none; padding:0; margin:14px 0 0; display:flex; flex-wrap:wrap; gap:6px}
 .chips li{font-size:.8rem; padding:3px 11px; border-radius:999px; background:color-mix(in srgb, var(--accent) 12%, transparent); color:var(--ink)}
+.by{margin:26px 0 0; display:flex; flex-direction:column; gap:2px; font-size:.95rem}
+.by strong{font-family:Georgia,serif; font-size:1.2rem; font-weight:600; letter-spacing:.01em}
+.by span{opacity:.75; font-size:.85rem; letter-spacing:.04em}
+.sig{margin:0 0 10px; color:var(--ink); font-weight:600}
 .foot{text-wrap:balance;max-width:34rem; margin:36px auto 0; padding:0 24px; text-align:center; color:var(--muted); font-size:.9rem}
 @media (max-width:480px){ .card{padding:18px 16px; gap:12px} .num{min-width:1.8rem; font-size:1.3rem} }
 `
