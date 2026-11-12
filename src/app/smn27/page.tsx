@@ -105,8 +105,8 @@ export default function Smn27() {
         <h1>Teaching in 2027</h1>
         <p className="lede">
           When I finished planning our 2027 sermons, a clear theme emerged: how to live godly lives amidst an ungodly culture.
-          Not by hiding from the world, and not by becoming like it, but by being faithful in it. I call it{' '}
-          <em>Holy Amidst Hostility</em>.
+          Not by hiding from the world, and not by becoming like it, but by being faithful in it. I call it,{' '}
+          <em>&ldquo;Holy Amidst Hostility.&rdquo;</em>
         </p>
       </header>
 
