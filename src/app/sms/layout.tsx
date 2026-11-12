@@ -1,13 +1,38 @@
 import type { Metadata } from 'next'
-import { Fraunces, Public_Sans, IBM_Plex_Mono } from 'next/font/google'
+import localFont from 'next/font/local'
 
 // Fonts scoped to /sms only (not added to the shared root layout, which
 // every other wtsn.me tool also renders under) -- Fraunces for the
 // wordmark/headings, Public Sans for UI text, IBM Plex Mono for
 // timestamps/phone numbers/tag labels, matching the approved design mockup.
-const fraunces = Fraunces({ subsets: ['latin'], weight: ['500', '600'], variable: '--font-fraunces' })
-const publicSans = Public_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-public-sans' })
-const plexMono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400', '500'], variable: '--font-plex-mono' })
+// Self-hosted (latin subset, ./fonts) so a build never depends on reaching
+// Google Fonts; a Google fetch failure broke a production deploy on 2026-11-11.
+const fraunces = localFont({
+  src: [
+    { path: './fonts/fraunces-500.woff2', weight: '500', style: 'normal' },
+    { path: './fonts/fraunces-600.woff2', weight: '600', style: 'normal' },
+  ],
+  variable: '--font-fraunces',
+  display: 'swap',
+})
+const publicSans = localFont({
+  src: [
+    { path: './fonts/public-sans-400.woff2', weight: '400', style: 'normal' },
+    { path: './fonts/public-sans-500.woff2', weight: '500', style: 'normal' },
+    { path: './fonts/public-sans-600.woff2', weight: '600', style: 'normal' },
+    { path: './fonts/public-sans-700.woff2', weight: '700', style: 'normal' },
+  ],
+  variable: '--font-public-sans',
+  display: 'swap',
+})
+const plexMono = localFont({
+  src: [
+    { path: './fonts/ibm-plex-mono-400.woff2', weight: '400', style: 'normal' },
+    { path: './fonts/ibm-plex-mono-500.woff2', weight: '500', style: 'normal' },
+  ],
+  variable: '--font-plex-mono',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'Watson SMS',
