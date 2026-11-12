@@ -4,6 +4,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSmsTheme } from '@/lib/useSmsTheme'
 import { useSmsPush } from '@/lib/useSmsPush'
 import { ContactEditor, ContactsPanel, type SmsContact } from './ContactsPanel'
+import { ThreadFilters, ThreadRow } from './ThreadList'
+import { selectThreads, type ThreadFilter } from './threadListLogic'
+import { MessageStatus } from './MessageStatus'
 
 type Thread = {
   id: number
@@ -454,6 +457,8 @@ export default function SmsApp() {
   const [view, setView] = useState<View>('list')
   const [threads, setThreads] = useState<Thread[]>([])
   const [query, setQuery] = useState('')
+  const [threadFilter, setThreadFilter] = useState<ThreadFilter>('all')
+  const [pinnedIds, setPinnedIds] = useState<number[]>([])
   const [activeId, setActiveId] = useState<number | null>(null)
   const [editingGroupName, setEditingGroupName] = useState(false)
   // "Add person" panel in an open thread: adds to a group in place, or
@@ -702,6 +707,26 @@ export default function SmsApp() {
   const isDev = process.env.NODE_ENV !== 'production'
 
   const activeThread = useMemo(() => threads.find((t) => t.id === activeId) ?? null, [threads, activeId])
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('sms_pinned_thread_ids') || '[]')
+      if (Array.isArray(saved)) {
+        const ids = saved.filter((id): id is number => Number.isSafeInteger(id) && id > 0)
+        queueMicrotask(() => setPinnedIds(ids))
+      }
+    } catch {
+      // Ignore invalid local storage.
+    }
+  }, [])
+
+  function togglePin(id: number) {
+    setPinnedIds((prev) => {
+      const next = prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+      try { localStorage.setItem('sms_pinned_thread_ids', JSON.stringify(next)) } catch { /* storage unavailable */ }
+      return next
+    })
+  }
 
   async function loadThreads() {
     const data = await api<{ threads: Thread[] }>('/api/sms/threads')
@@ -1825,16 +1850,7 @@ export default function SmsApp() {
     }
   }
 
-  const visibleThreads = threads
-    .filter((t) => {
-      const q = query.trim().toLowerCase()
-      if (!q) return true
-      return displayName(t).toLowerCase().includes(q) || (t.last_message_preview ?? '').toLowerCase().includes(q)
-    })
-    // New (unread) and prepared (a Watson-prepped draft waiting to send) threads
-    // float to the top, ahead of the normal most-recent-first order from the
-    // API -- a stable sort keeps that recency order within each group.
-    .sort((a, b) => Number(!(a.unread || a.draft_text)) - Number(!(b.unread || b.draft_text)))
+  const visibleThreads = selectThreads(threads, threadFilter, query, pinnedIds, displayName)
 
   return (
     <div ref={rootRef} className="h-[100dvh] overflow-hidden flex flex-col pt-[env(safe-area-inset-top)]" style={{ background: COLORS.bg, color: COLORS.ink }}>
@@ -2015,6 +2031,7 @@ export default function SmsApp() {
               />
             </div>
           </div>
+          {!showArchived && <ThreadFilters value={threadFilter} onChange={setThreadFilter} colors={COLORS} />}
           </div>
 
           <div
@@ -2088,69 +2105,19 @@ export default function SmsApp() {
               </div>
             )}
             {(showArchived ? archivedThreads : visibleThreads).map((t) => (
-              <button
+              <ThreadRow
                 key={t.id}
-                onClick={() => openThread(t.id)}
-                className="w-full text-left px-5 py-3 border-b flex items-start gap-3"
-                style={{
-                  borderColor: COLORS.line,
-                  background: t.highlight_note ? COLORS.claySoft : t.unread ? COLORS.tagblueSoft : 'transparent',
-                  boxShadow: t.highlight_note
-                    ? `inset 3px 0 0 0 ${COLORS.clay}`
-                    : t.unread
-                      ? `inset 3px 0 0 0 ${COLORS.moss}`
-                      : undefined,
-                }}
-              >
-                <div
-                  className="w-11 h-11 rounded-full flex-none flex items-center justify-center text-white text-sm font-semibold"
-                  style={{ background: COLORS.moss }}
-                >
-                  {displayName(t).slice(0, 2).toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span
-                      className={`inline-flex items-center gap-1 text-sm ${t.unread ? 'font-bold' : 'font-medium'}`}
-                      style={{ color: t.unread ? COLORS.ink : undefined }}
-                    >
-                      {t.muted && (
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-none" style={{ color: COLORS.inkSoft }}>
-                          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-                          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                          <path d="M2 2l20 20" />
-                        </svg>
-                      )}
-                      {t.snoozed_until && (
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-none" style={{ color: COLORS.inkSoft }}>
-                          <circle cx="12" cy="12" r="9" />
-                          <path d="M12 7v5l3 3" />
-                        </svg>
-                      )}
-                      {displayName(t)}
-                    </span>
-                    <span className={mono('text-xs flex-none')} style={{ color: t.unread ? COLORS.moss : COLORS.inkSoft, fontWeight: t.unread ? 700 : 400 }}>
-                      {fmtTime(t.last_message_at)}
-                    </span>
-                  </div>
-                  {t.highlight_note && (
-                    <div className="text-xs font-semibold mb-0.5" style={{ color: COLORS.clay }}>
-                      {t.highlight_note}
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between gap-2">
-                    <span
-                      className={`text-sm truncate ${t.unread ? 'font-semibold' : ''}`}
-                      style={{ color: t.unread ? COLORS.ink : COLORS.inkSoft }}
-                    >
-                      {previewText(t.last_message_preview)}
-                    </span>
-                    {!!t.unread && (
-                      <span className="w-2.5 h-2.5 rounded-full flex-none" style={{ background: COLORS.moss }} />
-                    )}
-                  </div>
-                </div>
-              </button>
+                thread={t}
+                pinned={pinnedIds.includes(t.id)}
+                colors={COLORS}
+                displayName={displayName}
+                fmtTime={fmtTime}
+                previewText={previewText}
+                onOpen={() => openThread(t.id)}
+                onPin={() => togglePin(t.id)}
+                onPatch={(patch) => { patchThread(t.id, patch).catch(() => {}) }}
+                onAddContact={() => setContactPhoneToSave(t.phone)}
+              />
             ))}
             </div>
           </div>
@@ -2658,16 +2625,7 @@ export default function SmsApp() {
                   )}
                   {m.body && <span className="whitespace-pre-wrap break-words">{(m.direction === 'in' && reactionEmoji(m.body)) || linkifyBody(m.body)}</span>}
                 </div>
-                {m.direction === 'out' && m.status === 'failed' && (
-                  <span className="text-xs px-1" style={{ color: COLORS.clay }}>
-                    Failed to send
-                  </span>
-                )}
-                {m.direction === 'out' && m.status === 'delivered' && (
-                  <span className="text-xs px-1" style={{ color: COLORS.inkSoft }}>
-                    Delivered
-                  </span>
-                )}
+                <MessageStatus direction={m.direction} status={m.status} colors={COLORS} />
               </div>
             ))}
           </div>
