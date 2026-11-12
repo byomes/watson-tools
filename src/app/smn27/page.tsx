@@ -171,8 +171,8 @@ const CSS = `
 .s27 *{box-sizing:border-box}
 .hero{background:var(--navy); color:#f4efe4; padding:64px 20px 56px; text-align:center}
 .eyebrow{letter-spacing:.22em; text-transform:uppercase; font-size:.75rem; opacity:.7; margin:0 0 12px}
-.hero h1{font-family:Georgia,"Times New Roman",serif; font-weight:600; font-size:clamp(2.4rem,8vw,4rem); line-height:1.1; margin:0}
-.lede{max-width:36rem; margin:18px auto 0; font-size:1.1rem; opacity:.85}
+.hero h1{text-wrap:balance;font-family:Georgia,"Times New Roman",serif; font-weight:600; font-size:clamp(2.4rem,8vw,4rem); line-height:1.1; margin:0}
+.lede{text-wrap:balance;max-width:36rem; margin:18px auto 0; font-size:1.1rem; opacity:.85}
 .glance{max-width:46rem; margin:-22px auto 0; padding:0 20px}
 .bar{display:flex; gap:3px; height:26px; border-radius:13px; overflow:hidden; background:var(--card); padding:4px; box-shadow:0 6px 24px rgba(0,0,0,.18)}
 .seg{display:block; border-radius:9px; flex-basis:0; min-width:6px; opacity:.92}
@@ -186,12 +186,12 @@ const CSS = `
 .num{font-family:Georgia,serif; font-size:1.6rem; color:var(--accent); opacity:.8; line-height:1.1; min-width:2.2rem}
 .body{min-width:0}
 .kind{margin:0; font-size:.72rem; letter-spacing:.16em; text-transform:uppercase; color:var(--accent); font-weight:600}
-.card h2{font-family:Georgia,"Times New Roman",serif; font-weight:600; font-size:1.5rem; line-height:1.2; margin:4px 0 6px}
+.card h2{text-wrap:balance;font-family:Georgia,"Times New Roman",serif; font-weight:600; font-size:1.5rem; line-height:1.2; margin:4px 0 6px}
 .when{margin:0 0 10px; font-size:.92rem; color:var(--muted)}
 .when span{display:inline-block; margin-left:8px; padding:1px 9px; border:1px solid var(--line); border-radius:999px; font-size:.75rem}
-.blurb{margin:0; font-size:1rem}
+.blurb{text-wrap:pretty;margin:0; font-size:1rem}
 .chips{list-style:none; padding:0; margin:14px 0 0; display:flex; flex-wrap:wrap; gap:6px}
 .chips li{font-size:.8rem; padding:3px 11px; border-radius:999px; background:color-mix(in srgb, var(--accent) 12%, transparent); color:var(--ink)}
-.foot{max-width:34rem; margin:36px auto 0; padding:0 24px; text-align:center; color:var(--muted); font-size:.9rem}
+.foot{text-wrap:balance;max-width:34rem; margin:36px auto 0; padding:0 24px; text-align:center; color:var(--muted); font-size:.9rem}
 @media (max-width:480px){ .card{padding:18px 16px; gap:12px} .num{min-width:1.8rem; font-size:1.3rem} }
 `
