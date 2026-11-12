@@ -6,7 +6,8 @@ import { useSmsPush } from '@/lib/useSmsPush'
 import { ContactEditor, ContactsPanel, type SmsContact } from './ContactsPanel'
 import { ThreadFilters, ThreadRow } from './ThreadList'
 import { selectThreads, type ThreadFilter } from './threadListLogic'
-import { MessageStatus } from './MessageStatus'
+import { ThreadMessages } from './ThreadMessages'
+import { SchedulePresets, SegmentCounter, TemplatePicker } from './ComposerExtras'
 
 type Thread = {
   id: number
@@ -1693,7 +1694,7 @@ export default function SmsApp() {
   }
 
   function applyTemplate(t: Template) {
-    setCompose(t.body.replaceAll('{first_name}', firstName(activeThread)))
+    updateCompose(t.body.replaceAll('{first_name}', firstName(activeThread)))
     setShowTemplates(false)
   }
 
@@ -2611,37 +2612,16 @@ export default function SmsApp() {
             </div>
           )}
 
-          <div ref={messagesScrollRef} className="flex-1 min-h-0 overflow-y-auto px-4 py-4 flex flex-col gap-2">
-            {messages.map((m) => (
-              <div key={m.id} className="flex flex-col gap-0.5" style={{ alignItems: m.direction === 'out' ? 'flex-end' : 'flex-start' }}>
-                {activeThread.is_group && m.direction === 'in' && (
-                  <span className="text-xs font-semibold px-1" style={{ color: COLORS.inkSoft }}>
-                    {m.sender_name || m.sender_phone || 'Someone in this group'}
-                  </span>
-                )}
-                <div
-                  className="max-w-[75%] px-3.5 py-2 rounded-2xl text-base leading-snug flex flex-col gap-1.5"
-                  style={
-                    m.direction === 'out'
-                      ? { background: COLORS.moss, color: 'white' }
-                      : { background: COLORS.surfaceAlt, color: COLORS.ink }
-                  }
-                >
-                  {m.media_url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={m.media_url}
-                      alt="Attachment"
-                      className="rounded-lg max-w-full"
-                      onLoad={scrollMessagesToBottom}
-                    />
-                  )}
-                  {m.body && <span className="whitespace-pre-wrap break-words">{(m.direction === 'in' && reactionEmoji(m.body)) || linkifyBody(m.body)}</span>}
-                </div>
-                <MessageStatus direction={m.direction} status={m.status} colors={COLORS} />
-              </div>
-            ))}
-          </div>
+          <ThreadMessages
+            key={activeThread.id}
+            messages={messages}
+            phone={activeThread.phone}
+            isGroup={activeThread.is_group}
+            colors={COLORS}
+            scrollRef={messagesScrollRef}
+            renderBody={(message) => (message.direction === 'in' && reactionEmoji(message.body)) || linkifyBody(message.body)}
+            onImageLoad={scrollMessagesToBottom}
+          />
 
           {scheduled.length > 0 && (
             <div className="px-4 pb-2 flex flex-col gap-1.5">
@@ -2741,20 +2721,12 @@ export default function SmsApp() {
                 </label>
               </div>
             </div>
-            {showTemplates && (
-              <div className="flex flex-col gap-1 rounded-lg border p-2" style={{ borderColor: COLORS.line }}>
-                {templates.map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => applyTemplate(t)}
-                    className="text-left text-xs px-2 py-1.5 rounded-md font-medium"
-                    style={{ background: COLORS.tagblueSoft, color: COLORS.ink }}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-            )}
+            <TemplatePicker body={compose} open={showTemplates} templates={templates} colors={COLORS} onPick={applyTemplate} />
+            {!editingScheduledId && <SchedulePresets
+              onSelect={(value) => { setScheduleAt(value); setShowSchedule(true) }}
+              onPickTime={() => { setScheduleAt(''); setShowSchedule(true) }}
+              colors={COLORS}
+            />}
             {showSchedule && (
               <div className="flex flex-col gap-2 rounded-lg border p-2" style={{ borderColor: COLORS.line }}>
                 <label className="text-xs" style={{ color: COLORS.inkSoft }}>
@@ -2762,6 +2734,7 @@ export default function SmsApp() {
                 </label>
                 <div className="flex items-center gap-2">
                   <input
+                    id="sms-schedule-time"
                     type="datetime-local"
                     value={scheduleAt}
                     min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
@@ -2835,6 +2808,7 @@ export default function SmsApp() {
                 ↑
               </button>
             </div>
+            <SegmentCounter body={compose} color={COLORS.inkSoft} />
           </div>
         </div>
       )}
