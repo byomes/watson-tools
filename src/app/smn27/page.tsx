@@ -104,9 +104,9 @@ export default function Smn27() {
         <p className="eyebrow">Sunday Mornings at Catalyst</p>
         <h1>Teaching in 2027</h1>
         <p className="lede">
-          When I finished planning our 2027 sermons, a clear theme emerged: how to live godly lives amid an ungodly culture.
+          When I finished planning our 2027 sermons, a clear theme emerged: how to live godly lives amidst an ungodly culture.
           Not by hiding from the world, and not by becoming like it, but by being faithful in it. I call it{' '}
-          <em>Holy Amid Hostility</em>.
+          <em>Holy Amidst Hostility</em>.
         </p>
       </header>
 
