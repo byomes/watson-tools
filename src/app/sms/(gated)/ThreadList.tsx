@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { isUnknownNumber, type ListThread, type ThreadFilter } from './threadListLogic'
 
 type Thread = ListThread & {
@@ -36,25 +36,54 @@ export function ThreadRow({ thread, pinned, colors, displayName, fmtTime, previe
   onAddContact: () => void
 }) {
   const [side, setSide] = useState<'left' | 'right' | null>(null)
+  const rowRef = useRef<HTMLDivElement>(null)
   const start = useRef<{ x: number; y: number } | null>(null)
-  function touchEnd(event: React.TouchEvent<HTMLDivElement>) {
-    if (!start.current) return
-    const dx = event.changedTouches[0].clientX - start.current.x
-    const dy = event.changedTouches[0].clientY - start.current.y
-    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.4) {
-      setSide(dx > 0 ? 'right' : 'left')
-      event.preventDefault()
-      event.stopPropagation()
+  // 'h' once the gesture is clearly sideways, 'v' once it is clearly vertical. Locking the axis
+  // early lets a sideways swipe stop the list from scrolling up and down underneath the finger.
+  const lock = useRef<'h' | 'v' | null>(null)
+  useEffect(() => {
+    const el = rowRef.current
+    if (!el) return
+    function onStart(event: TouchEvent) {
+      start.current = { x: event.touches[0].clientX, y: event.touches[0].clientY }
+      lock.current = null
     }
-    start.current = null
-  }
+    function onMove(event: TouchEvent) {
+      if (!start.current) return
+      const dx = event.touches[0].clientX - start.current.x
+      const dy = event.touches[0].clientY - start.current.y
+      if (!lock.current) {
+        if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return
+        // Slightly biased to sideways: only a clearly up-or-down drag scrolls the list.
+        lock.current = Math.abs(dx) > Math.abs(dy) * 0.8 ? 'h' : 'v'
+      }
+      if (lock.current === 'h' && event.cancelable) event.preventDefault()
+    }
+    function onEnd(event: TouchEvent) {
+      const origin = start.current
+      const locked = lock.current
+      start.current = null
+      lock.current = null
+      if (!origin || locked !== 'h') return
+      const dx = event.changedTouches[0].clientX - origin.x
+      if (Math.abs(dx) > 40) setSide(dx > 0 ? 'right' : 'left')
+    }
+    el.addEventListener('touchstart', onStart, { passive: true })
+    el.addEventListener('touchmove', onMove, { passive: false })
+    el.addEventListener('touchend', onEnd, { passive: true })
+    return () => {
+      el.removeEventListener('touchstart', onStart)
+      el.removeEventListener('touchmove', onMove)
+      el.removeEventListener('touchend', onEnd)
+    }
+  }, [])
   function action(label: string, run: () => void) {
     return <button type="button" className="rounded-lg border px-2 py-1.5 text-xs font-medium" style={{ borderColor: colors.line, color: colors.ink, background: colors.surface }} onClick={() => { run(); setSide(null) }}>{label}</button>
   }
   function toggleSnooze() {
     onPatch({ snoozed_until: thread.snoozed_until ? null : oneHourFromNow() })
   }
-  return <div className="border-b" style={{ borderColor: colors.line }} onTouchStart={(event) => { start.current = { x: event.touches[0].clientX, y: event.touches[0].clientY } }} onTouchEnd={touchEnd}>
+  return <div ref={rowRef} className="border-b" style={{ borderColor: colors.line }}>
     <button type="button" onClick={onOpen} className="w-full text-left px-5 py-3 flex items-start gap-3" style={{ background: thread.highlight_note ? colors.claySoft : thread.unread ? colors.tagblueSoft : 'transparent', boxShadow: thread.highlight_note ? `inset 3px 0 0 0 ${colors.clay}` : thread.unread ? `inset 3px 0 0 0 ${colors.moss}` : undefined }}>
       <div className="w-11 h-11 rounded-full flex-none flex items-center justify-center text-white text-sm font-semibold" style={{ background: colors.moss }}>{displayName(thread).slice(0, 2).toUpperCase()}</div>
       <div className="flex-1 min-w-0">

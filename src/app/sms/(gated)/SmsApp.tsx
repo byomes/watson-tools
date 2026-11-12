@@ -48,6 +48,7 @@ type AttentionMember = {
   bucket: 'at_risk' | 'critical' | 'disconnected'
   weeks_absent: number
   thread_id: number | null
+  dismissed?: boolean
 }
 type Context = {
   matched: boolean
@@ -520,6 +521,7 @@ export default function SmsApp() {
   const [showAttention, setShowAttention] = useState(false)
   const [attentionMembers, setAttentionMembers] = useState<AttentionMember[]>([])
   const [attentionLoading, setAttentionLoading] = useState(false)
+  const [showDismissedAttention, setShowDismissedAttention] = useState(false)
   const [contextCollapsed, setContextCollapsed] = useState(false)
   const [showLinkMember, setShowLinkMember] = useState(false)
   const [linkMemberQuery, setLinkMemberQuery] = useState('')
@@ -1193,6 +1195,17 @@ export default function SmsApp() {
       setAttentionMembers([])
     } finally {
       setAttentionLoading(false)
+    }
+  }
+
+  // Remove (or bring back) a line in the At Risk / Critical / Disconnected panel.
+  // Optimistic: flip the row first, undo it if the request fails.
+  async function setAttentionDismissed(m: AttentionMember, dismissed: boolean) {
+    setAttentionMembers((prev) => prev.map((x) => (x.id === m.id ? { ...x, dismissed } : x)))
+    try {
+      await api(`/api/sms/attention/${m.id}/${dismissed ? 'dismiss' : 'restore'}`, { method: 'POST' })
+    } catch {
+      setAttentionMembers((prev) => prev.map((x) => (x.id === m.id ? { ...x, dismissed: !dismissed } : x)))
     }
   }
 
@@ -3937,12 +3950,12 @@ export default function SmsApp() {
               {attentionLoading && (
                 <div className="text-sm py-4 text-center" style={{ color: COLORS.inkSoft }}>Loading…</div>
               )}
-              {!attentionLoading && attentionMembers.length === 0 && (
+              {!attentionLoading && attentionMembers.filter((m) => !m.dismissed).length === 0 && (
                 <div className="text-sm py-4 text-center" style={{ color: COLORS.inkSoft }}>
-                  Nobody&rsquo;s at risk, critical, or disconnected right now.
+                  {attentionMembers.length === 0 ? 'Nobody\u2019s at risk, critical, or disconnected right now.' : 'Nothing left on the list.'}
                 </div>
               )}
-              {!attentionLoading && attentionMembers.map((m) => (
+              {!attentionLoading && attentionMembers.filter((m) => !m.dismissed).map((m) => (
                 <div
                   key={m.id}
                   className="rounded-xl border p-3 flex items-center gap-3"
@@ -3962,8 +3975,42 @@ export default function SmsApp() {
                   >
                     Text
                   </button>
+                  <button
+                    onClick={() => setAttentionDismissed(m, true)}
+                    aria-label={`Remove ${m.name} from this list`}
+                    title="Remove from list"
+                    className="text-xs px-2 py-1.5 rounded-lg border flex-none"
+                    style={{ borderColor: COLORS.line, color: COLORS.inkSoft }}
+                  >
+                    Remove
+                  </button>
                 </div>
               ))}
+              {!attentionLoading && attentionMembers.some((m) => m.dismissed) && (
+                <div className="pt-2 border-t" style={{ borderColor: COLORS.line }}>
+                  <button
+                    onClick={() => setShowDismissedAttention((v) => !v)}
+                    className="text-xs font-medium"
+                    style={{ color: COLORS.moss }}
+                  >
+                    {showDismissedAttention ? 'Hide' : 'Show'} removed ({attentionMembers.filter((m) => m.dismissed).length})
+                  </button>
+                  {showDismissedAttention && attentionMembers.filter((m) => m.dismissed).map((m) => (
+                    <div key={m.id} className="flex items-center gap-3 py-2">
+                      <span className="flex-1 text-sm truncate" style={{ color: COLORS.inkSoft }}>
+                        {m.name} &middot; {m.weeks_absent} {m.weeks_absent === 1 ? 'week' : 'weeks'}
+                      </span>
+                      <button
+                        onClick={() => setAttentionDismissed(m, false)}
+                        className="text-xs px-2 py-1 rounded-lg border flex-none"
+                        style={{ borderColor: COLORS.line, color: COLORS.ink }}
+                      >
+                        Put back
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
