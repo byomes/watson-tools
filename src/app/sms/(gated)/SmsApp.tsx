@@ -33,7 +33,7 @@ type Message = {
   created_at: string
   media_url: string | null
   media_type: string | null
-  status: 'sent' | 'delivered' | 'failed' | null
+  status: 'sending' | 'stalled' | 'sent' | 'delivered' | 'failed' | null
   sender_phone: string | null
   sender_name: string | null
 }

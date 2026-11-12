@@ -3,7 +3,7 @@ import { MessageStatus } from './MessageStatus'
 
 type Message = {
   id: number; direction: 'in' | 'out'; body: string; media_url: string | null
-  status: 'sent' | 'delivered' | 'failed' | null; sender_name: string | null; sender_phone: string | null
+  status: 'sending' | 'stalled' | 'sent' | 'delivered' | 'failed' | null; sender_name: string | null; sender_phone: string | null
 }
 type Colors = { moss: string; surfaceAlt: string; ink: string; inkSoft: string; line: string; clay: string }
 
