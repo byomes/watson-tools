@@ -10,6 +10,8 @@ import type { NextConfig } from "next";
 const PRIVATE_PATHS = ["/voice-editor", "/kitfy", "/chi", "/money", "/xmas", "/family", "/scratch", "/tmux", "/news", "/prep", "/sermonplan", "/bc"]; // /upload is public again (2026-10-22, Bill)
 
 const nextConfig: NextConfig = {
+  // Watson chat uploads go up to 25 MB; the default proxy body cap is 10 MB.
+  experimental: { proxyClientMaxBodySize: "30mb" },
   async redirects() {
     if (!process.env.VERCEL) return [];
     // 2026-11-04: the Catalyst connect card now lives on the 9e9 server. Temporary (307)
