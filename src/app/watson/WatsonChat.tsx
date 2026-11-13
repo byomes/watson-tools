@@ -137,15 +137,19 @@ export default function WatsonChat() {
     catch { setError('Could not save model choice') }
   }
 
-  async function send() {
-    const text = draft.trim()
-    const current = chatRef.current
+  async function send(retry?: { text: string; base: Chat }) {
+    const text = retry ? retry.text : draft.trim()
+    const current = retry ? retry.base : chatRef.current
     if (!text || !current || !current.model || sendingRef.current || listening) return
-    const history = current.messages.slice(-20).map(({ role, content }) => ({ role, content }))
+    // For a retry, base already ends with the user message, so history stops before it.
+    const prior = retry ? current.messages.slice(0, -1) : current.messages
+    const history = prior.slice(-20).map(({ role, content }) => ({ role, content }))
     const user: Message = { id: crypto.randomUUID(), role: 'user', content: text, at: now() }
-    const pending: Chat = { ...current, title: current.messages.length ? current.title : titleFor(text), updated_at: now(), messages: [...current.messages, user] }
+    const pending: Chat = retry
+      ? { ...current, session_id: crypto.randomUUID(), updated_at: now() }
+      : { ...current, title: current.messages.length ? current.title : titleFor(text), updated_at: now(), messages: [...current.messages, user] }
     showChat(pending)
-    setDraft('')
+    if (!retry) setDraft('')
     setStream('')
     setError('')
     setSending(true)
@@ -189,6 +193,45 @@ export default function WatsonChat() {
     } finally { sendingRef.current = false; setSending(false) }
   }
 
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [speakingId, setSpeakingId] = useState<string | null>(null)
+
+  async function copyMessage(message: Message) {
+    try { await navigator.clipboard.writeText(message.content) }
+    catch {
+      const area = document.createElement('textarea')
+      area.value = message.content
+      document.body.appendChild(area)
+      area.select()
+      document.execCommand('copy')
+      area.remove()
+    }
+    setCopiedId(message.id)
+    setTimeout(() => setCopiedId(current => current === message.id ? null : current), 1500)
+  }
+
+  function speakMessage(message: Message) {
+    if (!('speechSynthesis' in window)) { setError('Reading aloud is unavailable in this browser.'); return }
+    if (speakingId === message.id) { speechSynthesis.cancel(); setSpeakingId(null); return }
+    speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(message.content.replace(/[#*_`>]/g, ''))
+    utterance.onend = () => setSpeakingId(current => current === message.id ? null : current)
+    utterance.onerror = utterance.onend
+    setSpeakingId(message.id)
+    speechSynthesis.speak(utterance)
+  }
+
+  function retryLast() {
+    const current = chatRef.current
+    if (!current || sendingRef.current || current.messages.length < 2) return
+    const last = current.messages[current.messages.length - 1]
+    const asked = current.messages[current.messages.length - 2]
+    if (last.role !== 'assistant' || asked.role !== 'user') return
+    speechSynthesis?.cancel()
+    setSpeakingId(null)
+    void send({ text: asked.content, base: { ...current, messages: current.messages.slice(0, -1) } })
+  }
+
   function toggleMic() {
     if (listening) { recognition.current?.stop(); return }
     const browser = window as RecognitionWindow
@@ -214,7 +257,7 @@ export default function WatsonChat() {
     </aside>
     <main className="flex min-w-0 flex-1 flex-col">
       <div className="flex h-14 shrink-0 items-center gap-3 border-b border-slate-200 px-4 dark:border-slate-800"><button className="md:hidden" aria-label="Open chats" onClick={() => setDrawer(true)}>☰</button><span className="min-w-0 flex-1 truncate font-medium">{chat?.title || 'Watson chat'}</span>{chat && <select aria-label="Model" value={chat.model} onChange={event => changeModel(event.target.value)} className="max-w-36 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm dark:border-slate-700 dark:bg-slate-900 sm:max-w-64"><option value="">Choose model</option>{models.map(model => <option value={model.id} key={model.id}>{model.name}</option>)}</select>}<button aria-label="Settings" onClick={() => setSettings(true)} className="p-1"><GearIcon /></button></div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6"><div className="mx-auto max-w-3xl space-y-6">{!chat && <div className="pt-[15vh] text-center"><h1 className="text-3xl font-semibold">Talk with Watson</h1><p className="mt-3 text-slate-500">Open a chat or start a new one.</p><button className="mt-5 rounded-xl bg-[#064C7C] px-5 py-2 text-white" onClick={create}>New chat</button></div>}{chat?.messages.map(message => <div key={message.id} className={message.role === 'user' ? 'flex justify-end' : ''}><div className={message.role === 'user' ? 'max-w-[90%] whitespace-pre-wrap rounded-2xl bg-slate-100 px-4 py-3 dark:bg-slate-800' : 'max-w-full'}>{message.role === 'assistant' ? <><div className="mb-1 text-xs font-semibold text-slate-500">Watson</div><Markdown source={message.content} />{message.note && <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">{message.note}</div>}</> : message.content}</div></div>)}{sending && <div><div className="mb-1 text-xs font-semibold text-slate-500">Watson</div>{stream ? <Markdown source={stream} /> : <span className="text-sm text-slate-500">Thinking...</span>}</div>}{error && <p role="alert" className="text-sm text-red-700 dark:text-red-400">{error}</p>}<div ref={endRef} /></div></div>
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6"><div className="mx-auto max-w-3xl space-y-6">{!chat && <div className="pt-[15vh] text-center"><h1 className="text-3xl font-semibold">Talk with Watson</h1><p className="mt-3 text-slate-500">Open a chat or start a new one.</p><button className="mt-5 rounded-xl bg-[#064C7C] px-5 py-2 text-white" onClick={create}>New chat</button></div>}{chat?.messages.map(message => <div key={message.id} className={message.role === 'user' ? 'flex justify-end' : ''}><div className={message.role === 'user' ? 'max-w-[90%] whitespace-pre-wrap rounded-2xl bg-slate-100 px-4 py-3 dark:bg-slate-800' : 'max-w-full'}>{message.role === 'assistant' ? <><div className="mb-1 text-xs font-semibold text-slate-500">Watson</div><Markdown source={message.content} />{message.note && <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">{message.note}</div>}<div className="mt-1 flex items-center gap-1 text-slate-500"><button className="rounded-md px-2 py-1 text-xs hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => void copyMessage(message)} aria-label="Copy reply">{copiedId === message.id ? 'Copied' : 'Copy'}</button><button className="rounded-md px-2 py-1 text-xs hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => speakMessage(message)} aria-label={speakingId === message.id ? 'Stop reading' : 'Read reply aloud'}>{speakingId === message.id ? 'Stop' : 'Read aloud'}</button>{message === chat.messages[chat.messages.length - 1] && !sending && <button className="rounded-md px-2 py-1 text-xs hover:bg-slate-100 dark:hover:bg-slate-800" onClick={retryLast} aria-label="Retry reply">Retry</button>}</div></> : message.content}</div></div>)}{sending && <div><div className="mb-1 text-xs font-semibold text-slate-500">Watson</div>{stream ? <Markdown source={stream} /> : <span className="text-sm text-slate-500">Thinking...</span>}</div>}{error && <p role="alert" className="text-sm text-red-700 dark:text-red-400">{error}</p>}<div ref={endRef} /></div></div>
       {chat && <div className="shrink-0 border-t border-slate-200 bg-white px-3 pt-3 dark:border-slate-800 dark:bg-slate-950" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}><div className="mx-auto flex max-w-3xl items-end gap-2 rounded-2xl border border-slate-300 p-2 shadow-sm dark:border-slate-700"><textarea value={draft} onChange={event => setDraft(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void send() } }} placeholder="Message Watson" aria-label="Message Watson" rows={2} className="min-h-12 max-h-40 flex-1 resize-none bg-transparent px-2 py-2 outline-none" /><button onClick={toggleMic} aria-label={listening ? 'Stop microphone' : 'Start microphone'} className={`rounded-lg px-2 py-2 ${listening ? 'bg-red-100 text-red-700' : ''}`}>🎙</button><button onClick={() => void send()} disabled={!draft.trim() || sending || !chat.model} className="rounded-xl bg-[#064C7C] px-4 py-2 text-white disabled:opacity-40" aria-label="Send message">↑</button></div><div className="mx-auto mt-1 max-w-3xl text-right text-xs text-slate-500">Enter to send · Shift+Enter for a new line</div></div>}
     </main>
     {settings && <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4"><section role="dialog" aria-modal="true" aria-label="Settings" className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl dark:bg-slate-900"><div className="mb-5 flex items-center justify-between"><h2 className="text-xl font-semibold">Settings</h2><button onClick={() => setSettings(false)} aria-label="Close settings">✕</button></div><label htmlFor="identity" className="mb-2 block text-sm font-medium">Identity</label><textarea id="identity" rows={5} value={identity} onChange={event => { setIdentity(event.target.value); localStorage.setItem('watson-identity', event.target.value) }} className="w-full rounded-lg border border-slate-300 bg-white p-3 dark:border-slate-700 dark:bg-slate-950" /><label className="mt-4 flex items-center gap-3 text-sm"><input type="checkbox" checked={readAloud} onChange={event => { setReadAloud(event.target.checked); localStorage.setItem('watson-read-aloud', String(event.target.checked)); if (!event.target.checked) speechSynthesis.cancel() }} /> Read replies aloud</label>{(() => { const archived = summaries.filter(item => item.archived); return <div className="mt-5"><h3 className="mb-2 text-sm font-medium">Archived chats ({archived.length})</h3>{archived.length === 0 ? <p className="text-sm text-slate-500">Nothing archived.</p> : <ul className="max-h-48 space-y-1 overflow-y-auto">{archived.map(item => <li key={item.id} className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-1 text-sm dark:bg-slate-800"><button className="min-w-0 flex-1 truncate py-1 text-left" onClick={() => { setSettings(false); void open(item.id) }}>{item.title || 'New chat'}</button><button className="py-1 text-[#064C7C] dark:text-sky-300" onClick={() => void patchChat(item.id, { archived: false })}>Unarchive</button><button className="py-1 text-red-600" onClick={() => void remove(item.id)}>Delete</button></li>)}</ul>}</div> })()}<button onClick={() => setSettings(false)} className="mt-6 rounded-lg bg-[#064C7C] px-4 py-2 text-white">Done</button></section></div>}
