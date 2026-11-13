@@ -7,6 +7,8 @@ test('slash commands only open at the start and filter skills and actions', () =
   assert.equal(slashQuery('/'), '')
   assert.equal(slashQuery('hello /'), null)
   assert.equal(slashQuery('/calendar\nother'), null)
+  assert.equal(slashQuery('/bible_lookup John 3:16'), null)
+  assert.deepEqual(slashChoices('/bible', [{ id: 'bible_lookup', name: 'Bible Lookup', description: '' }]).map(item => item.id), ['bible_lookup'])
   assert.deepEqual(slashChoices('/cal', skills).map(item => item.id), ['calendar'])
   assert.deepEqual(slashChoices('/web', skills).map(item => item.id), ['web'])
 })

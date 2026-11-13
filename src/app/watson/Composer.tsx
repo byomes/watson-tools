@@ -38,7 +38,7 @@ export default function Composer(props: Props) {
   const slashOpen = slashQuery(props.draft) !== null
 
   function chooseSkill(skill: Skill) {
-    props.onDraft(`Use the ${skill.name} skill to `)
+    props.onDraft(`/${skill.id} `)
     setMenu(false)
     textarea.current?.focus()
   }

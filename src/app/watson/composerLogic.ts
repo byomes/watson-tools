@@ -9,7 +9,7 @@ export const slashActions: SlashAction[] = [
 ]
 
 export function slashQuery(value: string): string | null {
-  return /^\/[^\n]*$/.test(value) ? value.slice(1).trim().toLowerCase() : null
+  return /^\/\S*$/.test(value) ? value.slice(1).toLowerCase() : null
 }
 
 export function slashChoices(value: string, skills: Skill[]) {
@@ -17,7 +17,7 @@ export function slashChoices(value: string, skills: Skill[]) {
   if (query === null) return []
   return [
     ...slashActions.filter(action => `${action.label} ${action.description}`.toLowerCase().includes(query)).map(action => ({ ...action, kind: 'action' as const })),
-    ...skills.filter(skill => `${skill.name} ${skill.description}`.toLowerCase().includes(query)).map(skill => ({ ...skill, label: skill.name, kind: 'skill' as const })),
+    ...skills.filter(skill => `${skill.id} ${skill.name} ${skill.description}`.toLowerCase().includes(query)).map(skill => ({ ...skill, label: skill.name, kind: 'skill' as const })),
   ]
 }
 
