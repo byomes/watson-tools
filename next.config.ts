@@ -7,7 +7,7 @@ import type { NextConfig } from "next";
 // explains how to reach them; the same repo built on the Beelink serves
 // the real pages (VERCEL is unset there, so no redirects).
 // /books and /ged join this list once their PINs are set on the private instance.
-const PRIVATE_PATHS = ["/voice-editor", "/kitfy", "/chi", "/money", "/xmas", "/family", "/scratch", "/tmux", "/news", "/prep", "/sermonplan", "/bc", "/watson"]; // /upload is public again (2026-10-22, Bill)
+const PRIVATE_PATHS = ["/voice-editor", "/kitfy", "/chi", "/money", "/xmas", "/family", "/scratch", "/tmux", "/news", "/prep", "/sermonplan", "/bc"]; // /upload is public again (2026-10-22, Bill)
 
 const nextConfig: NextConfig = {
   async redirects() {
@@ -19,7 +19,10 @@ const nextConfig: NextConfig = {
     const sandbox = { source: "/sandbox", destination: "https://watson.tail0243ff.ts.net:10034/", permanent: false };
     // 2026-11-12: Adelphos LMS trial (Frappe LMS on the Beelink, tailnet only).
     const lms = { source: "/lms", destination: "https://watson.tail0243ff.ts.net:10041/lms", permanent: false };
-    return [connectCard, sandbox, lms, ...PRIVATE_PATHS.flatMap((p) => {
+    // 2026-11-12: Watson chat (tailnet only). /chat is the shortcut; /watson kept for old links.
+    const chat = { source: "/chat", destination: "https://watson.tail0243ff.ts.net:10000/watson", permanent: false };
+    const watson = { source: "/watson", destination: "https://watson.tail0243ff.ts.net:10000/watson", permanent: false };
+    return [connectCard, sandbox, lms, chat, watson, ...PRIVATE_PATHS.flatMap((p) => {
       const app = p.slice(1);
       return [
         { source: p, destination: `/private-forward.html?app=${app}`, permanent: false },
