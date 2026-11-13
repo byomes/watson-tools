@@ -1,14 +1,17 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import Markdown from './Markdown'
+import Composer, { type Attachment, type ChatTools } from './Composer'
+import { readDraft, writeDraft, type Skill } from './composerLogic'
 import { parseLines, replyNote, type ChatEvent } from './stream'
 
-type Message = { id: string; role: 'user' | 'assistant'; content: string; note?: string; at: string }
+type Message = { id: string; role: 'user' | 'assistant'; content: string; note?: string; at: string; attachments?: Attachment[] }
 type Chat = { id: string; title: string; model: string; updated_at: string; session_id?: string; pinned?: boolean; archived?: boolean; messages: Message[] }
 type Summary = Pick<Chat, 'id' | 'title' | 'model' | 'updated_at' | 'pinned' | 'archived'>
 const GearIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2" /><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.01A1.7 1.7 0 0 0 10 3.09V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.01A1.7 1.7 0 0 0 20.91 10H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1Z" /></svg>
-type Model = { id: string; name: string }
+type Model = { id: string; name: string; vision?: boolean }
 type Recognition = { start: () => void; stop: () => void; onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null; onend: (() => void) | null; onerror: (() => void) | null; continuous: boolean; interimResults: boolean }
 type RecognitionWindow = Window & { SpeechRecognition?: new () => Recognition; webkitSpeechRecognition?: new () => Recognition }
 
@@ -33,6 +36,7 @@ export default function WatsonChat() {
   const [chat, setChat] = useState<Chat | null>(null)
   const chatRef = useRef<Chat | null>(null)
   const [models, setModels] = useState<Model[]>([])
+  const [skills, setSkills] = useState<Skill[]>([])
   const [identity, setIdentity] = useState('')
   const [readAloud, setReadAloud] = useState(false)
   const [settings, setSettings] = useState(false)
@@ -41,7 +45,12 @@ export default function WatsonChat() {
   const [results, setResults] = useState<{ id: string; title: string; snippet: string; archived: boolean }[] | null>(null)
   const [drawer, setDrawer] = useState(false)
   const [draft, setDraft] = useState('')
+  const [attachments, setAttachments] = useState<Attachment[]>([])
+  const [uploading, setUploading] = useState(false)
+  const [tools, setTools] = useState<ChatTools>({ web_search: true, thinking: false })
+  const [notice, setNotice] = useState('')
   const [sending, setSending] = useState(false)
+  const abortRef = useRef<AbortController | null>(null)
   const sendingRef = useRef(false)
   const [stream, setStream] = useState('')
   const [error, setError] = useState('')
@@ -50,7 +59,18 @@ export default function WatsonChat() {
   const endRef = useRef<HTMLDivElement>(null)
   const selectedRef = useRef<string | null>(null)
 
-  const showChat = (value: Chat | null) => { chatRef.current = value; selectedRef.current = value?.id || null; setChat(value) }
+  const showChat = (value: Chat | null) => {
+    if (selectedRef.current !== (value?.id || null)) {
+      setDraft(value ? readDraft(localStorage, value.id) : '')
+      setAttachments([])
+      setNotice('')
+    }
+    chatRef.current = value; selectedRef.current = value?.id || null; setChat(value)
+  }
+  const changeDraft = (value: string) => {
+    setDraft(value)
+    if (selectedRef.current) writeDraft(localStorage, selectedRef.current, value)
+  }
   const refresh = useCallback(async () => {
     if (sendingRef.current) return
     try {
@@ -77,6 +97,7 @@ export default function WatsonChat() {
       setIdentity(localStorage.getItem('watson-identity') ?? defaultIdentity.identity)
       setReadAloud(localStorage.getItem('watson-read-aloud') === 'true')
     }).catch(() => { if (active) setError('Could not load Watson settings. Check Tailscale.') })
+    json<{ skills: Skill[] }>(`${api}/skills`).then(data => { if (active) setSkills(data.skills) }).catch(() => { if (active) setSkills([]) })
     queueMicrotask(() => { if (active) void refresh() })
     const onFocus = () => { void refresh() }
     const onVisible = () => { if (document.visibilityState === 'visible') void refresh() }
@@ -149,19 +170,61 @@ export default function WatsonChat() {
     catch { setError('Could not save model choice') }
   }
 
+  async function addFiles(files: File[]) {
+    const currentId = selectedRef.current
+    if (!currentId || sendingRef.current) return
+    setUploading(true)
+    try {
+      for (const file of files) {
+        if (file.size > 25 * 1024 * 1024) throw new Error(`${file.name} is larger than 25 MB`)
+        const body = new FormData()
+        body.append('file', file)
+        const uploaded = await json<Attachment>(`${api}/uploads`, { method: 'POST', body })
+        if (selectedRef.current !== currentId) return
+        setAttachments(items => [...items, uploaded])
+        if (uploaded.kind === 'image') {
+          const current = chatRef.current
+          if (current && !models.find(model => model.id === current.model)?.vision) {
+            const vision = models.find(model => model.vision)
+            if (vision) {
+              const updated = { ...current, model: vision.id, updated_at: now() }
+              await save(updated)
+              showChat(updated)
+              setNotice(`Switched to ${vision.name} for the image.`)
+            } else setError('No vision model is available for this image.')
+          }
+        }
+      }
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not upload file') }
+    finally { setUploading(false) }
+  }
+
+  function removeAttachment(id: string) {
+    setAttachments(items => items.filter(item => item.id !== id))
+    void request(`${api}/uploads/${id}`, { method: 'DELETE' }).catch(() => {})
+  }
+
   async function send(retry?: { text: string; base: Chat }) {
     const text = retry ? retry.text : draft.trim()
     const current = retry ? retry.base : chatRef.current
-    if (!text || !current || !current.model || sendingRef.current || listening) return
+    const selectedAttachments = retry ? current?.messages.at(-1)?.attachments || [] : attachments
+    if ((!text && !selectedAttachments.length) || !current || !current.model || sendingRef.current || listening || uploading) return
+    let model = current.model
+    if (selectedAttachments.some(item => item.kind === 'image') && !models.find(item => item.id === model)?.vision) {
+      const vision = models.find(item => item.vision)
+      if (!vision) { setError('No vision model is available for this image.'); return }
+      model = vision.id
+      setNotice(`Switched to ${vision.name} for the image.`)
+    }
     // For a retry, base already ends with the user message, so history stops before it.
     const prior = retry ? current.messages.slice(0, -1) : current.messages
     const history = prior.slice(-20).map(({ role, content }) => ({ role, content }))
-    const user: Message = { id: crypto.randomUUID(), role: 'user', content: text, at: now() }
+    const user: Message = { id: crypto.randomUUID(), role: 'user', content: text, at: now(), ...(selectedAttachments.length ? { attachments: selectedAttachments } : {}) }
     const pending: Chat = retry
-      ? { ...current, session_id: crypto.randomUUID(), updated_at: now() }
-      : { ...current, title: current.messages.length ? current.title : titleFor(text), updated_at: now(), messages: [...current.messages, user] }
+      ? { ...current, model, session_id: crypto.randomUUID(), updated_at: now() }
+      : { ...current, model, title: current.messages.length ? current.title : titleFor(text || selectedAttachments[0].name), updated_at: now(), messages: [...current.messages, user] }
     showChat(pending)
-    if (!retry) setDraft('')
+    if (!retry) { changeDraft(''); setAttachments([]) }
     setStream('')
     setError('')
     setSending(true)
@@ -169,8 +232,10 @@ export default function WatsonChat() {
     let full = ''
     let done: Extract<ChatEvent, { type: 'done' }> | null = null
     let completed: Chat | null = null
+    const controller = new AbortController()
+    abortRef.current = controller
     try {
-      const response = await fetch(`${api}/chat`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ transcript: text, model: pending.model, session_id: pending.session_id, identity, history }) })
+      const response = await fetch(`${api}/chat`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ transcript: text, model: pending.model, session_id: pending.session_id, identity, history, attachments: selectedAttachments.map(({ id }) => ({ id })), tools }), signal: controller.signal })
       if (!response.ok || !response.body) throw new Error(`Watson returned ${response.status}`)
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
@@ -199,10 +264,13 @@ export default function WatsonChat() {
         speechSynthesis.speak(new SpeechSynthesisUtterance(full))
       }
     } catch (cause) {
-      setError(`Could not finish reply. ${cause instanceof Error ? cause.message : ''}`)
+      if (controller.signal.aborted) {
+        setNotice('Reply stopped.')
+        if (full) completed = { ...pending, updated_at: now(), messages: [...pending.messages, { id: crypto.randomUUID(), role: 'assistant', content: full, at: now() }] }
+      } else setError(`Could not finish reply. ${cause instanceof Error ? cause.message : ''}`)
       try { await save(completed || pending); if (completed) showChat(completed) }
       catch { setError('Could not save chat. Check Tailscale.') }
-    } finally { sendingRef.current = false; setSending(false) }
+    } finally { abortRef.current = null; sendingRef.current = false; setSending(false); setStream('') }
   }
 
   const [copiedId, setCopiedId] = useState<string | null>(null)
@@ -270,8 +338,8 @@ export default function WatsonChat() {
     </aside>
     <main className="flex min-w-0 flex-1 flex-col">
       <div className="flex h-14 shrink-0 items-center gap-3 border-b border-slate-200 px-4 dark:border-slate-800"><button className="md:hidden" aria-label="Open chats" onClick={() => setDrawer(true)}>☰</button><span className="min-w-0 flex-1 truncate font-medium">{chat?.title || 'Watson chat'}</span>{chat && <select aria-label="Model" value={chat.model} onChange={event => changeModel(event.target.value)} className="max-w-36 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm dark:border-slate-700 dark:bg-slate-900 sm:max-w-64"><option value="">Choose model</option>{models.map(model => <option value={model.id} key={model.id}>{model.name}</option>)}</select>}<button aria-label="Settings" onClick={() => setSettings(true)} className="p-1"><GearIcon /></button></div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6"><div className="mx-auto max-w-3xl space-y-6">{!chat && <div className="pt-[15vh] text-center"><h1 className="text-3xl font-semibold">Talk with Watson</h1><p className="mt-3 text-slate-500">Open a chat or start a new one.</p><button className="mt-5 rounded-xl bg-[#064C7C] px-5 py-2 text-white" onClick={create}>New chat</button></div>}{chat?.messages.map(message => <div key={message.id} className={message.role === 'user' ? 'flex justify-end' : ''}><div className={message.role === 'user' ? 'max-w-[90%] whitespace-pre-wrap rounded-2xl bg-slate-100 px-4 py-3 dark:bg-slate-800' : 'max-w-full'}>{message.role === 'assistant' ? <><div className="mb-1 text-xs font-semibold text-slate-500">Watson</div><Markdown source={message.content} />{message.note && <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">{message.note}</div>}<div className="mt-1 flex items-center gap-1 text-slate-500"><button className="rounded-md px-2 py-1 text-xs hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => void copyMessage(message)} aria-label="Copy reply">{copiedId === message.id ? 'Copied' : 'Copy'}</button><button className="rounded-md px-2 py-1 text-xs hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => speakMessage(message)} aria-label={speakingId === message.id ? 'Stop reading' : 'Read reply aloud'}>{speakingId === message.id ? 'Stop' : 'Read aloud'}</button>{message === chat.messages[chat.messages.length - 1] && !sending && <button className="rounded-md px-2 py-1 text-xs hover:bg-slate-100 dark:hover:bg-slate-800" onClick={retryLast} aria-label="Retry reply">Retry</button>}</div></> : message.content}</div></div>)}{sending && <div><div className="mb-1 text-xs font-semibold text-slate-500">Watson</div>{stream ? <Markdown source={stream} /> : <span className="text-sm text-slate-500">Thinking...</span>}</div>}{error && <p role="alert" className="text-sm text-red-700 dark:text-red-400">{error}</p>}<div ref={endRef} /></div></div>
-      {chat && <div className="shrink-0 border-t border-slate-200 bg-white px-3 pt-3 dark:border-slate-800 dark:bg-slate-950" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}><div className="mx-auto flex max-w-3xl items-end gap-2 rounded-2xl border border-slate-300 p-2 shadow-sm dark:border-slate-700"><textarea value={draft} onChange={event => setDraft(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void send() } }} placeholder="Message Watson" aria-label="Message Watson" rows={2} className="min-h-12 max-h-40 flex-1 resize-none bg-transparent px-2 py-2 outline-none" /><button onClick={toggleMic} aria-label={listening ? 'Stop microphone' : 'Start microphone'} className={`rounded-lg px-2 py-2 ${listening ? 'bg-red-100 text-red-700' : ''}`}>🎙</button><button onClick={() => void send()} disabled={!draft.trim() || sending || !chat.model} className="rounded-xl bg-[#064C7C] px-4 py-2 text-white disabled:opacity-40" aria-label="Send message">↑</button></div><div className="mx-auto mt-1 max-w-3xl text-right text-xs text-slate-500">Enter to send · Shift+Enter for a new line</div></div>}
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6"><div className="mx-auto max-w-3xl space-y-6">{!chat && <div className="pt-[15vh] text-center"><h1 className="text-3xl font-semibold">Talk with Watson</h1><p className="mt-3 text-slate-500">Open a chat or start a new one.</p><button className="mt-5 rounded-xl bg-[#064C7C] px-5 py-2 text-white" onClick={create}>New chat</button></div>}{chat?.messages.map(message => <div key={message.id} className={message.role === 'user' ? 'flex justify-end' : ''}><div className={message.role === 'user' ? 'max-w-[90%] whitespace-pre-wrap rounded-2xl bg-slate-100 px-4 py-3 dark:bg-slate-800' : 'max-w-full'}>{message.role === 'assistant' ? <><div className="mb-1 text-xs font-semibold text-slate-500">Watson</div><Markdown source={message.content} />{message.note && <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">{message.note}</div>}<div className="mt-1 flex items-center gap-1 text-slate-500"><button className="rounded-md px-2 py-1 text-xs hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => void copyMessage(message)} aria-label="Copy reply">{copiedId === message.id ? 'Copied' : 'Copy'}</button><button className="rounded-md px-2 py-1 text-xs hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => speakMessage(message)} aria-label={speakingId === message.id ? 'Stop reading' : 'Read reply aloud'}>{speakingId === message.id ? 'Stop' : 'Read aloud'}</button>{message === chat.messages[chat.messages.length - 1] && !sending && <button className="rounded-md px-2 py-1 text-xs hover:bg-slate-100 dark:hover:bg-slate-800" onClick={retryLast} aria-label="Retry reply">Retry</button>}</div></> : <>{message.content && <div>{message.content}</div>}{message.attachments?.map(item => <a key={item.id} href={`${api}/uploads/${item.id}`} target="_blank" rel="noreferrer" className="mt-2 block text-sm text-[#064C7C] underline dark:text-sky-300">{item.kind === "image" ? <Image unoptimized src={`${api}/uploads/${item.id}`} alt={item.name} width={320} height={192} className="max-h-48 max-w-full rounded-lg object-contain" /> : item.name}</a>)}</>}</div></div>)}{sending && <div><div className="mb-1 text-xs font-semibold text-slate-500">Watson</div>{stream ? <Markdown source={stream} /> : <span className="text-sm text-slate-500">Thinking...</span>}</div>}{notice && <p role="status" className="text-sm text-sky-700 dark:text-sky-300">{notice}</p>}{error && <p role="alert" className="text-sm text-red-700 dark:text-red-400">{error}</p>}<div ref={endRef} /></div></div>
+      {chat && <><Composer draft={draft} onDraft={changeDraft} attachments={attachments} uploading={uploading} onFiles={files => void addFiles(files)} onRemove={removeAttachment} skills={skills} tools={tools} onTools={setTools} onNewChat={() => void create()} sending={sending} listening={listening} modelReady={!!chat.model} onSend={() => void send()} onStop={() => abortRef.current?.abort()} onMic={toggleMic} /></>}
     </main>
     {settings && <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4"><section role="dialog" aria-modal="true" aria-label="Settings" className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl dark:bg-slate-900"><div className="mb-5 flex items-center justify-between"><h2 className="text-xl font-semibold">Settings</h2><button onClick={() => setSettings(false)} aria-label="Close settings">✕</button></div><label htmlFor="identity" className="mb-2 block text-sm font-medium">Identity</label><textarea id="identity" rows={5} value={identity} onChange={event => { setIdentity(event.target.value); localStorage.setItem('watson-identity', event.target.value) }} className="w-full rounded-lg border border-slate-300 bg-white p-3 dark:border-slate-700 dark:bg-slate-950" /><label className="mt-4 flex items-center gap-3 text-sm"><input type="checkbox" checked={readAloud} onChange={event => { setReadAloud(event.target.checked); localStorage.setItem('watson-read-aloud', String(event.target.checked)); if (!event.target.checked) speechSynthesis.cancel() }} /> Read replies aloud</label>{(() => { const archived = summaries.filter(item => item.archived); return <div className="mt-5"><h3 className="mb-2 text-sm font-medium">Archived chats ({archived.length})</h3>{archived.length === 0 ? <p className="text-sm text-slate-500">Nothing archived.</p> : <ul className="max-h-48 space-y-1 overflow-y-auto">{archived.map(item => <li key={item.id} className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-1 text-sm dark:bg-slate-800"><button className="min-w-0 flex-1 truncate py-1 text-left" onClick={() => { setSettings(false); void open(item.id) }}>{item.title || 'New chat'}</button><button className="py-1 text-[#064C7C] dark:text-sky-300" onClick={() => void patchChat(item.id, { archived: false })}>Unarchive</button><button className="py-1 text-red-600" onClick={() => void remove(item.id)}>Delete</button></li>)}</ul>}</div> })()}<button onClick={() => setSettings(false)} className="mt-6 rounded-lg bg-[#064C7C] px-4 py-2 text-white">Done</button></section></div>}
   </div>
