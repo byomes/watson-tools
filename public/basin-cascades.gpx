@@ -1,69 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="Watson" xmlns="http://www.topografix.com/GPX/1/1">
-<wpt lat="44.123278" lon="-71.682708"><name>Basin lot / trailhead</name></wpt>
-<wpt lat="44.1211005" lon="-71.682949"><name>The Basin pothole</name></wpt>
-<wpt lat="44.1218069" lon="-71.689648"><name>Kinsman Falls (OSM)</name></wpt>
-<wpt lat="44.1256392" lon="-71.6956261"><name>Cascade Brook Tr junction - DO NOT GO PAST (turn around at Rocky Glen)</name></wpt>
-<trk><name>Basin-Cascades Trail (OSM)</name><trkseg>
-<trkpt lat="44.1208384" lon="-71.6836574"/>
-<trkpt lat="44.120696" lon="-71.684023"/>
-<trkpt lat="44.1206087" lon="-71.6841435"/>
-<trkpt lat="44.1205845" lon="-71.6842977"/>
-<trkpt lat="44.1206013" lon="-71.6844816"/>
-<trkpt lat="44.1205915" lon="-71.68475"/>
-<trkpt lat="44.1206202" lon="-71.684915"/>
-<trkpt lat="44.1207249" lon="-71.6850866"/>
-<trkpt lat="44.1208553" lon="-71.6852904"/>
-<trkpt lat="44.1209012" lon="-71.6855095"/>
-<trkpt lat="44.1210188" lon="-71.6858108"/>
-<trkpt lat="44.1211641" lon="-71.686159"/>
-<trkpt lat="44.121333" lon="-71.6864448"/>
-<trkpt lat="44.1213831" lon="-71.6866328"/>
-<trkpt lat="44.1214385" lon="-71.687063"/>
-<trkpt lat="44.1216212" lon="-71.6875117"/>
-<trkpt lat="44.1217624" lon="-71.6878191"/>
-<trkpt lat="44.1217594" lon="-71.6881304"/>
-<trkpt lat="44.1218359" lon="-71.6882732"/>
-<trkpt lat="44.1218805" lon="-71.6884414"/>
-<trkpt lat="44.1218785" lon="-71.6886861"/>
-<trkpt lat="44.1218595" lon="-71.688964"/>
-<trkpt lat="44.1219403" lon="-71.6893392"/>
-<trkpt lat="44.1219655" lon="-71.6895553"/>
-<trkpt lat="44.1220259" lon="-71.689776"/>
-<trkpt lat="44.1224659" lon="-71.6903962"/>
-<trkpt lat="44.1225638" lon="-71.6905872"/>
-<trkpt lat="44.1226401" lon="-71.6909056"/>
-<trkpt lat="44.1226506" lon="-71.6910062"/>
-<trkpt lat="44.1226984" lon="-71.6910746"/>
-<trkpt lat="44.122841" lon="-71.691234"/>
-<trkpt lat="44.123034" lon="-71.6915002"/>
-<trkpt lat="44.1233374" lon="-71.6916368"/>
-<trkpt lat="44.1237601" lon="-71.6919852"/>
-<trkpt lat="44.1239864" lon="-71.6921245"/>
-<trkpt lat="44.1241477" lon="-71.6921846"/>
-<trkpt lat="44.1244319" lon="-71.6922745"/>
-<trkpt lat="44.1247512" lon="-71.6924274"/>
-<trkpt lat="44.1249346" lon="-71.6924688"/>
-<trkpt lat="44.1251891" lon="-71.6924284"/>
-<trkpt lat="44.125488" lon="-71.6924466"/>
-<trkpt lat="44.1257511" lon="-71.6925874"/>
-<trkpt lat="44.1258472" lon="-71.6926897"/>
-<trkpt lat="44.1258981" lon="-71.6927775"/>
-<trkpt lat="44.1259333" lon="-71.6928555"/>
-<trkpt lat="44.1259595" lon="-71.6929603"/>
-<trkpt lat="44.1259656" lon="-71.6930942"/>
-<trkpt lat="44.1259228" lon="-71.6939228"/>
-<trkpt lat="44.1258748" lon="-71.694082"/>
-<trkpt lat="44.1257428" lon="-71.6943729"/>
-<trkpt lat="44.1256947" lon="-71.6945268"/>
-<trkpt lat="44.1256496" lon="-71.6947091"/>
-<trkpt lat="44.1255393" lon="-71.6947974"/>
-<trkpt lat="44.1254991" lon="-71.6948563"/>
-<trkpt lat="44.1254984" lon="-71.6949296"/>
-<trkpt lat="44.1255418" lon="-71.6949837"/>
-<trkpt lat="44.1256169" lon="-71.6950298"/>
-<trkpt lat="44.125663" lon="-71.6951121"/>
-<trkpt lat="44.1256834" lon="-71.6952774"/>
-<trkpt lat="44.1256781" lon="-71.6954528"/>
-<trkpt lat="44.1256392" lon="-71.6956261"/>
-</trkseg></trk></gpx>
+<wpt lat="44.1227" lon="-71.6824"><name>Basin lot (park here) 10:50</name></wpt>
+<wpt lat="44.1225617" lon="-71.6828334"><name>Restrooms at Basin lot</name></wpt>
+<wpt lat="44.1211005" lon="-71.682949"><name>The Basin pothole 10:55</name></wpt>
+<wpt lat="44.1218069" lon="-71.689648"><name>Kinsman Falls 11:25</name></wpt>
+<wpt lat="44.1226401" lon="-71.6909056"><name>Brook crossing, rock-hop. Not safe = stop at Kinsman. Rocky Glen is beyond</name></wpt>
+<wpt lat="44.1256392" lon="-71.6956261"><name>JUNCTION: too far. Turn back, 12:50 hard turnaround</name></wpt>
+<wpt lat="44.0671" lon="-71.6888"><name>FALLBACK: Georgiana Falls lot, 9-3 Georgiana Falls Rd</name></wpt>
+<wpt lat="44.0731062" lon="-71.6979523"><name>FALLBACK: Georgiana Falls (lower)</name></wpt>
+<wpt lat="44.052855" lon="-71.6539966"><name>InnSeason Pollard Brook (resort)</name></wpt>
+<trk><name>Basin-Cascades Trail (OSM)</name><trkseg><trkpt lat="44.1208384" lon="-71.6836574"/><trkpt lat="44.120696" lon="-71.684023"/><trkpt lat="44.1206087" lon="-71.6841435"/><trkpt lat="44.1205845" lon="-71.6842977"/><trkpt lat="44.1206013" lon="-71.6844816"/><trkpt lat="44.1205915" lon="-71.68475"/><trkpt lat="44.1206202" lon="-71.684915"/><trkpt lat="44.1207249" lon="-71.6850866"/><trkpt lat="44.1208553" lon="-71.6852904"/><trkpt lat="44.1209012" lon="-71.6855095"/><trkpt lat="44.1210188" lon="-71.6858108"/><trkpt lat="44.1211641" lon="-71.686159"/><trkpt lat="44.121333" lon="-71.6864448"/><trkpt lat="44.1213831" lon="-71.6866328"/><trkpt lat="44.1214385" lon="-71.687063"/><trkpt lat="44.1216212" lon="-71.6875117"/><trkpt lat="44.1217624" lon="-71.6878191"/><trkpt lat="44.1217594" lon="-71.6881304"/><trkpt lat="44.1218359" lon="-71.6882732"/><trkpt lat="44.1218805" lon="-71.6884414"/><trkpt lat="44.1218785" lon="-71.6886861"/><trkpt lat="44.1218595" lon="-71.688964"/><trkpt lat="44.1219403" lon="-71.6893392"/><trkpt lat="44.1219655" lon="-71.6895553"/><trkpt lat="44.1220259" lon="-71.689776"/><trkpt lat="44.1224659" lon="-71.6903962"/><trkpt lat="44.1225638" lon="-71.6905872"/><trkpt lat="44.1226401" lon="-71.6909056"/><trkpt lat="44.1226506" lon="-71.6910062"/><trkpt lat="44.1226984" lon="-71.6910746"/><trkpt lat="44.122841" lon="-71.691234"/><trkpt lat="44.123034" lon="-71.6915002"/><trkpt lat="44.1233374" lon="-71.6916368"/><trkpt lat="44.1237601" lon="-71.6919852"/><trkpt lat="44.1239864" lon="-71.6921245"/><trkpt lat="44.1241477" lon="-71.6921846"/><trkpt lat="44.1244319" lon="-71.6922745"/><trkpt lat="44.1247512" lon="-71.6924274"/><trkpt lat="44.1249346" lon="-71.6924688"/><trkpt lat="44.1251891" lon="-71.6924284"/><trkpt lat="44.125488" lon="-71.6924466"/><trkpt lat="44.1257511" lon="-71.6925874"/><trkpt lat="44.1258472" lon="-71.6926897"/><trkpt lat="44.1258981" lon="-71.6927775"/><trkpt lat="44.1259333" lon="-71.6928555"/><trkpt lat="44.1259595" lon="-71.6929603"/><trkpt lat="44.1259656" lon="-71.6930942"/><trkpt lat="44.1259228" lon="-71.6939228"/><trkpt lat="44.1258748" lon="-71.694082"/><trkpt lat="44.1257428" lon="-71.6943729"/><trkpt lat="44.1256947" lon="-71.6945268"/><trkpt lat="44.1256496" lon="-71.6947091"/><trkpt lat="44.1255393" lon="-71.6947974"/><trkpt lat="44.1254991" lon="-71.6948563"/><trkpt lat="44.1254984" lon="-71.6949296"/><trkpt lat="44.1255418" lon="-71.6949837"/><trkpt lat="44.1256169" lon="-71.6950298"/><trkpt lat="44.125663" lon="-71.6951121"/><trkpt lat="44.1256834" lon="-71.6952774"/><trkpt lat="44.1256781" lon="-71.6954528"/><trkpt lat="44.1256392" lon="-71.6956261"/></trkseg></trk>
+<trk><name>Georgiana Falls trail (OSM)</name><trkseg><trkpt lat="44.0670083" lon="-71.688746"/><trkpt lat="44.0670799" lon="-71.68922"/><trkpt lat="44.0670799" lon="-71.68922"/><trkpt lat="44.0671418" lon="-71.6895829"/><trkpt lat="44.0671418" lon="-71.6895829"/><trkpt lat="44.067196" lon="-71.6899477"/><trkpt lat="44.0672223" lon="-71.6900308"/><trkpt lat="44.0672627" lon="-71.6901053"/><trkpt lat="44.0673179" lon="-71.6901577"/><trkpt lat="44.0674143" lon="-71.6901738"/><trkpt lat="44.0678768" lon="-71.6901201"/><trkpt lat="44.0680078" lon="-71.6901201"/><trkpt lat="44.0680888" lon="-71.690163"/><trkpt lat="44.0681312" lon="-71.6902274"/><trkpt lat="44.0681736" lon="-71.6903508"/><trkpt lat="44.0681967" lon="-71.6904688"/><trkpt lat="44.068189" lon="-71.6906753"/><trkpt lat="44.0682083" lon="-71.6908658"/><trkpt lat="44.0682044" lon="-71.6910803"/><trkpt lat="44.0682044" lon="-71.6910803"/><trkpt lat="44.0682507" lon="-71.691303"/><trkpt lat="44.0682507" lon="-71.691303"/><trkpt lat="44.0683393" lon="-71.6915309"/><trkpt lat="44.0684087" lon="-71.6917831"/><trkpt lat="44.0684395" lon="-71.6919601"/><trkpt lat="44.0685859" lon="-71.692221"/><trkpt lat="44.0690948" lon="-71.6927862"/><trkpt lat="44.0692413" lon="-71.6930008"/><trkpt lat="44.0692798" lon="-71.6932154"/><trkpt lat="44.0693029" lon="-71.6934943"/><trkpt lat="44.06938" lon="-71.6937518"/><trkpt lat="44.069565" lon="-71.6940093"/><trkpt lat="44.0699118" lon="-71.6943024"/><trkpt lat="44.0702842" lon="-71.6946856"/><trkpt lat="44.0705926" lon="-71.6949109"/><trkpt lat="44.0708084" lon="-71.6952113"/><trkpt lat="44.0708909" lon="-71.6955221"/><trkpt lat="44.0709603" lon="-71.6957474"/><trkpt lat="44.0710528" lon="-71.6959405"/><trkpt lat="44.0710759" lon="-71.6961658"/><trkpt lat="44.0710528" lon="-71.696434"/><trkpt lat="44.0709757" lon="-71.6969061"/><trkpt lat="44.0709911" lon="-71.6971099"/><trkpt lat="44.0710451" lon="-71.6972816"/><trkpt lat="44.071153" lon="-71.6973996"/><trkpt lat="44.071338" lon="-71.6975391"/><trkpt lat="44.0716409" lon="-71.6976575"/><trkpt lat="44.0719019" lon="-71.6977508"/><trkpt lat="44.0724569" lon="-71.6977616"/><trkpt lat="44.0728257" lon="-71.6976678"/></trkseg></trk>
+</gpx>
