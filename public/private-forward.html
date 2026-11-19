@@ -29,6 +29,12 @@ var path = APPS[app];
 if (!path) { document.getElementById('name').textContent = 'Private app'; document.getElementById('go').textContent = 'This page is not available.'; }
 else {
   var url = path.indexOf('http') === 0 ? path : HOST + path;
+  var q = new URLSearchParams(location.search), sub = q.get('p');
+  if (path.indexOf('http') === 0 && (sub !== null || [...q.keys()].some(function (k) { return k !== 'app' && k !== 'p'; }))) {
+    q.delete('app'); q.delete('p');   // keep the sub-path and any other query (e.g. /news/breaking?id=3)
+    var rest = q.toString();
+    url = path.replace(/\/$/, '') + '/' + (sub || '') + (rest ? '?' + rest : '');
+  }
   document.getElementById('name').textContent = app.replace('-', ' ');
   document.getElementById('retry').href = url;
   setTimeout(function () { location.replace(url); }, 150);

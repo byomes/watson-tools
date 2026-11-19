@@ -24,7 +24,12 @@ const nextConfig: NextConfig = {
     // 2026-11-12: Watson chat (tailnet only). /chat is the shortcut; /watson kept for old links.
     const chat = { source: "/chat", destination: "https://watson.tail0243ff.ts.net:10000/watson", permanent: false };
     const watson = { source: "/watson", destination: "https://watson.tail0243ff.ts.net:10000/watson", permanent: false };
-    return [connectCard, sandbox, lms, chat, watson, ...PRIVATE_PATHS.flatMap((p) => {
+    // 2026-11-19: /news keeps its sub-path and query so /news/breaking?id=3 opens that page (Telegram alerts use it).
+    const news = [
+      { source: "/news", destination: "/private-forward.html?app=news", permanent: false },
+      { source: "/news/:path*", destination: "/private-forward.html?app=news&p=:path*", permanent: false },
+    ];
+    return [connectCard, sandbox, lms, chat, watson, ...news, ...PRIVATE_PATHS.flatMap((p) => {
       const app = p.slice(1);
       return [
         { source: p, destination: `/private-forward.html?app=${app}`, permanent: false },
