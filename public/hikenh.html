@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>NH Hike Nov 19</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+html,body{margin:0;height:100%;font-family:system-ui,sans-serif}
+#map{position:absolute;inset:0 0 150px 0}
+#bar{position:absolute;left:0;right:0;bottom:0;height:150px;background:#1b3a2a;color:#fff;padding:8px 12px;box-sizing:border-box;overflow:auto;font-size:14px}
+button{font-size:15px;padding:8px 12px;margin:2px 4px 2px 0;border:0;border-radius:6px;background:#b8481f;color:#fff}
+#st{display:block;margin-top:4px}
+.lbl{font-weight:600}
+</style></head><body>
+<div id="map"></div>
+<div id="bar">
+<button id="dl">Download map for offline</button><button id="loc">My location</button><button id="a">Hike A</button><button id="b">Georgiana</button>
+<span id="st">Not downloaded yet. Tap Download while on resort Wi-Fi.</span>
+<div><span class="lbl">Basin-Cascades to Rocky Glen Falls</span> ~2.6 mi RT, ~600 ft. Turnaround 12:50 sharp. Skip crossing if water covers rocks, over ankle, or icy. Georgiana: 9-3 Georgiana Falls Rd, Lincoln. Rocky Glen is about 1 mi in; find it on the trail line.</div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const map=L.map('map',{zoomControl:false,maxZoom:17}).setView([44.1215,-71.6860],15);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',{maxZoom:17,maxNativeZoom:16,attribution:'Esri'}).addTo(map);
+const pts={trailhead:[44.123278,-71.682708,'Basin lot / trailhead'],basin:[44.120975,-71.682983,'The Basin pothole'],kins:[44.121736,-71.689508,'Kinsman Falls (~0.3 mi)']};
+for(const k in pts){L.marker([pts[k][0],pts[k][1]]).addTo(map).bindTooltip(pts[k][2],{permanent:true,direction:'right'});}
+L.polyline([[44.123278,-71.682708],[44.121736,-71.689508]],{color:'#b8481f',dashArray:'6 6'}).addTo(map).bindTooltip('rough line only; follow the trail on the map');
+document.getElementById('a').onclick=()=>map.setView([44.1215,-71.6860],15);
+document.getElementById('b').onclick=()=>map.setView([44.07,-71.68],13);
+let me;document.getElementById('loc').onclick=()=>navigator.geolocation.watchPosition(p=>{const ll=[p.coords.latitude,p.coords.longitude];if(!me)me=L.circleMarker(ll,{radius:8,color:'#fff',fillColor:'#2563eb',fillOpacity:1}).addTo(map);me.setLatLng(ll);},()=>{},{enableHighAccuracy:true});
+const st=document.getElementById('st');
+function tiles(b,z0,z1){const o=[];for(let z=z0;z<=z1;z++){const n=2**z,x=l=>Math.floor((l+180)/360*n),y=a=>{const r=a*Math.PI/180;return Math.floor((1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*n)};
+for(let X=x(b[1]);X<=x(b[3]);X++)for(let Y=y(b[0]);Y<=y(b[2]);Y++)o.push(`https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/${z}/${Y}/${X}`);}return o;}
+document.getElementById('dl').onclick=async()=>{
+ const list=[...tiles([44.133,-71.705,44.112,-71.672],11,16),...tiles([44.20,-71.80,44.00,-71.55],9,12),...tiles([44.075,-71.70,44.045,-71.65],13,16)];
+ const c=await caches.open('hikenh-tiles-v1');let done=0,fail=0;
+ for(let i=0;i<list.length;i+=8){await Promise.all(list.slice(i,i+8).map(async u=>{try{if(!await c.match(u)){await c.put(u,await fetch(u,{mode:'no-cors'}));}}catch(e){fail++}done++;}));st.textContent=`Downloading ${done}/${list.length}`;}
+ st.textContent=fail?`Done with ${fail} failed. Tap again to retry.`:`Saved ${list.length} tiles. Works offline now (open once more with Wi-Fi off to check).`;};
+if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw-hikenh.js');
+</script></body></html>
