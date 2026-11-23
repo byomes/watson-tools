@@ -1606,13 +1606,49 @@ export default function SmsApp() {
   }
 
   async function attachImage(file: File) {
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => resolve(reader.result as string)
-      reader.onerror = () => reject(reader.error)
-      reader.readAsDataURL(file)
-    })
-    setAttachedImage({ dataUrl, mimeType: file.type })
+    // MMS carriers cap messages around 1 MB and Vercel caps request bodies at
+    // 4.5 MB, so full-size phone photos (often HEIC or 3-6 MB) fail. Downscale
+    // to a JPEG under ~900 KB before attaching. Falls back to the original
+    // file if the browser cannot decode it.
+    const readAsDataUrl = (blob: Blob) =>
+      new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = () => reject(reader.error)
+        reader.readAsDataURL(blob)
+      })
+    try {
+      const bitmap = await createImageBitmap(file)
+      const MAX_BYTES = 900 * 1024
+      let maxDim = 1600
+      let blob: Blob | null = null
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height))
+        const canvas = document.createElement('canvas')
+        canvas.width = Math.max(1, Math.round(bitmap.width * scale))
+        canvas.height = Math.max(1, Math.round(bitmap.height * scale))
+        const ctx = canvas.getContext('2d')
+        if (!ctx) break
+        ctx.fillStyle = '#fff'
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
+        ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+        blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/jpeg', attempt < 2 ? 0.82 : 0.65))
+        if (blob && blob.size <= MAX_BYTES) break
+        maxDim = Math.round(maxDim * 0.75)
+      }
+      bitmap.close?.()
+      if (blob) {
+        setAttachedImage({ dataUrl: await readAsDataUrl(blob), mimeType: 'image/jpeg' })
+        return
+      }
+    } catch {
+      // fall through to the original file
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      window.alert('That photo is too large and could not be shrunk. Try a different one.')
+      return
+    }
+    setAttachedImage({ dataUrl: await readAsDataUrl(file), mimeType: file.type })
   }
 
   async function send() {
@@ -1633,6 +1669,8 @@ export default function SmsApp() {
       updateCompose('')
       setAttachedImage(null)
       await loadThreads()
+    } catch (err) {
+      window.alert(`Message did not send: ${err instanceof Error ? err.message : 'unknown error'}`)
     } finally {
       setSending(false)
     }
