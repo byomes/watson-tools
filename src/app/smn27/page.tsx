@@ -23,7 +23,7 @@ const SERIES: Series[] = [
     key: 'fip',
     name: 'Faith In Practice',
     kind: 'Growing in Christ',
-    dates: 'January 3 to February 28',
+    dates: 'January to February',
     weeks: 9,
     blurb:
       'We begin the year where discipleship begins: with allegiance to Jesus as King. From there we walk through the everyday practices that grow out of that trust. They are not hoops to jump through. They are what following Jesus looks like when it becomes ordinary life.',
@@ -33,7 +33,7 @@ const SERIES: Series[] = [
     key: 'holy',
     name: 'Palm Sunday and Easter',
     kind: 'Holy Week',
-    dates: 'March 21 and March 28',
+    dates: 'March',
     weeks: 2,
     blurb:
       'Palm Sunday asks whether the crowd that welcomed Jesus really knew who He was. Easter answers with firstfruits: the empty tomb is the first sheaf of a harvest still to come, and the promise it carries is for everyone.',
@@ -42,7 +42,7 @@ const SERIES: Series[] = [
     key: 'upper',
     name: 'The Upper Room',
     kind: 'John 13 to 17',
-    dates: 'April 4 to May 23',
+    dates: 'April to May',
     weeks: 8,
     blurb:
       'The night before the cross, Jesus slowed down and taught His closest friends. We sit at that table: the towel and the basin, the way to the Father, the promise of the Spirit, the vine and the branches, and finally Jesus praying for us.',
@@ -51,7 +51,7 @@ const SERIES: Series[] = [
     key: 'esther',
     name: 'Esther',
     kind: 'Old Testament',
-    dates: 'June 13 to July 25',
+    dates: 'June to July',
     weeks: 7,
     blurb:
       'God is never named in this story, yet He is on every page. A young woman, a faithful cousin, a proud schemer and a threatened people show us how God works behind the scenes, and what courage looks like when we are asked to step forward.',
@@ -60,7 +60,7 @@ const SERIES: Series[] = [
     key: 'prov',
     name: 'Proverbs: Wisdom for Exiles',
     kind: 'Christian living',
-    dates: 'August 1 to August 22',
+    dates: 'August',
     weeks: 4,
     blurb:
       'Living wisely in a culture that does not share our values. A short summer series on the everyday choices where wisdom shows up most: what we say, how we carry ourselves, how we stay faithful, and how we work.',
@@ -70,7 +70,7 @@ const SERIES: Series[] = [
     key: 'pet',
     name: '1 Peter',
     kind: 'New Testament',
-    dates: 'September 5 to October 24',
+    dates: 'September to October',
     weeks: 7,
     blurb:
       'Peter wrote to believers who felt like strangers in their own world. His letter is about godliness in an ungodly culture: how to hold on to hope, live as a holy people, and stay faithful at home, in character, in suffering and in leadership.',
@@ -79,7 +79,7 @@ const SERIES: Series[] = [
     key: 'unseen',
     name: 'The Unseen',
     kind: 'Theology',
-    dates: 'October 31 to November 21',
+    dates: 'October to November',
     weeks: 4,
     blurb:
       'The Bible assumes an unseen realm, refers to it and validates it. We look at what Scripture actually says about it, who the players are, the real enemy we face, and how we are meant to live in light of what we cannot see.',
@@ -88,7 +88,7 @@ const SERIES: Series[] = [
     key: 'names',
     name: 'The Names of Christmas',
     kind: 'Advent',
-    dates: 'November 28 to December 19',
+    dates: 'November to December',
     weeks: 4,
     blurb:
       'Four Sundays of Advent, four ways the Bible names the child in the manger. From Isaiah’s promise to the angel’s message and Simeon’s prophecy, we let the names of Jesus prepare us for Christmas.',
@@ -135,7 +135,7 @@ export default function Smn27() {
               <p className="kind">{s.kind}</p>
               <h2>{s.name}</h2>
               <p className="when">
-                {s.dates} <span>{s.weeks} {s.weeks === 1 ? 'week' : 'weeks'}</span>
+                {s.dates}
               </p>
               <p className="blurb">{s.blurb}</p>
               {s.points && (
@@ -153,7 +153,7 @@ export default function Smn27() {
       <footer className="foot">
         <p className="sig">Dr. Bill Yomes, Senior Pastor, Catalyst Community Church</p>
         <p>
-          Dates are approximate. A year is a long time, and the plan will flex as life and ministry require. A few Sundays
+          Timing is approximate. A year is a long time, and the plan will flex as life and ministry require. A few Sundays
           each year are set aside for missionary visits and guest speakers.
         </p>
       </footer>
