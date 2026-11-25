@@ -29,7 +29,27 @@ const nextConfig: NextConfig = {
       { source: "/news", destination: "/private-forward.html?app=news", permanent: false },
       { source: "/news/:path*", destination: "/private-forward.html?app=news&p=:path*", permanent: false },
     ];
-    return [connectCard, sandbox, lms, chat, watson, ...news, ...PRIVATE_PATHS.flatMap((p) => {
+    // 2026-11-25: leaders move to the 9e9 web app (Bill). Temporary (307) so each is easy to undo. NOT redirected on purpose:
+    // /cat/group (tokenized links), /cat/papercards, /cat/events, /cat/attsched, /cat/xmasb, /cat/tableaccess, /cat/social, /cat/scratch.
+    const N = "https://catalyst.9e9.app";
+    const catTo = (from: string[], to: string) => from.map((source) => ({ source, destination: N + to, permanent: false }));
+    const catToNine = [
+      { source: "/cat/9e9", destination: N + "/", permanent: false },
+      { source: "/cat/9e9/:path*", destination: N + "/:path*", permanent: false },
+      ...catTo(["/cat/dashboard"], "/"),
+      ...catTo(["/cat/catalystdb/login"], "/login"),
+      ...catTo(["/cat/catalystdb", "/cat/duplicates"], "/people/"),
+      ...catTo(["/cat/tracker", "/cat/attendance"], "/attendance/checkin"),
+      ...catTo(["/cat/kidsatt"], "/kids/"),
+      ...catTo(["/cat/kidstoday"], "/kids/servants"),
+      ...catTo(["/cat/groups"], "/groups/"),
+      ...catTo(["/cat/serving"], "/serving/"),
+      ...catTo(["/cat/deaconapp", "/cat/deaconapp-bill", "/cat/deaconapp/login"], "/shepherd/app"),
+      ...catTo(["/cat/shepcheck", "/cat/shepcheck/login", "/cat/shepherdingreport", "/cat/connection"], "/shepherd/"),
+      ...catTo(["/cat/bday"], "/dates/"),
+      ...catTo(["/cat/event-duplicates"], "/events/duplicates"),
+    ];
+    return [connectCard, ...catToNine, sandbox, lms, chat, watson, ...news, ...PRIVATE_PATHS.flatMap((p) => {
       const app = p.slice(1);
       return [
         { source: p, destination: `/private-forward.html?app=${app}`, permanent: false },
